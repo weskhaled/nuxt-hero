@@ -1,0 +1,206 @@
+@reference "tailwindcss";
+
+/* ─── Theme: CSS custom properties ─── */
+:root {
+  --hero-primary: #ffffff;
+  --hero-bg: rgba(255, 255, 255, 0.55);
+  --hero-border: rgba(255, 255, 255, 0.2);
+  --hero-progress-bg: rgba(255, 255, 255, 0.65);
+  --hero-nav-bg: rgba(0, 0, 0, 0.3);
+  --hero-nav-text: #ffffff;
+}
+
+/* ─── Navigation: nav-slit ─── */
+.hero-slider .hero-nav {
+  @apply min-h-0;
+}
+
+.hero-slider .nav-slit-btn {
+  @apply pointer-events-auto absolute z-10 block cursor-pointer outline-none;
+}
+
+.hero-slider .nav-slit-btn > span {
+  @apply relative block bg-white/40 ring ring-white backdrop-blur-sm text-black transition-transform duration-300;
+  @apply dark:bg-black/40 dark:ring-black dark:text-white;
+  @apply group-hover:opacity-100;
+}
+
+.hero-slider .nav-slit-preview {
+  @apply absolute ring ring-white transition-transform duration-300 delay-300;
+  @apply bg-white dark:bg-black dark:ring-black;
+}
+
+.hero-slider .nav-slit-preview h3 {
+  @apply absolute m-0 truncate px-2 py-0.5 text-sm font-light capitalize leading-5 backface-hidden transition-transform duration-300;
+  @apply bg-white/70 ring ring-white backdrop-blur-sm text-black;
+  @apply dark:bg-black/70 dark:ring-black dark:text-white;
+}
+
+.hero-slider .nav-slit-prev .nav-slit-preview {
+  @apply left-0 -translate-x-full;
+}
+.hero-slider .nav-slit-prev:hover .nav-slit-preview {
+  @apply left-0 translate-x-0;
+}
+
+.hero-slider .nav-slit-next .nav-slit-preview {
+  @apply right-0 translate-x-full text-right;
+}
+.hero-slider .nav-slit-next:hover .nav-slit-preview {
+  @apply right-0 translate-x-0;
+}
+
+/* ─── Video controls ─── */
+.hero-video-btn {
+  @apply shadow-none border-none transition-all duration-200 relative;
+  @apply bg-white/35 backdrop-blur-sm opacity-0 hover:scale-110;
+  @apply dark:bg-black/35;
+  @apply group-hover/slider:opacity-100;
+}
+
+.media-controls {
+  @apply pointer-events-auto absolute z-999 bottom-5 left-4 flex items-center gap-1;
+}
+
+/* ─── Pagination: tooltip ─── */
+.swiper-pagination > button > .tooltip-content {
+  @apply pointer-events-none absolute bottom-full mb-1 left-1/2 z-90 w-30 -ml-[60px] cursor-default opacity-0 transition-opacity duration-300 delay-300;
+}
+
+.swiper-pagination > button > .tooltip-content::after {
+  @apply pointer-events-none absolute -bottom-2.5 left-1/2 -ml-1.25 size-0 border-5 border-transparent border-t-inherit!;
+  content: '';
+}
+
+.swiper-pagination > button > .tooltip-content .tooltip-text {
+  @apply overflow-hidden border-b-2 origin-left scale-x-0 scale-y-100 transition-transform duration-300 delay-300;
+}
+
+.swiper-pagination > button > .tooltip-content .tooltip-text .tooltip-inner {
+  @apply max-w-[inherit] rounded-none p-0 translate-y-full transition-transform duration-300;
+}
+
+.swiper-pagination > button > .tooltip-content .tooltip-text .tooltip-inner img {
+  @apply opacity-65;
+}
+
+/* Tooltip hover states */
+.swiper-pagination > button:hover > .tooltip-content {
+  @apply z-99 opacity-100 delay-0;
+}
+
+.swiper-pagination > button:hover > .tooltip-content .tooltip-text {
+  @apply scale-x-100 delay-0;
+}
+
+.swiper-pagination > button:hover > .tooltip-content .tooltip-text .tooltip-inner {
+  @apply translate-y-0 delay-300;
+}
+
+/* ─── SVG progress circle ─── */
+.swiper-pagination .progress-circle-svg {
+  @apply -rotate-90;
+}
+
+.swiper-pagination .progress-circle-bar {
+  stroke: var(--hero-primary);
+}
+
+.swiper-pagination .progress-circle-bg {
+  stroke: var(--hero-progress-bg);
+}
+
+/* ─── Radial progress (replaces daisyUI radial-progress) ─── */
+.hero-radial-progress {
+  --hero-progress-value: 0;
+  --hero-progress-size: 1.25rem;
+  --hero-progress-thickness: 2px;
+  display: inline-grid;
+  place-content: center;
+  width: var(--hero-progress-size);
+  height: var(--hero-progress-size);
+  border-radius: 9999px;
+  background: conic-gradient(currentColor calc(var(--hero-progress-value) * 1%), transparent 0);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - var(--hero-progress-thickness)), #000 calc(100% - var(--hero-progress-thickness)));
+  mask: radial-gradient(farthest-side, transparent calc(100% - var(--hero-progress-thickness)), #000 calc(100% - var(--hero-progress-thickness)));
+}
+
+/* ─── Spinner (replaces daisyUI loading-spinner) ─── */
+@keyframes heroSpin {
+  to { transform: rotate(360deg); }
+}
+
+.hero-spinner {
+  display: inline-block;
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  border-top-color: currentColor;
+  border-left-color: currentColor;
+  animation: heroSpin 0.6s linear infinite;
+}
+
+.hero-spinner-sm { width: 1rem; height: 1rem; }
+.hero-spinner-md { width: 1.25rem; height: 1.25rem; }
+
+.hero-range::-webkit-slider-thumb {
+  @apply appearance-none size-3 rounded-full bg-white cursor-pointer;
+}
+
+.hero-range::-moz-range-thumb {
+  @apply size-3 rounded-full bg-white cursor-pointer border-none;
+}
+
+/* ─── Built-in animations ─── */
+.hero-animated {
+  animation-duration: 0.6s;
+  animation-fill-mode: both;
+}
+
+@keyframes heroFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes heroFadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes heroSlideInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes heroSlideOutDown {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(30px); }
+}
+
+@keyframes heroSlideInRight {
+  from { opacity: 0; transform: translateX(30px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes heroSlideInLeft {
+  from { opacity: 0; transform: translateX(-30px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes heroZoomIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes heroZoomOut {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(1.1); }
+}
+
+.hero-fadeIn { animation-name: heroFadeIn; }
+.hero-fadeOut { animation-name: heroFadeOut; }
+.hero-slideInUp { animation-name: heroSlideInUp; }
+.hero-slideOutDown { animation-name: heroSlideOutDown; }
+.hero-slideInRight { animation-name: heroSlideInRight; }
+.hero-slideInLeft { animation-name: heroSlideInLeft; }
+.hero-zoomIn { animation-name: heroZoomIn; }
+.hero-zoomOut { animation-name: heroZoomOut; }
