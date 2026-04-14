@@ -76,15 +76,16 @@ const volumeIcon = computed(() => {
         <Icon v-else-if="playing.value" name="lucide:pause" class="size-4 transition-transform duration-150" />
         <Icon v-else name="lucide:play" class="size-4 transition-transform duration-150" />
       </button>
-      <div class="group/volume flex items-center">
+      <div class="group/volume flex items-center bg-white/25 rounded transition-opacity overflow-hidden">
         <button type="button"
-          class="inline-flex items-center justify-center size-8 rounded mr-1 shadow-none text-white hover:opacity-100 transition-opacity cursor-pointer"
+          class="inline-flex flex-none items-center justify-center size-8 rounded shadow-none text-white hover:opacity-100 transition-opacity cursor-pointer"
           aria-label="Toggle mute" @click="toggleMute">
           <Icon v-if="volumeIcon === 'high'" name="lucide:volume-2" class="size-4" />
           <Icon v-else-if="volumeIcon === 'low'" name="lucide:volume-1" class="size-4" />
           <Icon v-else name="lucide:volume-x" class="size-4" />
         </button>
-        <div class="overflow-hidden flex group-hover/volume:w-24 transition-all duration-300 ease-out">
+        <div
+          class="overflow-hidden w-0 px-2 hidden group-hover/volume:flex group-hover/volume:w-full transition-all duration-300 ease-out">
           <input type="range" min="0" max="100" :value="muted.value ? 0 : volumePercent" class="text-white"
             aria-label="Volume" :aria-valuetext="`${muted.value ? 0 : volumePercent}%`" @input="onVolumeInput" />
         </div>

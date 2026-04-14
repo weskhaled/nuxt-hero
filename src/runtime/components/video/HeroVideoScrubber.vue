@@ -43,9 +43,9 @@ watch([scrubbing, elementX], () => {
   <div ref="scrubber" class="cursor-pointer select-none bg-white/15"
     @mousedown.stop="((scrubbing = true), emit('scrubberMousedown', true))">
     <div class="h-full w-full relative overflow-hidden">
-      <div class="bg-white rounded-e-sm h-full w-full left-0 top-0 absolute"
+      <div class="bg-white h-full w-full left-0 top-0 absolute"
         :style="{ transform: `translateX(${(secondary / max) * 100 - 100}%)` }" />
-      <div class="bg-white h-full w-full relative rounded-e-sm"
+      <div class="bg-white h-full w-full relative"
         :style="{ transform: `translateX(${(value / max) * 100 - 100}%)` }" />
     </div>
     <div class="opacity-0 inset-0 absolute hover:opacity-100" :class="{ 'opacity-100': scrubbing }">
