@@ -1,7 +1,7 @@
 <script lang="ts" setup>
-import { computed, ref } from 'vue'
+import { computed, ref, useTemplateRef } from 'vue'
 import type { Ref } from 'vue'
-import { useFullscreen } from '@vueuse/core'
+import { useFullscreen, useMouseInElement, useElementHover } from '@vueuse/core'
 import { formatTime } from '#hero/utils'
 
 interface VideoControlsProps {
@@ -81,6 +81,15 @@ const volumeIcon = computed(() => {
 
 // ─── Scrubber ───
 
+const scrubberTrackRef = useTemplateRef<HTMLElement>('scrubberTrackRef')
+const scrubberHovered = useElementHover(scrubberTrackRef)
+const { elementX, elementWidth } = useMouseInElement(scrubberTrackRef)
+
+const showTooltip = computed(() => scrubberHovered.value || scrubbing.value)
+const hoverProgress = computed(() => Math.max(0, Math.min(1, elementX.value / elementWidth.value)))
+const hoverTime = computed(() => hoverProgress.value * props.duration.value)
+const tooltipLeft = computed(() => `${Math.max(0, Math.min(elementX.value, elementWidth.value))}px`)
+
 function onScrubInput(e: Event) {
   const val = Number((e.target as HTMLInputElement).value)
   const time = (val / 100) * props.duration.value
@@ -136,7 +145,7 @@ function setPlaybackRate(rate: number) {
   <!-- Bottom bar -->
   <div class="media-controls">
     <!-- Scrubber bar: full width above buttons -->
-    <div class="hero-scrubber-track bottom-2">
+    <div ref="scrubberTrackRef" class="hero-scrubber-track bottom-2">
       <!-- Buffered -->
       <div class="hero-scrubber-buffered" :style="{ width: `${bufferedPercent}%` }" />
       <!-- Progress -->
@@ -147,6 +156,10 @@ function setPlaybackRate(rate: number) {
         :aria-valuetext="`${formatTime(currentTime.value)} of ${formatTime(duration.value)}`" @input="onScrubInput"
         @mousedown="onScrubDown" @touchstart="onScrubDown" @mouseup="onScrubUp" @touchend="onScrubUp"
         @touchcancel="onScrubUp" />
+      <!-- Hover tooltip -->
+      <div v-show="showTooltip" class="hero-scrub-tooltip" :style="{ left: tooltipLeft }">
+        {{ formatTime(hoverTime) }}
+      </div>
     </div>
 
     <!-- Controls row -->

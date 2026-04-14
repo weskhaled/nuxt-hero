@@ -71,6 +71,7 @@
   border-radius: 9999px;
   cursor: pointer;
   transition: height 0.15s ease;
+  overflow: visible;
 }
 
 .hero-scrubber-track:hover,
@@ -154,10 +155,10 @@
   @apply inline-flex items-center justify-center size-8 rounded-full shadow-none text-white bg-white/25 backdrop-blur-sm hover:bg-white/35 transition-all duration-200 cursor-pointer;
 }
 
-/* ─── Scrubber tooltip (kept for custom slot usage) ─── */
+/* ─── Scrubber tooltip ─── */
 .hero-scrub-tooltip {
   position: absolute;
-  bottom: 0;
+  bottom: calc(100% + 8px);
   z-index: 99;
   transform: translateX(-50%);
   padding: 0.25rem 0.5rem;
@@ -166,8 +167,9 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   color: #000;
-  background: rgba(255, 255, 255, 1);
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(8px);
+  border-radius: 4px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   pointer-events: none;
 }
@@ -180,7 +182,7 @@
   transform: translateX(-50%) rotate(45deg);
   width: 8px;
   height: 8px;
-  background: rgba(255, 255, 255, 1);
+  background: rgba(255, 255, 255, 0.95);
 }
 
 /* ─── Settings panel transition ─── */
