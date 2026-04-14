@@ -59,8 +59,11 @@ const playbackRates = [0.5, 0.75, 1, 1.25, 1.5, 2]
 
 function setPlaybackRate(rate: number) {
   playbackRate.value = rate
-  const video = containerRef.value?.querySelector('video')
-  if (video) video.playbackRate = rate
+  const el = props.containerEl?.value
+  if (el) {
+    const video = el.querySelector('.swiper-slide-active video') as HTMLVideoElement | null
+    if (video) video.playbackRate = rate
+  }
   settingsOpen.value = false
 }
 </script>
