@@ -164,7 +164,7 @@ if (features.parallax) {
           :on-video-removed="unregisterSlideVideo" :media-controls-options="slide.config?.mediaControlsOptions"
           :show-video-controls="(index === activeIndex || isMultiSlide) ? (slide.config?.showVideoControls ?? activeSlideConfig.showVideoControls) : false"
           :video-loop="slide.config?.videoLoop ?? false" :auto-play="!isMultiSlide" :container-class="ui.container"
-          :bg-class="ui.bg" :container-el="containerEl">
+          :bg-class="ui.bg" :get-container-el="() => containerEl.value">
           <slot name="slide" v-bind="{
             slide, index,
             isActive: index === activeIndex,
@@ -212,8 +212,8 @@ if (features.parallax) {
       </slot>
 
       <!-- Video scrubber (replaces progress bar when active slide is video) -->
-      <HeroVideoScrubber v-if="shouldShowVideoScrubber" ref="videoScrubberRef" :model-value="videoCurrentTime" :max="videoDuration"
-        class="pointer-events-auto absolute z-11 transition-all duration-200" :class="isVertical
+      <HeroVideoScrubber v-if="shouldShowVideoScrubber" ref="videoScrubberRef" :model-value="videoCurrentTime"
+        :max="videoDuration" class="pointer-events-auto absolute z-11 duration-200" :class="isVertical
           ? ['top-0 ltr:right-0 rtl:left-0 h-full', videoScrubberRef?.active ? 'w-2.5' : 'w-1.5']
           : ['bottom-0 left-0 w-full', videoScrubberRef?.active ? 'h-2.5 border-b border-black' : 'h-1.5']"
         @update:model-value="(v: number) => videoSeek(v)" @scrubber-mousedown="videoScrubStart"

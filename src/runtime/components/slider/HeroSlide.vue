@@ -1,6 +1,5 @@
 <script lang="ts" setup>
 import { computed, ref, useTemplateRef, watch } from 'vue'
-import type { ComputedRef } from 'vue'
 import { useMounted } from '@vueuse/core'
 import { useColorMode, useRuntimeConfig } from '#imports'
 import type { MediaControlsOptions, VideoMediaControls } from '#hero/types'
@@ -25,7 +24,7 @@ interface SlideProps {
   autoPlay?: boolean
   containerClass?: string
   bgClass?: string
-  containerEl?: ComputedRef<HTMLElement | null>
+  getContainerEl?: () => HTMLElement | null
 }
 
 const props = withDefaults(defineProps<SlideProps>(), {
@@ -152,7 +151,7 @@ const hlsSlotData = computed(() => {
           :waiting="videoComponentRef!.mediaControls.waiting"
           :current-time="videoComponentRef!.mediaControls.currentTime"
           :duration="videoComponentRef!.mediaControls.duration" :volume="videoComponentRef!.mediaControls.volume"
-          :muted="videoComponentRef!.mediaControls.muted" :container-el="containerEl" />
+          :muted="videoComponentRef!.mediaControls.muted" :get-container-el="getContainerEl" />
       </slot>
     </template>
   </div>

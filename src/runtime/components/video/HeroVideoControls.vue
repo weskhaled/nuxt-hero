@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { computed, ref } from 'vue'
-import type { ComputedRef, Ref } from 'vue'
+import type { Ref } from 'vue'
 import { useFullscreen } from '@vueuse/core'
 import { formatTime } from '#hero/utils'
 
@@ -11,12 +11,13 @@ interface VideoControlsProps {
   volume: Ref<number>
   muted: Ref<boolean>
   duration: Ref<number>
-  containerEl?: ComputedRef<HTMLElement | null>
+  getContainerEl?: () => HTMLElement | null
 }
 
 const props = defineProps<VideoControlsProps>()
 
-const { isFullscreen, toggle: toggleFullscreen } = useFullscreen(props.containerEl)
+const containerElRef = computed(() => props.getContainerEl?.() ?? null)
+const { isFullscreen, toggle: toggleFullscreen } = useFullscreen(containerElRef)
 
 const settingsOpen = ref(false)
 
@@ -59,7 +60,7 @@ const playbackRates = [0.5, 0.75, 1, 1.25, 1.5, 2]
 
 function setPlaybackRate(rate: number) {
   playbackRate.value = rate
-  const el = props.containerEl?.value
+  const el = props.getContainerEl?.()
   if (el) {
     const video = el.querySelector('.swiper-slide-active video') as HTMLVideoElement | null
     if (video) video.playbackRate = rate
