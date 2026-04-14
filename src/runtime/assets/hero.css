@@ -59,11 +59,40 @@
 }
 
 .media-controls {
-  @apply pointer-events-auto absolute z-999 bottom-5 left-4 right-4 flex items-center justify-between gap-2;
+  @apply pointer-events-auto absolute z-999 bottom-6 left-3 right-3 flex items-center justify-between gap-3;
 }
 
 .hero-ctrl-btn {
   @apply inline-flex items-center justify-center size-8 rounded-full shadow-none text-white bg-white/25 backdrop-blur-sm hover:bg-white/35 transition-all duration-200 cursor-pointer;
+}
+
+/* ─── Scrubber tooltip ─── */
+.hero-scrub-tooltip {
+  position: absolute;
+  bottom: 0;
+  z-index: 99;
+  transform: translateX(-50%);
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: #000;
+  background: rgba(255, 255, 255, 1);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  pointer-events: none;
+}
+
+.hero-scrub-tooltip::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -4px;
+  transform: translateX(-50%) rotate(45deg);
+  width: 8px;
+  height: 8px;
+  background: rgba(255, 255, 255, 1);
 }
 
 /* ─── Settings panel transition ─── */

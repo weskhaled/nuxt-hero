@@ -213,18 +213,14 @@ if (features.parallax) {
       <!-- Video scrubber (replaces progress bar when active slide is video) -->
       <HeroVideoScrubber v-if="shouldShowVideoScrubber" ref="videoScrubberRef" :model-value="videoCurrentTime"
         :max="videoDuration" :secondary="videoBuffered"
-        class="pointer-events-auto absolute z-11 transition-[height,width] duration-100 ease-out" :class="isVertical
+        class="pointer-events-auto absolute z-11 transition-[height,width,bottom,padding] duration-250 ease-out" :class="isVertical
           ? ['top-0 ltr:right-0 rtl:left-0 h-full', videoScrubberRef?.active ? 'w-2.5' : 'w-1']
-          : ['bottom-0 left-0 w-full', videoScrubberRef?.active ? 'h-2.5' : 'h-1']"
+          : ['bottom-0 w-full', videoScrubberRef?.active ? 'h-2.5 bottom-2 rounded-full mx-3' : 'h-1']"
         @update:model-value="(v: number) => videoSeek(v)" @scrubber-mousedown="videoScrubStart"
         @scrubber-mouseup="videoScrubEnd">
         <template #default="{ position, pendingValue }">
-          <div
-            class="text-black pointer-events-none px-2 py-1 text-xs rounded bg-white/90 backdrop-blur-sm shadow-md absolute bottom-0 z-99 -translate-x-1/2 tabular-nums whitespace-nowrap"
-            :style="{ left: position }">
+          <div class="hero-scrub-tooltip rounded-sm" :style="{ left: position }">
             {{ formatTime(pendingValue) }}
-            <div
-              class="size-2 rotate-45 left-1/2 -bottom-1 absolute bg-white/90 -translate-x-1/2" />
           </div>
         </template>
       </HeroVideoScrubber>
