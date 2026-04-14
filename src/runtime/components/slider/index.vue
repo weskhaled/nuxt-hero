@@ -212,17 +212,18 @@ if (features.parallax) {
 
       <!-- Video scrubber (replaces progress bar when active slide is video) -->
       <HeroVideoScrubber v-if="shouldShowVideoScrubber" ref="videoScrubberRef" :model-value="videoCurrentTime"
-        :max="videoDuration" class="pointer-events-auto absolute z-11 duration-200" :class="isVertical
-          ? ['top-0 ltr:right-0 rtl:left-0 h-full', videoScrubberRef?.active ? 'w-2.5' : 'w-1.5']
-          : ['bottom-0 left-0 w-full', videoScrubberRef?.active ? 'h-2.5 border-b border-black' : 'h-1.5']"
+        :max="videoDuration" :secondary="videoBuffered"
+        class="pointer-events-auto absolute z-11 transition-[height,width] duration-100 ease-out" :class="isVertical
+          ? ['top-0 ltr:right-0 rtl:left-0 h-full', videoScrubberRef?.active ? 'w-2.5' : 'w-1']
+          : ['bottom-0 left-0 w-full', videoScrubberRef?.active ? 'h-2.5' : 'h-1']"
         @update:model-value="(v: number) => videoSeek(v)" @scrubber-mousedown="videoScrubStart"
         @scrubber-mouseup="videoScrubEnd">
         <template #default="{ position, pendingValue }">
           <div
-            class="text-black mb-3 pointer-events-none px-2 py-1 rounded-sm bg-white transform bottom-0 absolute z-99 -translate-x-1/2"
+            class="text-black mb-3 pointer-events-none px-2 py-1 text-xs rounded bg-white/90 backdrop-blur-sm shadow-md bottom-0 absolute z-99 -translate-x-1/2 tabular-nums whitespace-nowrap"
             :style="{ left: position }">
             <div
-              class="size-2 rotate-45 left-1/2 top-6.25 absolute overflow-hidden after:bg-white after:size-2 after:content-[''] -translate-x-1/2 after:rotate-45 after:left-1/2 after:top-1/2 after:absolute" />
+              class="size-2 rotate-45 left-1/2 -bottom-1 absolute bg-white/90 -translate-x-1/2" />
             {{ formatTime(pendingValue) }}
           </div>
         </template>
