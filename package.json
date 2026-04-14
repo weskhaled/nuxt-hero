@@ -38,7 +38,7 @@
     "dev": "nuxi dev playground",
     "dev:build": "nuxi build playground",
     "build": "nuxt-module-build build",
-    "prepare": "nuxt-module-build build --stub",
+    "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare",
     "prepack": "nuxt-module-build build",
     "typecheck": "nuxi typecheck playground",
     "test": "vitest run",
