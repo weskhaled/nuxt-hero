@@ -103,7 +103,7 @@ watch([scrubbing, elementX], () => {
 
     <!-- Tooltip slot -->
     <div
-      class="inset-0 absolute pointer-events-none z-3 transition-opacity duration-100"
+      class="absolute left-0 right-0 bottom-full pointer-events-none z-3 transition-opacity duration-100"
       :class="active ? 'opacity-100' : 'opacity-0'"
     >
       <slot :pending-value="pendingValue" :position="`${Math.max(0, Math.min(elementX, elementWidth))}px`" />
