@@ -102,9 +102,8 @@ function setPlaybackRate(rate: number) {
   <div class="media-controls">
     <!-- Left: play, volume, time -->
     <div class="flex items-center gap-1">
-      <button type="button"
-        class="hero-ctrl-btn"
-        :aria-label="playing.value ? 'Pause video' : 'Play video'" @click="toggle">
+      <button type="button" class="hero-ctrl-btn" :aria-label="playing.value ? 'Pause video' : 'Play video'"
+        @click="toggle">
         <span v-if="waiting.value" class="hero-spinner hero-spinner-sm text-white" />
         <Transition v-else name="hero-vol-icon" mode="out-in">
           <Icon v-if="playing.value" key="pause" name="lucide:pause" class="size-4" />
@@ -112,7 +111,8 @@ function setPlaybackRate(rate: number) {
         </Transition>
       </button>
 
-      <div class="group/volume flex items-center bg-white/25 rounded-full backdrop-blur-sm overflow-hidden transition-all duration-300 ease-out hover:bg-white/35">
+      <div
+        class="group/volume flex items-center bg-white/25 rounded-full backdrop-blur-sm overflow-hidden transition-all duration-300 ease-out hover:bg-white/35">
         <button type="button"
           class="inline-flex flex-none items-center justify-center size-8 rounded-full shadow-none text-white hover:opacity-100 transition-all duration-200 cursor-pointer"
           aria-label="Toggle mute" @click="toggleMute">
@@ -122,7 +122,8 @@ function setPlaybackRate(rate: number) {
             <Icon v-else key="muted" name="lucide:volume-x" class="size-4" />
           </Transition>
         </button>
-        <div class="flex items-center max-w-0 group-hover/volume:max-w-28 transition-all duration-300 ease-out overflow-x-clip">
+        <div
+          class="flex items-center max-w-0 group-hover/volume:max-w-28 transition-all duration-300 ease-out overflow-x-clip">
           <input type="range" min="0" max="100" :value="muted.value ? 0 : volumePercent"
             class="hero-range mx-2 cursor-pointer transition-opacity duration-200 opacity-0 group-hover/volume:opacity-100"
             aria-label="Volume" :aria-valuetext="`${muted.value ? 0 : volumePercent}%`" @input="onVolumeInput" />
@@ -138,15 +139,15 @@ function setPlaybackRate(rate: number) {
     <div class="flex items-center gap-1">
       <!-- Settings -->
       <div class="relative">
-        <button type="button"
-          class="hero-ctrl-btn"
-          aria-label="Settings" @click="settingsOpen = !settingsOpen">
-          <Icon name="lucide:settings" class="size-4 transition-transform duration-300" :class="{ 'rotate-90': settingsOpen }" />
+        <button type="button" class="hero-ctrl-btn" aria-label="Settings" @click="settingsOpen = !settingsOpen">
+          <Icon name="lucide:settings" class="size-4 transition-transform duration-300"
+            :class="{ 'rotate-90': settingsOpen }" />
         </button>
         <Transition name="hero-settings">
           <div v-if="settingsOpen"
             class="absolute bottom-full right-0 mb-2 rounded-lg bg-black/80 backdrop-blur-md text-white text-xs min-w-36 overflow-hidden shadow-lg">
-            <div class="px-3 py-2 text-white/50 font-medium border-b border-white/10">Playback speed</div>
+            <div class="px-3 py-2 flex text-white/75 font-medium border-b border-white/10">Playback
+              speed</div>
             <button v-for="rate in playbackRates" :key="rate" type="button"
               class="flex w-full items-center justify-between px-3 py-1.5 hover:bg-white/10 transition-colors cursor-pointer"
               @click="setPlaybackRate(rate)">
@@ -158,9 +159,8 @@ function setPlaybackRate(rate: number) {
       </div>
 
       <!-- Fullscreen -->
-      <button type="button"
-        class="hero-ctrl-btn"
-        :aria-label="isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'" @click="toggleFullscreen">
+      <button type="button" class="hero-ctrl-btn" :aria-label="isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'"
+        @click="toggleFullscreen">
         <Transition name="hero-vol-icon" mode="out-in">
           <Icon v-if="isFullscreen" key="minimize" name="lucide:minimize" class="size-4" />
           <Icon v-else key="maximize" name="lucide:maximize" class="size-4" />

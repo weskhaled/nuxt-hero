@@ -28,8 +28,8 @@ const emit = defineEmits<{ slideTo: [index: number] }>()
   <nav role="navigation" aria-label="Slide pagination"
     class="hero-pagination swiper-pagination pointer-events-auto absolute z-10 flex items-center gap-1 rounded-full p-1 px-1.5 ring-2 ring-white bg-black/35 backdrop-blur-sm"
     :class="vertical
-      ? 'flex-col top-1/2 -translate-y-1/2 ltr:right-6 rtl:left-6'
-      : 'bottom-6 left-1/2 -translate-x-1/2'">
+      ? 'flex-col top-1/2 -translate-y-1/2 ltr:right-6 rtl:left-7'
+      : 'bottom-7 left-1/2 -translate-x-1/2'">
     <button v-for="i in totalSnaps" :key="i - 1" type="button"
       class="group relative flex size-4 shrink-0 items-center justify-center rounded-full"
       :class="{ active: snapIndex === i - 1 }" :aria-label="`Go to slide ${i}`"

@@ -56,33 +56,40 @@ watch([scrubbing, elementX], () => {
 </script>
 
 <template>
+  <!-- Outer: full-width hit area, never changes size -->
   <div ref="scrubber" role="slider" :aria-valuemin="min" :aria-valuemax="max" :aria-valuenow="Math.round(value)"
     :aria-label="`Seek: ${Math.round(progressPercent)}%`" tabindex="0"
-    class="group/scrubber cursor-pointer select-none overflow-visible" @mousedown.stop.prevent="startScrub"
+    class="group/scrubber cursor-pointer select-none overflow-visible relative" @mousedown.stop.prevent="startScrub"
     @touchstart.stop.prevent="startScrub" @keydown.left.prevent="value = Math.max(min, value - max * 0.05)"
     @keydown.right.prevent="value = Math.min(max, value + max * 0.05)">
-    <!-- Hit area — taller than visible bar for easier targeting -->
-    <div class="absolute inset-x-0 -top-2 -bottom-2 z-1" />
 
-    <!-- Track -->
-    <div class="h-full w-full relative overflow-hidden bg-white/15 transition-[border-radius] duration-250" :class="active ? 'rounded-full' : ''">
-      <!-- Buffered -->
-      <div class="bg-white/30 h-full left-0 top-0 absolute" :style="{ width: `${bufferedPercent}%` }" />
-      <!-- Progress -->
-      <div class="bg-white h-full left-0 top-0 absolute" :style="{ width: `${progressPercent}%` }" />
+    <!-- Hit area extends above/below for easier targeting -->
+    <div class="absolute inset-x-0 -top-3 -bottom-1 z-1" />
+
+    <!-- Inner wrapper: handles visual inset + rounded on active -->
+    <div class="relative w-full transition-[margin,border-radius,height] duration-200 ease-out"
+      :class="active ? 'mx-3 rounded-full h-2.5' : 'mx-0 h-full'">
+
+      <!-- Track: clips buffered/progress bars -->
+      <div class="h-full w-full relative overflow-hidden bg-white/15" :class="active ? 'rounded-full' : ''">
+        <!-- Buffered -->
+        <div class="bg-white/30 h-full left-0 top-0 absolute" :style="{ width: `${bufferedPercent}%` }" />
+        <!-- Progress -->
+        <div class="bg-white h-full left-0 top-0 absolute" :style="{ width: `${progressPercent}%` }" />
+      </div>
+
+      <!-- Scrub head: outside track so not clipped by overflow-hidden -->
+      <div
+        class="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 rounded-full bg-white transition-[width,height,box-shadow] duration-150 z-2"
+        :class="active ? 'size-3.5 shadow-md' : 'size-0'" :style="{ left: `${progressPercent}%` }" />
     </div>
-
-    <!-- Scrub head -->
-    <div
-      class="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 size-0 rounded-full bg-white shadow-sm transition-[width,height] duration-150 z-2"
-      :class="active ? 'size-3.5' : ''" :style="{ left: `${progressPercent}%` }" />
 
     <!-- Hover preview line -->
     <div v-if="active && !scrubbing"
       class="absolute top-0 h-full w-px bg-white/50 pointer-events-none z-1 -translate-x-1/2"
       :style="{ left: `${pendingPercent}%` }" />
 
-    <!-- Tooltip slot — positioned above the bar with fixed offset to escape parent h-1 constraint -->
+    <!-- Tooltip slot -->
     <div class="absolute left-0 right-0 pointer-events-none z-3 transition-opacity duration-100"
       style="bottom: calc(100% + 0.5rem);" :class="active ? 'opacity-100' : 'opacity-0'">
       <slot :pending-value="pendingValue" :position="`${Math.max(0, Math.min(elementX, elementWidth))}px`" />

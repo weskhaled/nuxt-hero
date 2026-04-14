@@ -213,9 +213,9 @@ if (features.parallax) {
       <!-- Video scrubber (replaces progress bar when active slide is video) -->
       <HeroVideoScrubber v-if="shouldShowVideoScrubber" ref="videoScrubberRef" :model-value="videoCurrentTime"
         :max="videoDuration" :secondary="videoBuffered"
-        class="pointer-events-auto absolute z-11 bottom-0 left-0 right-0 transition-[height,padding] duration-250 ease-out" :class="isVertical
+        class="pointer-events-auto absolute z-11 bottom-0 left-0 right-0 transition-[height,width] duration-200 ease-out" :class="isVertical
           ? ['top-0 ltr:right-0 rtl:left-0 h-full', videoScrubberRef?.active ? 'w-2.5' : 'w-1']
-          : [videoScrubberRef?.active ? 'h-2.5 pb-2 px-3' : 'h-1']"
+          : [videoScrubberRef?.active ? 'h-3' : 'h-1']"
         @update:model-value="(v: number) => videoSeek(v)" @scrubber-mousedown="videoScrubStart"
         @scrubber-mouseup="videoScrubEnd">
         <template #default="{ position, pendingValue }">
