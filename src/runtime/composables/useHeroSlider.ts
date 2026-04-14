@@ -189,6 +189,9 @@ export function useHeroSlider(
     // Swiper options (merged)
     mergedSwiperOptions,
 
+    // Container
+    containerEl: resolvedContainer,
+
     // Internal bindings
     onSwiper: swiper.onSwiper,
     onSlideChange,

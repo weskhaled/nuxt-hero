@@ -247,6 +247,9 @@ export interface UseHeroSliderReturn {
   // ─── Hover ───
   isHovered: Ref<boolean>
 
+  // ─── Container ───
+  containerEl: ComputedRef<HTMLElement | null>
+
   // ─── Swiper Options (merged, for HeroSlider component) ───
   mergedSwiperOptions: ComputedRef<Record<string, unknown>>
 
