@@ -16,8 +16,17 @@ interface VideoControlsProps {
 
 const props = defineProps<VideoControlsProps>()
 
-const containerElRef = computed(() => props.getContainerEl?.() ?? null)
-const { isFullscreen, toggle: toggleFullscreen } = useFullscreen(containerElRef)
+const { isFullscreen } = useFullscreen()
+
+function toggleFullscreen() {
+  const el = props.getContainerEl?.()
+  if (!el) return
+  if (document.fullscreenElement) {
+    document.exitFullscreen()
+  } else {
+    el.requestFullscreen()
+  }
+}
 
 const settingsOpen = ref(false)
 

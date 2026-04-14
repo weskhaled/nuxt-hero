@@ -56,7 +56,6 @@ const {
   videoToggleMute,
   mergedSwiperOptions,
   isMultiSlide,
-  containerEl,
 } = props.slider
 
 /** Whether the slider runs in vertical direction */
@@ -164,7 +163,7 @@ if (features.parallax) {
           :on-video-removed="unregisterSlideVideo" :media-controls-options="slide.config?.mediaControlsOptions"
           :show-video-controls="(index === activeIndex || isMultiSlide) ? (slide.config?.showVideoControls ?? activeSlideConfig.showVideoControls) : false"
           :video-loop="slide.config?.videoLoop ?? false" :auto-play="!isMultiSlide" :container-class="ui.container"
-          :bg-class="ui.bg" :get-container-el="() => containerEl.value">
+          :bg-class="ui.bg" :get-container-el="() => containerRef">
           <slot name="slide" v-bind="{
             slide, index,
             isActive: index === activeIndex,
