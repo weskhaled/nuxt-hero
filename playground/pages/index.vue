@@ -34,7 +34,7 @@ const slides = [
       showProgress: true,
       showVideoControls: true,
       showPagination: true,
-      videoLoop: true,
+      videoLoop: false,
     },
   },
 ]

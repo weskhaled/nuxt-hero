@@ -25,6 +25,9 @@ interface SlideProps {
   containerClass?: string
   bgClass?: string
   getContainerEl?: () => HTMLElement | null
+  onSeek?: (time: number) => void
+  onScrubStart?: () => void
+  onScrubEnd?: () => void
 }
 
 const props = withDefaults(defineProps<SlideProps>(), {
@@ -41,6 +44,9 @@ const props = withDefaults(defineProps<SlideProps>(), {
   autoPlay: true,
   containerClass: '',
   bgClass: '',
+  onSeek: undefined,
+  onScrubStart: undefined,
+  onScrubEnd: undefined,
 })
 
 const colorMode = useColorMode()
@@ -150,8 +156,12 @@ const hlsSlotData = computed(() => {
         <HeroVideoControls :playing="videoComponentRef!.mediaControls.playing"
           :waiting="videoComponentRef!.mediaControls.waiting"
           :current-time="videoComponentRef!.mediaControls.currentTime"
-          :duration="videoComponentRef!.mediaControls.duration" :volume="videoComponentRef!.mediaControls.volume"
-          :muted="videoComponentRef!.mediaControls.muted" :get-container-el="getContainerEl" />
+          :duration="videoComponentRef!.mediaControls.duration"
+          :buffered="videoComponentRef!.mediaControls.buffered"
+          :volume="videoComponentRef!.mediaControls.volume"
+          :muted="videoComponentRef!.mediaControls.muted"
+          :get-container-el="getContainerEl"
+          :on-seek="onSeek" :on-scrub-start="onScrubStart" :on-scrub-end="onScrubEnd" />
       </slot>
     </template>
   </div>

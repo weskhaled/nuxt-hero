@@ -59,14 +59,102 @@
 }
 
 .media-controls {
-  @apply pointer-events-auto absolute z-999 bottom-6 left-3 right-3 flex items-center justify-between gap-3;
+  @apply pointer-events-auto absolute z-999 bottom-0 left-0 right-0 flex flex-col gap-1 px-3 pb-3;
+}
+
+/* ─── Scrubber (native range over buffered/progress) ─── */
+.hero-scrubber-track {
+  position: relative;
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: height 0.15s ease;
+}
+
+.hero-scrubber-track:hover,
+.hero-scrubber-track:has(.hero-scrubber-active) {
+  height: 6px;
+}
+
+.hero-scrubber-buffered {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: 9999px;
+  pointer-events: none;
+}
+
+.hero-scrubber-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: white;
+  border-radius: 9999px;
+  pointer-events: none;
+}
+
+.hero-scrubber-input {
+  -webkit-appearance: none;
+  appearance: none;
+  position: absolute;
+  top: -4px;
+  left: 0;
+  width: 100%;
+  height: calc(100% + 8px);
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  outline: none;
+}
+
+.hero-scrubber-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+  transition: width 0.15s ease, height 0.15s ease;
+}
+
+.hero-scrubber-track:hover .hero-scrubber-input::-webkit-slider-thumb,
+.hero-scrubber-input.hero-scrubber-active::-webkit-slider-thumb {
+  width: 14px;
+  height: 14px;
+}
+
+.hero-scrubber-input::-moz-range-track {
+  background: transparent;
+  border: none;
+}
+
+.hero-scrubber-input::-moz-range-thumb {
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: white;
+  border: none;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+  transition: width 0.15s ease, height 0.15s ease;
+}
+
+.hero-scrubber-track:hover .hero-scrubber-input::-moz-range-thumb,
+.hero-scrubber-input.hero-scrubber-active::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
 }
 
 .hero-ctrl-btn {
   @apply inline-flex items-center justify-center size-8 rounded-full shadow-none text-white bg-white/25 backdrop-blur-sm hover:bg-white/35 transition-all duration-200 cursor-pointer;
 }
 
-/* ─── Scrubber tooltip ─── */
+/* ─── Scrubber tooltip (kept for custom slot usage) ─── */
 .hero-scrub-tooltip {
   position: absolute;
   bottom: 0;

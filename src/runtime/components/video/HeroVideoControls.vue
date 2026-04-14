@@ -11,7 +11,12 @@ interface VideoControlsProps {
   volume: Ref<number>
   muted: Ref<boolean>
   duration: Ref<number>
+  /** Raw buffered time ranges from useMediaControls: [start, end][] */
+  buffered?: Ref<[number, number][]>
   getContainerEl?: () => HTMLElement | null
+  onSeek?: (time: number) => void
+  onScrubStart?: () => void
+  onScrubEnd?: () => void
 }
 
 const props = defineProps<VideoControlsProps>()
@@ -29,6 +34,7 @@ function toggleFullscreen() {
 }
 
 const settingsOpen = ref(false)
+const scrubbing = ref(false)
 
 const formattedTime = computed(
   () =>
@@ -42,6 +48,15 @@ function toggle() {
 const progress = computed(() => {
   if (props.duration.value === 0) return 0
   return (props.currentTime.value / props.duration.value) * 100
+})
+
+const bufferedPercent = computed(() => {
+  if (!props.buffered || props.duration.value === 0) return 0
+  const ranges = props.buffered.value
+  if (!ranges.length) return 0
+  // Use the end of the last buffered range
+  const bufferedEnd = ranges[ranges.length - 1]?.[1] ?? 0
+  return (bufferedEnd / props.duration.value) * 100
 })
 
 const volumePercent = computed(() => Math.round((props.volume.value ?? 0) * 100))
@@ -63,6 +78,26 @@ const volumeIcon = computed(() => {
   if (props.volume.value < 0.5) return 'low'
   return 'high'
 })
+
+// ─── Scrubber ───
+
+function onScrubInput(e: Event) {
+  const val = Number((e.target as HTMLInputElement).value)
+  const time = (val / 100) * props.duration.value
+  props.onSeek?.(time)
+}
+
+function onScrubDown() {
+  scrubbing.value = true
+  props.onScrubStart?.()
+}
+
+function onScrubUp() {
+  scrubbing.value = false
+  props.onScrubEnd?.()
+}
+
+// ─── Playback speed ───
 
 const playbackRate = ref(1)
 const playbackRates = [0.5, 0.75, 1, 1.25, 1.5, 2]
@@ -100,72 +135,89 @@ function setPlaybackRate(rate: number) {
 
   <!-- Bottom bar -->
   <div class="media-controls">
-    <!-- Left: play, volume, time -->
-    <div class="flex items-center gap-1">
-      <button type="button" class="hero-ctrl-btn" :aria-label="playing.value ? 'Pause video' : 'Play video'"
-        @click="toggle">
-        <span v-if="waiting.value" class="hero-spinner hero-spinner-sm text-white" />
-        <Transition v-else name="hero-vol-icon" mode="out-in">
-          <Icon v-if="playing.value" key="pause" name="lucide:pause" class="size-4" />
-          <Icon v-else key="play" name="lucide:play" class="size-4" />
-        </Transition>
-      </button>
-
-      <div
-        class="group/volume flex items-center bg-white/25 rounded-full backdrop-blur-sm overflow-hidden transition-all duration-300 ease-out hover:bg-white/35">
-        <button type="button"
-          class="inline-flex flex-none items-center justify-center size-8 rounded-full shadow-none text-white hover:opacity-100 transition-all duration-200 cursor-pointer"
-          aria-label="Toggle mute" @click="toggleMute">
-          <Transition name="hero-vol-icon" mode="out-in">
-            <Icon v-if="volumeIcon === 'high'" key="high" name="lucide:volume-2" class="size-4" />
-            <Icon v-else-if="volumeIcon === 'low'" key="low" name="lucide:volume-1" class="size-4" />
-            <Icon v-else key="muted" name="lucide:volume-x" class="size-4" />
-          </Transition>
-        </button>
-        <div
-          class="flex items-center max-w-0 group-hover/volume:max-w-28 transition-all duration-300 ease-out overflow-x-clip">
-          <input type="range" min="0" max="100" :value="muted.value ? 0 : volumePercent"
-            class="hero-range mx-2 cursor-pointer transition-opacity duration-200 opacity-0 group-hover/volume:opacity-100"
-            aria-label="Volume" :aria-valuetext="`${muted.value ? 0 : volumePercent}%`" @input="onVolumeInput" />
-        </div>
-      </div>
-
-      <span class="text-xs text-white/80 px-2 tabular-nums whitespace-nowrap">
-        {{ formattedTime }}
-      </span>
+    <!-- Scrubber bar: full width above buttons -->
+    <div class="hero-scrubber-track bottom-2">
+      <!-- Buffered -->
+      <div class="hero-scrubber-buffered" :style="{ width: `${bufferedPercent}%` }" />
+      <!-- Progress -->
+      <div class="hero-scrubber-progress" :style="{ width: `${progress}%` }" />
+      <!-- Native range input on top -->
+      <input type="range" min="0" max="100" step="0.1" :value="progress" class="hero-scrubber-input"
+        :class="{ 'hero-scrubber-active': scrubbing }" aria-label="Seek video"
+        :aria-valuetext="`${formatTime(currentTime.value)} of ${formatTime(duration.value)}`" @input="onScrubInput"
+        @mousedown="onScrubDown" @touchstart="onScrubDown" @mouseup="onScrubUp" @touchend="onScrubUp"
+        @touchcancel="onScrubUp" />
     </div>
 
-    <!-- Right: settings, fullscreen -->
-    <div class="flex items-center gap-1">
-      <!-- Settings -->
-      <div class="relative">
-        <button type="button" class="hero-ctrl-btn" aria-label="Settings" @click="settingsOpen = !settingsOpen">
-          <Icon name="lucide:settings" class="size-4 transition-transform duration-300"
-            :class="{ 'rotate-90': settingsOpen }" />
+    <!-- Controls row -->
+    <div class="flex items-center justify-between w-full">
+      <!-- Left: play, volume, time -->
+      <div class="flex items-center gap-1">
+        <button type="button" class="hero-ctrl-btn" :aria-label="playing.value ? 'Pause video' : 'Play video'"
+          @click="toggle">
+          <span v-if="waiting.value" class="hero-spinner hero-spinner-sm text-white" />
+          <Transition v-else name="hero-vol-icon" mode="out-in">
+            <Icon v-if="playing.value" key="pause" name="lucide:pause" class="size-4" />
+            <Icon v-else key="play" name="lucide:play" class="size-4" />
+          </Transition>
         </button>
-        <Transition name="hero-settings">
-          <div v-if="settingsOpen"
-            class="absolute bottom-full right-0 mb-2 rounded-lg bg-black/80 backdrop-blur-md text-white text-xs min-w-36 overflow-hidden shadow-lg">
-            <div class="px-3 py-2 flex text-white/75 font-medium border-b border-white/10">Playback
-              speed</div>
-            <button v-for="rate in playbackRates" :key="rate" type="button"
-              class="flex w-full items-center justify-between px-3 py-1.5 hover:bg-white/10 transition-colors cursor-pointer"
-              @click="setPlaybackRate(rate)">
-              <span>{{ rate === 1 ? 'Normal' : `${rate}x` }}</span>
-              <Icon v-if="playbackRate === rate" name="lucide:check" class="size-3 text-white/70" />
-            </button>
+
+        <div
+          class="group/volume flex items-center bg-white/25 rounded-full backdrop-blur-sm overflow-hidden transition-all duration-300 ease-out hover:bg-white/35">
+          <button type="button"
+            class="inline-flex flex-none items-center justify-center size-8 rounded-full shadow-none text-white hover:opacity-100 transition-all duration-200 cursor-pointer"
+            aria-label="Toggle mute" @click="toggleMute">
+            <Transition name="hero-vol-icon" mode="out-in">
+              <Icon v-if="volumeIcon === 'high'" key="high" name="lucide:volume-2" class="size-4" />
+              <Icon v-else-if="volumeIcon === 'low'" key="low" name="lucide:volume-1" class="size-4" />
+              <Icon v-else key="muted" name="lucide:volume-x" class="size-4" />
+            </Transition>
+          </button>
+          <div
+            class="flex items-center max-w-0 group-hover/volume:max-w-28 transition-all duration-300 ease-out overflow-x-clip">
+            <input type="range" min="0" max="100" :value="muted.value ? 0 : volumePercent"
+              class="hero-range mx-2 cursor-pointer transition-opacity duration-200 opacity-0 group-hover/volume:opacity-100"
+              aria-label="Volume" :aria-valuetext="`${muted.value ? 0 : volumePercent}%`" @input="onVolumeInput" />
           </div>
-        </Transition>
+        </div>
+
+        <span class="text-xs text-white/80 px-2 tabular-nums whitespace-nowrap">
+          {{ formattedTime }}
+        </span>
       </div>
 
-      <!-- Fullscreen -->
-      <button type="button" class="hero-ctrl-btn" :aria-label="isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'"
-        @click="toggleFullscreen">
-        <Transition name="hero-vol-icon" mode="out-in">
-          <Icon v-if="isFullscreen" key="minimize" name="lucide:minimize" class="size-4" />
-          <Icon v-else key="maximize" name="lucide:maximize" class="size-4" />
-        </Transition>
-      </button>
+      <!-- Right: settings, fullscreen -->
+      <div class="flex items-center gap-1">
+        <!-- Settings -->
+        <div class="relative">
+          <button type="button" class="hero-ctrl-btn" aria-label="Settings" @click="settingsOpen = !settingsOpen">
+            <Icon name="lucide:settings" class="size-4 transition-transform duration-300"
+              :class="{ 'rotate-90': settingsOpen }" />
+          </button>
+          <Transition name="hero-settings">
+            <div v-if="settingsOpen"
+              class="absolute bottom-full right-0 mb-2 rounded-lg bg-black/80 backdrop-blur-md text-white text-xs min-w-36 overflow-hidden shadow-lg">
+              <div class="px-3 py-2 flex text-white/75 font-medium border-b border-white/10">Playback
+                speed</div>
+              <button v-for="rate in playbackRates" :key="rate" type="button"
+                class="flex w-full items-center justify-between px-3 py-1.5 hover:bg-white/10 transition-colors cursor-pointer"
+                @click="setPlaybackRate(rate)">
+                <span>{{ rate === 1 ? 'Normal' : `${rate}x` }}</span>
+                <Icon v-if="playbackRate === rate" name="lucide:check" class="size-3 text-white/70" />
+              </button>
+            </div>
+          </Transition>
+        </div>
+
+        <!-- Fullscreen -->
+        <button type="button" class="hero-ctrl-btn" :aria-label="isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'"
+          @click="toggleFullscreen">
+          <Transition name="hero-vol-icon" mode="out-in">
+            <Icon v-if="isFullscreen" key="minimize" name="lucide:minimize" class="size-4" />
+            <Icon v-else key="maximize" name="lucide:maximize" class="size-4" />
+          </Transition>
+        </button>
+      </div>
     </div>
   </div>
 </template>

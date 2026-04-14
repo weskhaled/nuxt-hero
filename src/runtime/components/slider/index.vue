@@ -5,7 +5,7 @@ import { useElementBounding, useWindowSize } from '@vueuse/core'
 import { useRuntimeConfig } from '#imports'
 import { swiperModules } from '#hero/swiper-modules'
 import type { HeroSliderProps } from '#hero/types'
-import { resolveParallaxConfig, formatTime, isVideoUrl, patternCSS, patternSize, getHeroConfig } from '#hero/utils'
+import { resolveParallaxConfig, isVideoUrl, patternCSS, patternSize, getHeroConfig } from '#hero/utils'
 import { useGSAP } from '#hero/composables/_gsap'
 
 const props = withDefaults(defineProps<HeroSliderProps>(), {
@@ -22,7 +22,6 @@ const heroConfig = getHeroConfig(useRuntimeConfig())
 const features = heroConfig.features ?? {}
 
 const containerRef = useTemplateRef<HTMLElement>('containerRef')
-const videoScrubberRef = ref<{ active: boolean } | null>(null)
 
 const {
   activeIndex,
@@ -43,7 +42,6 @@ const {
   videoPlaying,
   videoCurrentTime,
   videoDuration,
-  videoBuffered,
   videoVolume,
   videoMuted,
   videoWaiting,
@@ -78,20 +76,11 @@ const shouldShowNavigation = computed(() =>
   features.navigation && props.slides.length > 1 && activeSlideConfig.value.showNavigation,
 )
 
-/** Whether the video scrubber bar should be visible */
-const shouldShowVideoScrubber = computed(() =>
-  features.video
-  && activeSlideConfig.value.showProgress
-  && isActiveSlideVideo.value
-  && videoDuration.value > 0
-  && !isMultiSlide.value,
-)
-
 /** Whether the autoplay progress bar should be visible */
 const shouldShowAutoplayProgress = computed(() =>
-  !shouldShowVideoScrubber.value
-  && autoplayEnabled
-  && activeSlideConfig.value.showProgress,
+  autoplayEnabled
+  && activeSlideConfig.value.showProgress
+  && !isActiveSlideVideo.value,
 )
 
 // ─── Parallax (only when feature enabled) ───
@@ -163,7 +152,8 @@ if (features.parallax) {
           :on-video-removed="unregisterSlideVideo" :media-controls-options="slide.config?.mediaControlsOptions"
           :show-video-controls="(index === activeIndex || isMultiSlide) ? (slide.config?.showVideoControls ?? activeSlideConfig.showVideoControls) : false"
           :video-loop="slide.config?.videoLoop ?? false" :auto-play="!isMultiSlide" :container-class="ui.container"
-          :bg-class="ui.bg" :get-container-el="() => containerRef">
+          :bg-class="ui.bg" :get-container-el="() => containerRef"
+          :on-seek="videoSeek" :on-scrub-start="videoScrubStart" :on-scrub-end="videoScrubEnd">
           <slot name="slide" v-bind="{
             slide, index,
             isActive: index === activeIndex,
@@ -209,21 +199,6 @@ if (features.parallax) {
         v-bind="{ prev, next, activeIndex, slides, vertical: isVertical }">
         <HeroNavigation :slides="slides" :active-index="activeIndex" :vertical="isVertical" @prev="prev" @next="next" />
       </slot>
-
-      <!-- Video scrubber (replaces progress bar when active slide is video) -->
-      <HeroVideoScrubber v-if="shouldShowVideoScrubber" ref="videoScrubberRef" :model-value="videoCurrentTime"
-        :max="videoDuration" :secondary="videoBuffered"
-        class="pointer-events-auto absolute z-11 bottom-0 left-0 right-0 transition-[height,width] duration-200 ease-out" :class="isVertical
-          ? ['top-0 ltr:right-0 rtl:left-0 h-full', videoScrubberRef?.active ? 'w-2.5' : 'w-1']
-          : [videoScrubberRef?.active ? 'h-3' : 'h-1']"
-        @update:model-value="(v: number) => videoSeek(v)" @scrubber-mousedown="videoScrubStart"
-        @scrubber-mouseup="videoScrubEnd">
-        <template #default="{ position, pendingValue }">
-          <div class="hero-scrub-tooltip rounded-sm" :style="{ left: position }">
-            {{ formatTime(pendingValue) }}
-          </div>
-        </template>
-      </HeroVideoScrubber>
 
       <!-- Autoplay progress bar: horizontal at bottom, vertical on the side -->
       <div v-if="shouldShowAutoplayProgress" class="pointer-events-none absolute z-4 bg-white/50" :class="[isVertical
