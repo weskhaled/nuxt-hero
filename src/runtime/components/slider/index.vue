@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed, toValue, useTemplateRef, watchEffect } from 'vue'
+import { computed, ref, toValue, useTemplateRef, watchEffect } from 'vue'
 import { Swiper, SwiperSlide } from 'swiper/vue'
 import { useElementBounding, useWindowSize } from '@vueuse/core'
 import { useRuntimeConfig } from '#imports'
@@ -22,6 +22,7 @@ const heroConfig = getHeroConfig(useRuntimeConfig())
 const features = heroConfig.features ?? {}
 
 const containerRef = useTemplateRef<HTMLElement>('containerRef')
+const videoScrubberRef = ref<{ active: boolean } | null>(null)
 
 const {
   activeIndex,
@@ -211,10 +212,10 @@ if (features.parallax) {
       </slot>
 
       <!-- Video scrubber (replaces progress bar when active slide is video) -->
-      <HeroVideoScrubber v-if="shouldShowVideoScrubber" :model-value="videoCurrentTime" :max="videoDuration"
-        class="pointer-events-auto absolute z-11" :class="isVertical
-          ? 'top-0 ltr:right-0 rtl:left-0 h-full w-1.5 hover:w-2.5 transition-all'
-          : 'bottom-0 left-0 h-1.5 hover:h-2.5 hover:border-b border-black transition-all w-full'"
+      <HeroVideoScrubber v-if="shouldShowVideoScrubber" ref="videoScrubberRef" :model-value="videoCurrentTime" :max="videoDuration"
+        class="pointer-events-auto absolute z-11 transition-all duration-200" :class="isVertical
+          ? ['top-0 ltr:right-0 rtl:left-0 h-full', videoScrubberRef?.active ? 'w-2.5' : 'w-1.5']
+          : ['bottom-0 left-0 w-full', videoScrubberRef?.active ? 'h-2.5 border-b border-black' : 'h-1.5']"
         @update:model-value="(v: number) => videoSeek(v)" @scrubber-mousedown="videoScrubStart"
         @scrubber-mouseup="videoScrubEnd">
         <template #default="{ position, pendingValue }">
