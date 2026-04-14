@@ -64,7 +64,7 @@ watch([scrubbing, elementX], () => {
     :aria-valuenow="Math.round(value)"
     :aria-label="`Seek: ${Math.round(progressPercent)}%`"
     tabindex="0"
-    class="group/scrubber cursor-pointer select-none relative"
+    class="group/scrubber cursor-pointer select-none relative overflow-visible"
     @mousedown.stop.prevent="startScrub"
     @touchstart.stop.prevent="startScrub"
     @keydown.left.prevent="value = Math.max(min, value - max * 0.05)"
@@ -101,9 +101,10 @@ watch([scrubbing, elementX], () => {
       :style="{ left: `${pendingPercent}%` }"
     />
 
-    <!-- Tooltip slot -->
+    <!-- Tooltip slot — positioned above the bar with fixed offset to escape parent h-1 constraint -->
     <div
-      class="absolute left-0 right-0 bottom-full pointer-events-none z-3 transition-opacity duration-100"
+      class="absolute left-0 right-0 pointer-events-none z-3 transition-opacity duration-100"
+      style="bottom: calc(100% + 0.5rem);"
       :class="active ? 'opacity-100' : 'opacity-0'"
     >
       <slot :pending-value="pendingValue" :position="`${Math.max(0, Math.min(elementX, elementWidth))}px`" />

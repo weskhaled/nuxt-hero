@@ -220,7 +220,7 @@ if (features.parallax) {
         @scrubber-mouseup="videoScrubEnd">
         <template #default="{ position, pendingValue }">
           <div
-            class="text-black pointer-events-none px-2 py-1 text-xs rounded bg-white/90 backdrop-blur-sm shadow-md absolute bottom-2 z-99 -translate-x-1/2 tabular-nums whitespace-nowrap"
+            class="text-black pointer-events-none px-2 py-1 text-xs rounded bg-white/90 backdrop-blur-sm shadow-md absolute bottom-0 z-99 -translate-x-1/2 tabular-nums whitespace-nowrap"
             :style="{ left: position }">
             {{ formatTime(pendingValue) }}
             <div
