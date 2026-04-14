@@ -43,9 +43,9 @@
     "typecheck": "nuxi typecheck playground",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "oxlint .",
+    "lint": "oxlint . && pnpm build",
     "lint:fix": "oxlint --fix .",
-    "lint:all": "oxlint . && pnpm typecheck",
+    "lint:all": "oxlint . && pnpm build && pnpm typecheck",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs"
