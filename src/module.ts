@@ -99,7 +99,7 @@ export default defineNuxtModule<HeroModuleOptions>({
       })
     }
 
-    // ─── Tailwind v4 + DaisyUI ───
+    // ─── Tailwind v4 ───
     setupTailwind(nuxt, runtimeDir)
 
     // ─── CSS: core always, modules conditional ───
@@ -121,7 +121,7 @@ export default defineNuxtModule<HeroModuleOptions>({
     }
 
     // ─── Runtime config: detect optional modules + features ───
-    ;(nuxt.options.runtimeConfig.public as any).hero = {
+    ; (nuxt.options.runtimeConfig.public as any).hero = {
       hasNuxtImage: hasNuxtModule('@nuxt/image'),
       defaultVolume: options.defaultVolume ?? 0,
       features,
@@ -159,49 +159,34 @@ export default defineNuxtModule<HeroModuleOptions>({
 })
 
 function setupTailwind(nuxt: Nuxt, runtimeDir: string) {
-  // Detect if the host app already has Tailwind (e.g. via @nuxt/ui)
-  const hostHasTailwind = hasNuxtModule('@nuxt/ui', nuxt)
-
-  // Use @source to point Tailwind at the runtime directory directly.
-  // This overrides Tailwind v4's default node_modules exclusion and is
-  // far more reliable than @source inline() with extracted tokens.
+  // @source points Tailwind at the runtime directory directly, overriding
+  // the default node_modules exclusion so our classes get generated.
   const sourceDirective = `@source "${runtimeDir}/**/*.{vue,css}";`
 
-  // Only inject our own Tailwind entrypoint if the host doesn't provide one
-  if (!hostHasTailwind) {
-    const lines = [
-      `@import 'tailwindcss';`,
-      ``,
-      `@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));`,
-      ``,
-      sourceDirective,
-    ]
+  // No host Tailwind — provide our own entrypoint
+  const lines = [
+    `@import 'tailwindcss';`,
+    ``,
+    `@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));`,
+    ``,
+    sourceDirective,
+  ]
 
-    const { dst } = addTemplate({
-      filename: 'nuxt-hero/tailwind.css',
-      write: true,
-      getContents: () => lines.join('\n'),
-    })
-    nuxt.options.css.unshift(dst)
+  const { dst } = addTemplate({
+    filename: 'nuxt-hero/tailwind.css',
+    write: true,
+    getContents: () => lines.join('\n'),
+  })
+  nuxt.options.css.unshift(dst)
 
-    nuxt.hook('vite:extend', async ({ config }) => {
-      const plugin = await import('@tailwindcss/vite').then(r => r.default)
-      config.plugins ||= []
-      config.plugins.push(plugin())
-    })
+  nuxt.hook('vite:extend', async ({ config }) => {
+    const plugin = await import('@tailwindcss/vite').then(r => r.default)
+    config.plugins ||= []
+    config.plugins.push(plugin())
+  })
 
-    if (nuxt.options.builder !== '@nuxt/vite-builder') {
-      nuxt.options.postcss.plugins['@tailwindcss/postcss'] = {}
-    }
-  }
-  else {
-    // Host has Tailwind — add source so our classes get generated
-    const { dst } = addTemplate({
-      filename: 'nuxt-hero/tailwind.css',
-      write: true,
-      getContents: () => sourceDirective,
-    })
-    nuxt.options.css.push(dst)
+  if (nuxt.options.builder !== '@nuxt/vite-builder') {
+    nuxt.options.postcss.plugins['@tailwindcss/postcss'] = {}
   }
 }
 

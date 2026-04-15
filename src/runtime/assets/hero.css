@@ -1,15 +1,5 @@
 @reference "tailwindcss";
 
-/* ─── Theme: CSS custom properties ─── */
-:root {
-  --hero-primary: #ffffff;
-  --hero-bg: rgba(255, 255, 255, 0.55);
-  --hero-border: rgba(255, 255, 255, 0.2);
-  --hero-progress-bg: rgba(255, 255, 255, 0.65);
-  --hero-nav-bg: rgba(0, 0, 0, 0.3);
-  --hero-nav-text: #ffffff;
-}
-
 /* ─── Navigation: nav-slit ─── */
 .hero-slider .hero-nav {
   @apply min-h-0;
