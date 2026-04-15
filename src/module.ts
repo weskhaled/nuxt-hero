@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { existsSync } from 'node:fs'
 import { join } from 'pathe'
 import { addComponent, addImports, addTemplate, createResolver, defineNuxtModule, hasNuxtModule } from '@nuxt/kit'
 import type { Nuxt } from '@nuxt/schema'
@@ -158,42 +158,14 @@ export default defineNuxtModule<HeroModuleOptions>({
   },
 })
 
-/**
- * Collect all unique class-like tokens from the module's .vue and .css files.
- * Used to emit @source inline(...) so Tailwind v4 generates the classes even
- * when the module lives inside node_modules (which Tailwind skips by default).
- */
-function collectRuntimeClasses(runtimeDir: string): string[] {
-  const classes = new Set<string>()
-  const dirs = [join(runtimeDir, 'components'), join(runtimeDir, 'assets')]
-
-  for (const dir of dirs) {
-    if (!existsSync(dir)) continue
-    const files = readdirSync(dir, { recursive: true, withFileTypes: true })
-    for (const entry of files) {
-      if (!entry.isFile()) continue
-      if (!entry.name.endsWith('.vue') && !entry.name.endsWith('.css')) continue
-      const content = readFileSync(join(entry.parentPath ?? entry.path, entry.name), 'utf-8')
-      // Extract tokens from class="..." and :class="..." — greedy enough for Tailwind scanning
-      const matches = content.match(/[\w/:@!.\-[\]#%()]+/g)
-      if (matches) {
-        for (const m of matches) classes.add(m)
-      }
-    }
-  }
-  return [...classes]
-}
-
 function setupTailwind(nuxt: Nuxt, runtimeDir: string) {
   // Detect if the host app already has Tailwind (e.g. via @nuxt/ui)
   const hostHasTailwind = hasNuxtModule('@nuxt/ui', nuxt)
 
-  // Collect all class tokens from runtime files so Tailwind generates them
-  // even when the module is installed inside node_modules
-  const inlineClasses = collectRuntimeClasses(runtimeDir)
-  const inlineSource = inlineClasses.length > 0
-    ? `@source inline("${inlineClasses.join(' ')}");`
-    : ''
+  // Use @source to point Tailwind at the runtime directory directly.
+  // This overrides Tailwind v4's default node_modules exclusion and is
+  // far more reliable than @source inline() with extracted tokens.
+  const sourceDirective = `@source "${runtimeDir}/**/*.{vue,css}";`
 
   // Only inject our own Tailwind entrypoint if the host doesn't provide one
   if (!hostHasTailwind) {
@@ -202,7 +174,7 @@ function setupTailwind(nuxt: Nuxt, runtimeDir: string) {
       ``,
       `@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));`,
       ``,
-      inlineSource,
+      sourceDirective,
     ]
 
     const { dst } = addTemplate({
@@ -223,11 +195,11 @@ function setupTailwind(nuxt: Nuxt, runtimeDir: string) {
     }
   }
   else {
-    // Host has Tailwind — add inline source so our classes get generated
+    // Host has Tailwind — add source so our classes get generated
     const { dst } = addTemplate({
       filename: 'nuxt-hero/tailwind.css',
       write: true,
-      getContents: () => inlineSource,
+      getContents: () => sourceDirective,
     })
     nuxt.options.css.push(dst)
   }
