@@ -1,3 +1,9 @@
 {
-  "extends": "./playground/.nuxt/tsconfig.json"
+  "extends": "./playground/.nuxt/tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "#hero": ["./src/runtime"],
+      "#hero/*": ["./src/runtime/*"]
+    }
+  }
 }
