@@ -126,12 +126,12 @@ const nextHoverClass = computed(() =>
 }
 
 /* ─── Hover states ─── */
-.nav-slit-btn:hover .nav-slit-preview {
-  transform: translateX(100%);
+.nav-slit-btn.nav-slit-prev:hover .nav-slit-preview {
+  transform: translate(100%);
 }
 
 .nav-slit-btn.nav-slit-next:hover .nav-slit-preview {
-  transform: translateX(-100%);
+  transform: translate(-100%);
 }
 
 .nav-slit-btn:hover h3 {

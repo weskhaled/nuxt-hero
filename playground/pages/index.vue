@@ -63,6 +63,15 @@ const slider = useHeroSlider(containerRef, slides, {
   swiperOptions,
   showPagination: true,
 })
+
+const progressPercent = computed(() => Math.round(slider.autoplayProgress.value * 100))
+
+/** Format seconds as m:ss */
+function fmt(s: number): string {
+  const m = Math.floor(s / 60)
+  const sec = Math.floor(s % 60)
+  return `${m}:${sec.toString().padStart(2, '0')}`
+}
 </script>
 
 <template>
@@ -81,11 +90,12 @@ const slider = useHeroSlider(containerRef, slides, {
                 <p class="py-2 pb-4">
                   Provident cupiditate voluptatem et in.
                 </p>
-
-                <button v-if="isVideo" class="btn btn-primary z-1 pointer-events-auto" @click="videoToggle">
+                <button v-if="isVideo"
+                  class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors dark:bg-white/10 dark:hover:bg-white/20 dark:text-white bg-black/5 hover:bg-black/10 text-black"
+                  @click="videoToggle">
+                  <Icon :name="videoPlaying ? 'lucide:pause' : 'lucide:play'" class="size-4" />
                   {{ videoPlaying ? 'Pause' : 'Play' }}
                 </button>
-
               </div>
             </div>
           </div>
@@ -93,67 +103,165 @@ const slider = useHeroSlider(containerRef, slides, {
         <div v-else class="flex size-full flex-col items-center justify-center">
           <div class="flex gap-4">
             <div class="hover-3d hover-cursor-pointer" data-swiper-parallax="-300">
-              <!-- content -->
               <figure class="w-45 rounded-sm">
-                <img src="https://img.daisyui.com/images/stock/card-1.webp?x" alt="Tailwind CSS 3D card" />
+                <img src="https://img.daisyui.com/images/stock/card-1.webp?x" alt="Card 1" />
               </figure>
-              <!-- 8 empty divs needed for the 3D effect -->
-              <div></div>
-              <div></div>
-              <div></div>
-              <div></div>
-              <div></div>
-              <div></div>
-              <div></div>
-              <div></div>
+              <div />
+              <div />
+              <div />
+              <div />
+              <div />
+              <div />
+              <div />
+              <div />
             </div>
-
             <div class="hover-3d hover-cursor-pointer" data-swiper-parallax="-200">
-              <!-- content -->
               <figure class="w-45 rounded-sm">
-                <img src="https://img.daisyui.com/images/stock/card-2.webp?x" alt="Tailwind CSS 3D hover" />
+                <img src="https://img.daisyui.com/images/stock/card-2.webp?x" alt="Card 2" />
               </figure>
-              <!-- 8 empty divs needed for the 3D effect -->
-              <div></div>
-              <div></div>
-              <div></div>
-              <div></div>
-              <div></div>
-              <div></div>
-              <div></div>
-              <div></div>
+              <div />
+              <div />
+              <div />
+              <div />
+              <div />
+              <div />
+              <div />
+              <div />
             </div>
-
             <div class="hover-3d hover-cursor-pointer" data-swiper-parallax="-100">
-              <!-- content -->
               <figure class="w-45 rounded-sm">
-                <img src="https://img.daisyui.com/images/stock/card-3.webp?x" alt="Tailwind CSS 3D hover" />
+                <img src="https://img.daisyui.com/images/stock/card-3.webp?x" alt="Card 3" />
               </figure>
-              <!-- 8 empty divs needed for the 3D effect -->
-              <div></div>
-              <div></div>
-              <div></div>
-              <div></div>
-              <div></div>
-              <div></div>
-              <div></div>
-              <div></div>
+              <div />
+              <div />
+              <div />
+              <div />
+              <div />
+              <div />
+              <div />
+              <div />
             </div>
           </div>
         </div>
       </template>
     </HeroSlider>
 
-    <!-- External controls demo using composable API -->
-    <div class="fixed bottom-4 left-4 z-100 flex gap-2 items-center">
-      <button class="btn btn-sm" @click="slider.autoplayPause()">Pause</button>
-      <button class="btn btn-sm" @click="slider.autoplayResume()">Resume</button>
-      <button v-if="slider.isActiveSlideVideo.value" class="btn btn-sm" @click="slider.videoToggle">
-        video {{ slider.videoPlaying.value ? 'Pause' : 'Play' }}
-      </button>
-      <span class="badge">{{ Math.round(slider.autoplayProgress.value * 100) }}%</span>
+    <!-- Slider status panel -->
+    <div class="mx-auto max-w-4xl px-4 py-6">
+      <!-- Controls -->
+      <div class="flex flex-wrap items-center gap-2 mb-4">
+        <button
+          class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors dark:bg-white/10 dark:hover:bg-white/20 dark:text-white bg-black/5 hover:bg-black/10 text-black"
+          @click="slider.prev()">
+          <Icon name="lucide:chevron-left" class="size-3.5" />
+          Prev
+        </button>
+        <button
+          class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors dark:bg-white/10 dark:hover:bg-white/20 dark:text-white bg-black/5 hover:bg-black/10 text-black"
+          @click="slider.next()">
+          Next
+          <Icon name="lucide:chevron-right" class="size-3.5" />
+        </button>
+
+        <span class="mx-1 h-5 w-px dark:bg-white/20 bg-black/10" />
+
+        <button v-if="slider.isActiveSlideVideo.value"
+          class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors dark:bg-blue-500/20 dark:text-blue-300 dark:hover:bg-blue-500/30 bg-blue-100 text-blue-700 hover:bg-blue-200"
+          @click="slider.videoToggle">
+          <Icon :name="slider.videoPlaying.value ? 'lucide:pause' : 'lucide:play'" class="size-3.5" />
+          Video {{ slider.videoPlaying.value ? 'Pause' : 'Play' }}
+        </button>
+
+        <button v-else
+          class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
+          :class="slider.autoplayPaused.value
+            ? 'dark:bg-emerald-500/20 dark:text-emerald-300 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:hover:bg-emerald-500/30'
+            : 'dark:bg-amber-500/20 dark:text-amber-300 bg-amber-100 text-amber-700 hover:bg-amber-200 dark:hover:bg-amber-500/30'" @click="slider.autoplayPaused.value ? slider.autoplayResume() : slider.autoplayPause()">
+          <Icon :name="slider.autoplayPaused.value ? 'lucide:play' : 'lucide:pause'" class="size-3.5" />
+          {{ slider.autoplayPaused.value ? 'Resume' : 'Pause' }}
+        </button>
+
+        <!-- Progress badge -->
+        <div class="ml-auto flex items-center gap-2">
+          <div class="h-1.5 w-24 overflow-hidden rounded-full dark:bg-white/10 bg-black/10">
+            <div class="h-full rounded-full transition-all duration-100 dark:bg-white/60 bg-black/40"
+              :style="{ width: `${progressPercent}%` }" />
+          </div>
+          <span class="text-xs tabular-nums dark:text-white/50 text-black/50">{{ progressPercent }}%</span>
+        </div>
+      </div>
+
+      <!-- Status grid -->
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <!-- Slide info -->
+        <div class="rounded-xl p-3 dark:bg-white/5 bg-black/[0.03] dark:ring-white/10 ring-black/5 ring-1">
+          <div class="text-xs font-medium uppercase tracking-wider dark:text-white/40 text-black/40 mb-1">Slide</div>
+          <div class="text-lg font-semibold tabular-nums dark:text-white text-black">
+            {{ slider.activeIndex.value + 1 }}
+            <span class="text-sm font-normal dark:text-white/40 text-black/40">/ {{ slides.length }}</span>
+          </div>
+          <div class="mt-1 truncate text-xs dark:text-white/50 text-black/50">
+            {{ slides[slider.activeIndex.value]?.title }}
+          </div>
+        </div>
+
+        <!-- Autoplay -->
+        <div class="rounded-xl p-3 dark:bg-white/5 bg-black/[0.03] dark:ring-white/10 ring-black/5 ring-1">
+          <div class="text-xs font-medium uppercase tracking-wider dark:text-white/40 text-black/40 mb-1">Autoplay</div>
+          <div class="flex items-center gap-1.5">
+            <span class="size-2 rounded-full"
+              :class="slider.autoplayPaused.value ? 'bg-amber-400' : 'bg-emerald-400'" />
+            <span class="text-sm dark:text-white text-black">
+              {{ slider.autoplayPaused.value ? 'Paused' : 'Running' }}
+            </span>
+          </div>
+          <div class="mt-1 text-xs tabular-nums dark:text-white/50 text-black/50">
+            {{ (slider.autoplayDelay.value / 1000).toFixed(1) }}s delay
+          </div>
+        </div>
+
+        <!-- Video (shown when active slide is video) -->
+        <div class="rounded-xl p-3 dark:bg-white/5 bg-black/[0.03] dark:ring-white/10 ring-black/5 ring-1">
+          <div class="text-xs font-medium uppercase tracking-wider dark:text-white/40 text-black/40 mb-1">Video</div>
+          <template v-if="slider.isActiveSlideVideo.value">
+            <div class="flex items-center gap-1.5">
+              <span class="size-2 rounded-full" :class="slider.videoPlaying.value ? 'bg-blue-400' : 'bg-white/30'" />
+              <span class="text-sm dark:text-white text-black">
+                {{ slider.videoPlaying.value ? 'Playing' : 'Stopped' }}
+              </span>
+            </div>
+            <div class="mt-1 text-xs tabular-nums dark:text-white/50 text-black/50">
+              {{ fmt(slider.videoCurrentTime.value) }} / {{ fmt(slider.videoDuration.value) }}
+            </div>
+          </template>
+          <div v-else class="text-sm dark:text-white/30 text-black/30">N/A</div>
+        </div>
+
+        <!-- State -->
+        <div class="rounded-xl p-3 dark:bg-white/5 bg-black/[0.03] dark:ring-white/10 ring-black/5 ring-1">
+          <div class="text-xs font-medium uppercase tracking-wider dark:text-white/40 text-black/40 mb-1">State</div>
+          <div class="flex flex-wrap gap-1">
+            <span v-if="slider.isHovered.value"
+              class="inline-block rounded px-1.5 py-0.5 text-xs dark:bg-white/10 dark:text-white/70 bg-black/5 text-black/60">
+              Hovered
+            </span>
+            <span v-if="slider.isActiveSlideVideo.value"
+              class="inline-block rounded px-1.5 py-0.5 text-xs dark:bg-blue-500/20 dark:text-blue-300 bg-blue-100 text-blue-700">
+              Video
+            </span>
+            <span v-if="slider.videoMuted.value && slider.isActiveSlideVideo.value"
+              class="inline-block rounded px-1.5 py-0.5 text-xs dark:bg-white/10 dark:text-white/70 bg-black/5 text-black/60">
+              Muted
+            </span>
+            <span v-if="!slider.isHovered.value && !slider.isActiveSlideVideo.value"
+              class="text-sm dark:text-white/30 text-black/30">Idle</span>
+          </div>
+        </div>
+      </div>
     </div>
-    <pre>{{ slider }}</pre>
-    <div class="h-800 flex items-center justify-center">scroll</div>
+
+    <div class="h-[50vh] flex items-center justify-center dark:text-white/20 text-black/20 text-sm">
+      Scroll area for parallax testing
+    </div>
   </div>
 </template>
