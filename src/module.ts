@@ -8,6 +8,24 @@ import { setupVite } from './module/vite'
 import { registerComponents, registerComposables } from './module/components'
 
 export type { HeroModuleOptions } from './module/types'
+export type {
+  HeroFeatures,
+  SwiperEffect,
+  HeroSlide,
+  SlideConfig,
+  ResolvedSlideConfig,
+  SlideAnimation,
+  HeroSliderProps,
+  HeroSliderUI,
+  OverlayPattern,
+  OverlayPatternType,
+  ParallaxConfig,
+  UseHeroSliderOptions,
+  UseHeroSliderReturn,
+  VideoMediaControls,
+  MediaControlsOptions,
+} from './runtime/types'
+export type { SwiperOptions } from 'swiper/types'
 
 export default defineNuxtModule<HeroModuleOptions>({
   meta: {
