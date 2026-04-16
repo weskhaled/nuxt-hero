@@ -60,7 +60,7 @@ export function useHeroSlider(
   // Merge user Swiper options with sensible defaults.
   // Native autoplay is always disabled — the composable manages its own timer.
   const mergedSwiperOptions = computed(() => {
-    const { autoplay, ...userOpts } = swiperOptions as Record<string, unknown>
+    const { __autoplay, ...userOpts } = swiperOptions as Record<string, unknown>
     return {
       slidesPerView: 1,
       spaceBetween: 0,
