@@ -95,5 +95,10 @@
     "vitepress": "^1.6.4",
     "vitest": "^4.1.4",
     "vue-tsc": "^3.2.6"
+  },
+  "pnpm": {
+    "overrides": {
+      "vite": "^7.0.0"
+    }
   }
 }
