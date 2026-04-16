@@ -43,9 +43,10 @@
     "typecheck": "nuxi typecheck playground",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:types": "tsc --noEmit -p tsconfig.test.json",
     "lint": "oxlint . && pnpm build && pnpm test",
     "lint:fix": "oxlint --fix .",
-    "lint:all": "oxlint . && pnpm build && pnpm test && pnpm typecheck",
+    "lint:all": "oxlint . && pnpm build && pnpm test && pnpm typecheck && pnpm test:types",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs"
