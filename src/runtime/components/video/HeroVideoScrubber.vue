@@ -59,40 +59,79 @@ watch([scrubbing, elementX], () => {
   <!-- Outer: full-width hit area, never changes size -->
   <div ref="scrubber" role="slider" :aria-valuemin="min" :aria-valuemax="max" :aria-valuenow="Math.round(value)"
     :aria-label="`Seek: ${Math.round(progressPercent)}%`" tabindex="0"
-    class="group/scrubber cursor-pointer select-none overflow-visible relative" @mousedown.stop.prevent="startScrub"
+    class="group/scrubber hero-scrub-outer" @mousedown.stop.prevent="startScrub"
     @touchstart.stop.prevent="startScrub" @keydown.left.prevent="value = Math.max(min, value - max * 0.05)"
     @keydown.right.prevent="value = Math.min(max, value + max * 0.05)">
 
     <!-- Hit area extends above/below for easier targeting -->
-    <div class="absolute inset-x-0 -top-3 -bottom-1 z-1" />
+    <div class="hero-scrub-hitarea" />
 
     <!-- Inner wrapper: handles visual inset + rounded on active -->
-    <div class="relative w-full transition-[margin,border-radius,height] duration-200 ease-out"
+    <div class="hero-scrub-inner"
       :class="active ? 'mx-3 rounded-full h-2.5' : 'mx-0 h-full'">
 
       <!-- Track: clips buffered/progress bars -->
-      <div class="h-full w-full relative overflow-hidden bg-white/15" :class="active ? 'rounded-full' : ''">
+      <div class="hero-scrub-track" :class="active ? 'rounded-full' : ''">
         <!-- Buffered -->
-        <div class="bg-white/30 h-full left-0 top-0 absolute" :style="{ width: `${bufferedPercent}%` }" />
+        <div class="hero-scrub-buffered" :style="{ width: `${bufferedPercent}%` }" />
         <!-- Progress -->
-        <div class="bg-white h-full left-0 top-0 absolute" :style="{ width: `${progressPercent}%` }" />
+        <div class="hero-scrub-fill" :style="{ width: `${progressPercent}%` }" />
       </div>
 
       <!-- Scrub head: outside track so not clipped by overflow-hidden -->
-      <div
-        class="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 rounded-full bg-white transition-[width,height,box-shadow] duration-150 z-2"
+      <div class="hero-scrub-head"
         :class="active ? 'size-3.5 shadow-md' : 'size-0'" :style="{ left: `${progressPercent}%` }" />
     </div>
 
     <!-- Hover preview line -->
-    <div v-if="active && !scrubbing"
-      class="absolute top-0 h-full w-px bg-white/50 pointer-events-none z-1 -translate-x-1/2"
+    <div v-if="active && !scrubbing" class="hero-scrub-hover-line"
       :style="{ left: `${pendingPercent}%` }" />
 
     <!-- Tooltip slot -->
-    <div class="absolute left-0 right-0 pointer-events-none z-3 transition-opacity duration-100"
+    <div class="hero-scrub-tooltip-slot"
       style="bottom: calc(100% + 0.5rem);" :class="active ? 'opacity-100' : 'opacity-0'">
       <slot :pending-value="pendingValue" :position="`${Math.max(0, Math.min(elementX, elementWidth))}px`" />
     </div>
   </div>
 </template>
+
+<style scoped>
+@reference "tailwindcss";
+
+.hero-scrub-outer {
+  @apply cursor-pointer select-none overflow-visible relative;
+}
+
+.hero-scrub-hitarea {
+  @apply absolute inset-x-0 -top-3 -bottom-1 z-1;
+}
+
+.hero-scrub-inner {
+  @apply relative w-full transition-[margin,border-radius,height] duration-200 ease-out;
+}
+
+.hero-scrub-track {
+  @apply h-full w-full relative overflow-hidden bg-white/15;
+}
+
+.hero-scrub-buffered {
+  @apply absolute top-0 left-0 h-full bg-white/30;
+}
+
+.hero-scrub-fill {
+  @apply absolute top-0 left-0 h-full bg-white;
+}
+
+.hero-scrub-head {
+  @apply absolute top-1/2 -translate-y-1/2 -translate-x-1/2 rounded-full bg-white z-2;
+  @apply transition-[width,height,box-shadow] duration-150;
+}
+
+.hero-scrub-hover-line {
+  @apply absolute top-0 h-full w-px bg-white/50 pointer-events-none z-1 -translate-x-1/2;
+}
+
+.hero-scrub-tooltip-slot {
+  @apply absolute left-0 right-0 pointer-events-none z-3 transition-opacity duration-100;
+}
+</style>

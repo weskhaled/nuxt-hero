@@ -93,7 +93,42 @@ const nextHoverClass = computed(() =>
 </template>
 
 <style scoped>
-/* ─── Horizontal mode (default) ─── */
+@reference "tailwindcss";
+
+/* ─── Navigation: nav-slit ─── */
+.hero-nav {
+  @apply min-h-0;
+}
+
+.nav-slit-btn {
+  @apply pointer-events-auto absolute z-10 block cursor-pointer outline-none;
+}
+
+.nav-slit-btn > span {
+  @apply relative block bg-white/40 ring ring-white backdrop-blur-sm text-black transition-transform duration-300;
+  @apply dark:bg-black/40 dark:ring-black dark:text-white;
+}
+
+.nav-slit-preview {
+  @apply absolute ring ring-white transition-transform duration-300 delay-300;
+  @apply bg-white dark:bg-black dark:ring-black;
+}
+
+.nav-slit-preview h3 {
+  @apply absolute m-0 truncate px-2 py-0.5 text-sm font-light capitalize leading-5 backface-hidden transition-transform duration-300;
+  @apply bg-white/70 ring ring-white backdrop-blur-sm text-black;
+  @apply dark:bg-black/70 dark:ring-black dark:text-white;
+}
+
+.nav-slit-prev .nav-slit-preview {
+  @apply left-0 -translate-x-full;
+}
+
+.nav-slit-next .nav-slit-preview {
+  @apply right-0 translate-x-full text-right;
+}
+
+/* ─── Hover states ─── */
 .nav-slit-btn:hover .nav-slit-preview {
   transform: translate(0);
 }

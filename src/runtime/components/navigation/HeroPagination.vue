@@ -60,3 +60,55 @@ const emit = defineEmits<{ slideTo: [index: number] }>()
     </button>
   </nav>
 </template>
+
+<style scoped>
+@reference "tailwindcss";
+
+/* ─── Pagination tooltip ─── */
+.swiper-pagination > button > .tooltip-content {
+  @apply pointer-events-none absolute bottom-full mb-1 left-1/2 z-90 w-30 -ml-[60px] cursor-default opacity-0 transition-opacity duration-300 delay-300;
+}
+
+.swiper-pagination > button > .tooltip-content::after {
+  @apply pointer-events-none absolute -bottom-2.5 left-1/2 -ml-1.25 size-0 border-5 border-transparent border-t-inherit!;
+  content: '';
+}
+
+.swiper-pagination > button > .tooltip-content .tooltip-text {
+  @apply overflow-hidden border-b-2 origin-left scale-x-0 scale-y-100 transition-transform duration-300 delay-300;
+}
+
+.swiper-pagination > button > .tooltip-content .tooltip-text .tooltip-inner {
+  @apply max-w-[inherit] rounded-none p-0 translate-y-full transition-transform duration-300;
+}
+
+.swiper-pagination > button > .tooltip-content .tooltip-text .tooltip-inner img {
+  @apply opacity-65;
+}
+
+/* Tooltip hover states */
+.swiper-pagination > button:hover > .tooltip-content {
+  @apply z-99 opacity-100 delay-0;
+}
+
+.swiper-pagination > button:hover > .tooltip-content .tooltip-text {
+  @apply scale-x-100 delay-0;
+}
+
+.swiper-pagination > button:hover > .tooltip-content .tooltip-text .tooltip-inner {
+  @apply translate-y-0 delay-300;
+}
+
+/* ─── SVG progress circle ─── */
+.progress-circle-svg {
+  @apply -rotate-90;
+}
+
+.progress-circle-bar {
+  stroke: var(--hero-primary);
+}
+
+.progress-circle-bg {
+  stroke: var(--hero-progress-bg);
+}
+</style>
