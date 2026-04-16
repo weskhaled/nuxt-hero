@@ -47,17 +47,15 @@ const nextHoverClass = computed(() =>
     -->
 
     <!-- Prev -->
-    <button type="button" aria-label="Previous slide" class="nav-slit-btn nav-slit-prev group"
-      :class="vertical
-        ? 'top-0 left-1/2 -translate-x-1/2'
-        : 'left-0 top-1/2 -translate-y-1/2'" @click="emit('prev')">
+    <button type="button" aria-label="Previous slide" class="nav-slit-btn nav-slit-prev group" :class="vertical
+      ? 'top-0 left-1/2 -translate-x-1/2'
+      : 'left-0 top-1/2 -translate-y-1/2'" @click="emit('prev')">
       <span :class="prevHoverClass">
         <Icon :name="vertical ? 'lucide:chevron-up' : 'lucide:chevron-left'" class="block text-base" />
       </span>
-      <div v-if="prevSlide?.thumbSrc" class="nav-slit-preview"
-        :class="vertical
-          ? 'top-0 left-0 w-full h-24 -translate-y-full'
-          : 'left-0 top-0 h-full w-36 -translate-x-full'">
+      <div v-if="prevSlide?.thumbSrc" class="nav-slit-preview" :class="vertical
+        ? 'top-0 left-0 w-full h-24 -translate-y-full'
+        : 'left-0 top-0 h-full w-36 -translate-x-full'">
         <h3 :class="vertical
           ? 'bottom-0 left-0 w-full origin-bottom scale-y-0'
           : 'top-full w-full origin-top -rotate-x-90'">
@@ -69,17 +67,15 @@ const nextHoverClass = computed(() =>
     </button>
 
     <!-- Next -->
-    <button type="button" aria-label="Next slide" class="nav-slit-btn nav-slit-next group"
-      :class="vertical
-        ? 'bottom-0 left-1/2 -translate-x-1/2'
-        : 'right-0 top-1/2 -translate-y-1/2 text-right'" @click="emit('next')">
+    <button type="button" aria-label="Next slide" class="nav-slit-btn nav-slit-next group" :class="vertical
+      ? 'bottom-0 left-1/2 -translate-x-1/2'
+      : 'right-0 top-1/2 -translate-y-1/2 text-right'" @click="emit('next')">
       <span :class="nextHoverClass">
         <Icon :name="vertical ? 'lucide:chevron-down' : 'lucide:chevron-right'" class="block text-base" />
       </span>
-      <div v-if="nextSlide?.thumbSrc" class="nav-slit-preview"
-        :class="vertical
-          ? 'bottom-0 left-0 w-full h-24 translate-y-full'
-          : 'right-0 top-0 h-full w-36 translate-x-full'">
+      <div v-if="nextSlide?.thumbSrc" class="nav-slit-preview" :class="vertical
+        ? 'bottom-0 left-0 w-full h-24 translate-y-full'
+        : 'right-0 top-0 h-full w-36 translate-x-full'">
         <h3 :class="vertical
           ? 'top-0 left-0 w-full origin-top scale-y-0'
           : 'top-full text-left w-full origin-top -rotate-x-90'">
@@ -105,7 +101,7 @@ const nextHoverClass = computed(() =>
   @apply pointer-events-auto absolute z-10 block cursor-pointer outline-none;
 }
 
-.nav-slit-btn > span {
+.nav-slit-btn>span {
   @apply relative block bg-white/40 ring ring-white backdrop-blur-sm text-black transition-transform duration-300;
   @apply dark:bg-black/40 dark:ring-black dark:text-white;
 }
@@ -130,8 +126,12 @@ const nextHoverClass = computed(() =>
 }
 
 /* ─── Hover states ─── */
-.nav-slit-btn:hover .nav-slit-preview {
-  transform: translate(0);
+.nav-slit-btn.nav-slit-prev:hover .nav-slit-preview {
+  transform: translate(100%);
+}
+
+.nav-slit-btn.nav-slit-next:hover .nav-slit-preview {
+  transform: translate(-100%);
 }
 
 .nav-slit-btn:hover h3 {
