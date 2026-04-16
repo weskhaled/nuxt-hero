@@ -94,6 +94,7 @@ const nextHoverClass = computed(() =>
 
 <style scoped>
 @reference "tailwindcss";
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
 /* ─── Navigation: nav-slit ─── */
 .hero-nav {
