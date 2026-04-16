@@ -1,6 +1,6 @@
 {
   "name": "nuxt-hero",
-  "version": "0.3.2",
+  "version": "0.3.4",
   "description": "A full-featured hero slider Nuxt module with parallax, video backgrounds, overlay patterns, and customizable animations.",
   "license": "MIT",
   "author": "weskhaled",
