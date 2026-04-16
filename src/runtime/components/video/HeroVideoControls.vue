@@ -230,6 +230,7 @@ function setPlaybackRate(rate: number) {
 
 <style scoped>
 @reference "tailwindcss";
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
 /* ─── Layout ─── */
 .hero-video-center {
