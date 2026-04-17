@@ -27,7 +27,6 @@ const {
   activeIndex,
   snapIndex,
   totalSnaps,
-  isActiveSlideVideo,
   next,
   prev,
   goTo,
@@ -76,11 +75,14 @@ const shouldShowNavigation = computed(() =>
   features.navigation && props.slides.length > 1 && activeSlideConfig.value.showNavigation,
 )
 
-/** Whether the autoplay progress bar should be visible */
+/**
+ * Whether the autoplay progress bar should be visible.
+ * Always reflects the autoplay timer — video progress is surfaced by the
+ * video scrubber (media-controls) independently.
+ */
 const shouldShowAutoplayProgress = computed(() =>
   autoplayEnabled
-  && activeSlideConfig.value.showProgress
-  && !isActiveSlideVideo.value,
+  && activeSlideConfig.value.showProgress,
 )
 
 // ─── Parallax (only when feature enabled) ───
@@ -200,11 +202,16 @@ if (features.parallax) {
         <HeroNavigation :slides="slides" :active-index="activeIndex" :vertical="isVertical" @prev="prev" @next="next" />
       </slot>
 
-      <!-- Autoplay progress bar: horizontal at bottom, vertical on the side -->
-      <div v-if="shouldShowAutoplayProgress" class="pointer-events-none absolute z-4 bg-white/50" :class="[isVertical
-        ? 'top-0 ltr:right-0 rtl:left-0 h-full w-1'
-        : 'bottom-0 left-0 w-full h-1', ui.progress]">
-        <div class="bg-white transition-all duration-50 rounded-e-sm" :class="isVertical ? 'w-full' : 'h-full'" :style="isVertical
+      <!-- Autoplay progress bar: horizontal edge-to-edge at the bottom,
+           vertical on the side. Styling matches the video scrubber palette
+           (bg-white/20 track, bg-white fill). -->
+      <div v-if="shouldShowAutoplayProgress" class="hero-autoplay-progress pointer-events-none absolute z-4 bg-white/20 overflow-hidden" :class="[
+        isVertical
+          ? 'top-0 ltr:right-0 rtl:left-0 h-full w-1'
+          : 'bottom-0 left-0 w-full h-1',
+        ui.progress,
+      ]">
+        <div class="bg-white transition-all duration-50" :class="isVertical ? 'w-full' : 'h-full'" :style="isVertical
           ? { height: `${autoplayProgress * 100}%` }
           : { width: `${autoplayProgress * 100}%` }" />
       </div>

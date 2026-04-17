@@ -19,10 +19,6 @@ const slides = [
     bgSrc: 'https://images.unsplash.com/photo-1454789548928-9efd52dc4031?w=1920&q=80',
     title: 'Astronaut',
   },
-  {
-    bgSrc: 'https://images.unsplash.com/photo-1516339901601-2e1b62dc0c45?w=1920&q=80',
-    title: 'Galaxy',
-  },
 ]
 
 const swiperOptions = {

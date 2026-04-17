@@ -8,6 +8,7 @@ export default defineNuxtConfig({
       navigation: true,
       pagination: true,
       mousewheel: true,
+      keyboard: true,
       freeMode: true,
       effects: ['creative', 'fade', 'cube', 'cards',],
       parallax: true,

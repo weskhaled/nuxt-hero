@@ -67,6 +67,7 @@ export const _resolved: ResolvedSlideConfig = {
   showProgress: true,
   showVideoControls: true,
   videoLoop: false,
+  pauseUntilVideoEnds: false,
 }
 export const _slideCfg: SlideConfig = { showPagination: false }
 export const _anim: SlideAnimation = { enter: 'animate__fadeIn' }

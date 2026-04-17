@@ -46,6 +46,7 @@ export function createSlideState(
       showProgress: cfg.showProgress ?? displayDefaults.showProgress ?? true,
       showVideoControls: cfg.showVideoControls ?? displayDefaults.showVideoControls ?? true,
       videoLoop: cfg.videoLoop ?? false,
+      pauseUntilVideoEnds: cfg.pauseUntilVideoEnds ?? false,
       mediaControlsOptions: cfg.mediaControlsOptions,
     }
   })

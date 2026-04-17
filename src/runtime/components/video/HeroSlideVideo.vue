@@ -167,5 +167,6 @@ defineExpose({
 </script>
 
 <template>
-  <video ref="videoRef" muted :loop="videoLoop" playsinline :poster="poster" class="size-full object-cover will-change-transform" />
+  <video ref="videoRef" muted :loop="videoLoop" playsinline :poster="poster"
+    class="size-full bg-black object-cover will-change-transform" />
 </template>

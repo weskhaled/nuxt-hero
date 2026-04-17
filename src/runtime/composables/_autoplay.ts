@@ -5,18 +5,18 @@ import type { UseHeroSliderOptions } from '#hero/types'
 
 /**
  * Creates the autoplay timer state. Manages elapsed time, progress,
- * and pause/resume logic. Pauses automatically when a video slide
- * is active or the slider is hovered.
+ * and pause/resume logic. Pauses automatically when the active slide
+ * requests video-wait mode (`pauseUntilVideoEnds`) or the slider is hovered.
  *
  * @param advanceSlide - Callback to advance to the next slide
- * @param isActiveSlideVideo - Whether the current slide has a video background
+ * @param shouldPauseForVideo - Reactive flag: true when active slide is a video AND opts into pause-until-end
  * @param isHovered - Whether the user is hovering over the slider
  * @param options - Swiper options containing autoplay delay config
  * @returns Autoplay state refs and control functions
  */
 export function createAutoplayState(
   advanceSlide: () => void,
-  isActiveSlideVideo: ComputedRef<boolean>,
+  shouldPauseForVideo: ComputedRef<boolean>,
   isHovered: Ref<boolean>,
   options: Pick<UseHeroSliderOptions, 'swiperOptions'>,
 ) {
@@ -42,7 +42,7 @@ export function createAutoplayState(
   })
 
   const { pause: pauseTimer, resume: resumeTimer } = useIntervalFn(() => {
-    if (isActiveSlideVideo.value || isHovered.value) return
+    if (shouldPauseForVideo.value || isHovered.value) return
     elapsed.value += TICK_MS
     if (elapsed.value >= autoplayDelay.value) {
       advanceSlide()
@@ -50,10 +50,10 @@ export function createAutoplayState(
     }
   }, TICK_MS, { immediate: autoplayEnabled })
 
-  // Pause timer when video slide is active
-  watch(isActiveSlideVideo, (isVideo) => {
+  // Pause timer when active slide opts into pause-until-video-ends
+  watch(shouldPauseForVideo, (shouldPause) => {
     if (!autoplayEnabled) return
-    if (isVideo) {
+    if (shouldPause) {
       pauseTimer()
     } else if (!autoplayPaused.value && !isHovered.value) {
       elapsed.value = 0
@@ -67,7 +67,7 @@ export function createAutoplayState(
     if (hovered) {
       elapsed.value = 0
       pauseTimer()
-    } else if (!autoplayPaused.value && !isActiveSlideVideo.value) {
+    } else if (!autoplayPaused.value && !shouldPauseForVideo.value) {
       resumeTimer()
     }
   })

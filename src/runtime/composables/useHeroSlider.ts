@@ -1,5 +1,5 @@
 import type { MaybeRefOrGetter } from 'vue'
-import { computed, toValue, watch } from 'vue'
+import { computed, toValue } from 'vue'
 import { useElementHover } from '@vueuse/core'
 import type { HeroSlide, UseHeroSliderOptions, UseHeroSliderReturn } from '#hero/types'
 import { createSwiperState } from './_swiper'
@@ -82,6 +82,19 @@ export function useHeroSlider(
   // whether video components are rendered via feature flags.
   const videoEnabled = true
 
+  // Dev-time sanity checks on common Swiper misconfigurations.
+  // Suppressed in production — Nuxt sets import.meta.dev during SSR/dev.
+  if (import.meta.dev && swiperOptions.effect === 'cube') {
+    const count = toValue(slides).length
+    if (count !== 4) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[nuxt-hero] effect: 'cube' is designed for exactly 4 slides (got ${count}). `
+        + `Extra slides render with offscreen translates. Use 'cards' or 'coverflow' for other counts.`,
+      )
+    }
+  }
+
   // ─── Compose internal modules ───
   const swiper = createSwiperState(slides)
 
@@ -99,40 +112,34 @@ export function useHeroSlider(
   const resolvedContainer = computed(() => resolveElement(containerRef))
   const isHovered = useElementHover(resolvedContainer)
 
-  const autoplay = createAutoplayState(
-    swiper.advanceSlide,
-    slideState.isActiveSlideVideo,
-    isHovered,
-    options,
-  )
-
   const video = createVideoState(swiper.activeIndex, videoEnabled)
 
   // ─── Cross-module coordination ───
 
-  // Use video progress for progress bar when active slide is video
-  const autoplayProgress = computed(() => {
-    const controls = video.activeControls.value
-    if (controls && controls.duration.value > 0) {
-      return Math.min(controls.currentTime.value / controls.duration.value, 1)
-    }
-    return autoplay.autoplayProgress.value
-  })
+  // Pause autoplay timer while a video is playing on a slide that opts into
+  // "wait for video end". Once the video ends, the flag flips to false and the
+  // timer resumes — so the slide still honours its full autoplay delay before
+  // advancing, rather than jumping immediately on video end.
+  //
+  // This is the single source of truth for video-driven advancement: the
+  // autoplay timer alone decides when to call advanceSlide.
+  const shouldPauseForVideo = computed(() =>
+    slideState.isActiveSlideVideo.value
+    && slideState.activeSlideConfig.value.pauseUntilVideoEnds
+    && !video.videoEnded.value,
+  )
 
-  // Auto-advance when non-looping video ends
-  if (videoEnabled) {
-    watch(
-      () => video.videoEnded.value,
-      (ended) => {
-        if (!ended) return
-        if (!autoplay.autoplayEnabled) return
-        if (slideState.activeSlideConfig.value.videoLoop) return
-        if (!isHovered.value) {
-          swiper.advanceSlide()
-        }
-      },
-    )
-  }
+  const autoplay = createAutoplayState(
+    swiper.advanceSlide,
+    shouldPauseForVideo,
+    isHovered,
+    options,
+  )
+
+  // Autoplay progress always reflects the autoplay timer.
+  // Video-duration progress is surfaced separately via videoCurrentTime/videoDuration
+  // and rendered by the video scrubber — the two must not be conflated.
+  const autoplayProgress = autoplay.autoplayProgress
 
   // Coordinated onSlideChange
   function onSlideChange() {

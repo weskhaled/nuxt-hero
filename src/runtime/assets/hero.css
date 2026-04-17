@@ -19,6 +19,90 @@
   mask: radial-gradient(farthest-side, transparent calc(100% - var(--hero-progress-thickness)), #000 calc(100% - var(--hero-progress-thickness)));
 }
 
+/* ─── Range input (shared: HeroVideoScrubber + volume slider) ───
+   Pattern: .hero-range-track wraps layered divs (.hero-range-buffered,
+   .hero-range-fill) plus a transparent native <input type="range">
+   (.hero-range-input) for a11y + keyboard + free browser behavior.
+   Add `.hero-range--reveal` to hide the thumb until hover / `.is-active`. */
+.hero-range-track {
+  @apply relative w-full h-1 bg-white/20 rounded-full cursor-pointer;
+  transition: height 0.15s ease;
+}
+.hero-range-track:hover,
+.hero-range-track.is-active {
+  @apply h-1.5;
+}
+
+.hero-range-buffered,
+.hero-range-fill {
+  @apply absolute top-0 left-0 h-full rounded-full pointer-events-none;
+}
+.hero-range-buffered { @apply bg-white/35; }
+.hero-range-fill { @apply bg-white; }
+
+.hero-range-input {
+  @apply appearance-none absolute -top-1 left-0 w-full m-0 bg-transparent cursor-pointer outline-none;
+  height: calc(100% + 8px);
+}
+.hero-range-input::-webkit-slider-thumb {
+  @apply appearance-none size-3.5 rounded-full bg-white cursor-pointer;
+  box-shadow: 0 0 4px rgb(0 0 0 / 0.3);
+  transition: transform 0.15s ease, width 0.15s ease, height 0.15s ease;
+}
+.hero-range-input::-webkit-slider-thumb:hover {
+  @apply scale-110;
+}
+.hero-range-input::-moz-range-track {
+  @apply bg-transparent border-none;
+}
+.hero-range-input::-moz-range-thumb {
+  @apply size-3.5 rounded-full bg-white cursor-pointer border-none;
+  box-shadow: 0 0 4px rgb(0 0 0 / 0.3);
+  transition: transform 0.15s ease, width 0.15s ease, height 0.15s ease;
+}
+.hero-range-input::-moz-range-thumb:hover {
+  @apply scale-110;
+}
+
+/* Reveal variant: thumb hidden until interaction */
+.hero-range--reveal .hero-range-input::-webkit-slider-thumb {
+  @apply size-0;
+}
+.hero-range--reveal .hero-range-input::-moz-range-thumb {
+  @apply size-0;
+}
+.hero-range--reveal:hover .hero-range-input::-webkit-slider-thumb,
+.hero-range--reveal.is-active .hero-range-input::-webkit-slider-thumb {
+  @apply size-3.5;
+}
+.hero-range--reveal:hover .hero-range-input::-moz-range-thumb,
+.hero-range--reveal.is-active .hero-range-input::-moz-range-thumb {
+  @apply size-3.5;
+}
+
+/* ─── Control button (shared: HeroVideoControls bar + center play) ───
+   Base pill; callers compose size + bg (filled / ghost) via utilities. */
+.hero-ctrl-btn {
+  @apply inline-flex items-center justify-center rounded-full;
+  @apply text-white cursor-pointer relative shadow-none border-none;
+  @apply transition-all duration-200;
+}
+.hero-ctrl-btn--filled {
+  @apply bg-white/25 backdrop-blur-sm hover:bg-white/35;
+}
+
+/* ─── Spinner (shared) ─── */
+@keyframes heroSpin {
+  to { transform: rotate(360deg); }
+}
+.hero-spinner {
+  @apply inline-block rounded-full;
+  border: 2px solid transparent;
+  border-top-color: currentColor;
+  border-left-color: currentColor;
+  animation: heroSpin 0.6s linear infinite;
+}
+
 /* ─── Built-in animations ─── */
 .hero-animated {
   animation-duration: 0.6s;

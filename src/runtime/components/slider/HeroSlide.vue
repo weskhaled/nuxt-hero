@@ -156,12 +156,10 @@ const hlsSlotData = computed(() => {
         <HeroVideoControls :playing="videoComponentRef!.mediaControls.playing"
           :waiting="videoComponentRef!.mediaControls.waiting"
           :current-time="videoComponentRef!.mediaControls.currentTime"
-          :duration="videoComponentRef!.mediaControls.duration"
-          :buffered="videoComponentRef!.mediaControls.buffered"
-          :volume="videoComponentRef!.mediaControls.volume"
-          :muted="videoComponentRef!.mediaControls.muted"
-          :get-container-el="getContainerEl"
-          :on-seek="onSeek" :on-scrub-start="onScrubStart" :on-scrub-end="onScrubEnd" />
+          :duration="videoComponentRef!.mediaControls.duration" :buffered="videoComponentRef!.mediaControls.buffered"
+          :volume="videoComponentRef!.mediaControls.volume" :muted="videoComponentRef!.mediaControls.muted"
+          :get-container-el="getContainerEl" :on-seek="onSeek" :on-scrub-start="onScrubStart"
+          :on-scrub-end="onScrubEnd" />
       </slot>
     </template>
   </div>

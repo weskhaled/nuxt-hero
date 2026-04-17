@@ -57,6 +57,13 @@ export interface SlideConfig {
   showVideoControls?: boolean
   /** Loop video playback. When false, auto-advances to next slide on video end. Default: false */
   videoLoop?: boolean
+  /**
+   * Pause the autoplay timer while a video background plays, and advance only
+   * when the video ends. When false (default), autoplay timer keeps ticking
+   * during video playback — the next slide is decided by the timer, not the video.
+   * Has no effect if `videoLoop: true`. Default: false
+   */
+  pauseUntilVideoEnds?: boolean
   /** VueUse useMediaControls options passed through to the video element. @see https://vueuse.org/core/useMediaControls/ */
   mediaControlsOptions?: MediaControlsOptions
 }
@@ -68,6 +75,7 @@ export interface ResolvedSlideConfig {
   showProgress: boolean
   showVideoControls: boolean
   videoLoop: boolean
+  pauseUntilVideoEnds: boolean
   mediaControlsOptions?: MediaControlsOptions
 }
 
