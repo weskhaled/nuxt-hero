@@ -125,28 +125,26 @@ const nextHoverClass = computed(() =>
   @apply right-0 translate-x-full text-right;
 }
 
-/* ─── Hover states ─── */
-.nav-slit-btn.nav-slit-prev:hover .nav-slit-preview {
-  transform: translate(100%);
+/* ─── Hover states (horizontal) ─── */
+.nav-slit:not(.nav-slit--vertical) .nav-slit-prev:hover .nav-slit-preview {
+  transform: translateX(100%);
 }
 
-.nav-slit-btn.nav-slit-next:hover .nav-slit-preview {
-  transform: translate(-100%);
+.nav-slit:not(.nav-slit--vertical) .nav-slit-next:hover .nav-slit-preview {
+  transform: translateX(-100%);
+}
+
+/* ─── Hover states (vertical) ─── */
+.nav-slit--vertical .nav-slit-prev:hover .nav-slit-preview {
+  transform: translateY(100%);
+}
+
+.nav-slit--vertical .nav-slit-next:hover .nav-slit-preview {
+  transform: translateY(-100%);
 }
 
 .nav-slit-btn:hover h3 {
   transform: rotateX(0deg) scaleY(1);
   transition-delay: 0.6s;
-}
-
-/* ─── Vertical mode ─── */
-.nav-slit--vertical .nav-slit-prev:hover .hero-icon {
-  transform: translateY(-150%);
-  transition-delay: 0s;
-}
-
-.nav-slit--vertical .nav-slit-next:hover .hero-icon {
-  transform: translateY(150%);
-  transition-delay: 0s;
 }
 </style>

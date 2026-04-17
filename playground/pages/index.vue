@@ -64,8 +64,8 @@ const swiperOptions = reactive({
   keyboard: true as boolean | { enabled?: boolean, onlyInViewport?: boolean },
   effect: 'creative' as SwiperEffect | 'slide',
   creativeEffect: {
-    prev: { shadow: true, translate: [0, 0, -400] },
-    next: { translate: ['100%', 0, 0] },
+    prev: { shadow: true, translate: [0, 0, -400] as [number | string, number | string, number] },
+    next: { translate: ['100%', 0, 0] as [number | string, number | string, number] },
   },
   autoplay: { delay: 15500 },
   speed: 500,
@@ -101,6 +101,13 @@ const sliderKey = computed(() => [
 
 // Push autoplay delay edits into the composable (it owns the timer).
 watch(() => swiperOptions.autoplay.delay, v => slider.autoplaySetDelay(v))
+
+// Keep creative-effect next-slide translate axis aligned with the slider
+// direction — vertical = enter from bottom, horizontal = enter from right.
+watch(() => swiperOptions.direction, (dir) => {
+  swiperOptions.creativeEffect.next.translate
+    = dir === 'vertical' ? [0, '100%', 0] : ['100%', 0, 0]
+}, { immediate: true })
 
 // ─── Helpers ───
 const progressPercent = computed(() => Math.round(slider.autoplayProgress.value * 100))
