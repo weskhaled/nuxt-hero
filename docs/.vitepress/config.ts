@@ -10,15 +10,39 @@ export default defineConfig({
   themeConfig: {
     nav: [
       { text: 'Guide', link: '/getting-started' },
+      { text: 'API', link: '/composable' },
+      { text: 'Examples', link: '/examples' },
       { text: 'Demo', link: '/demo' },
       { text: 'GitHub', link: 'https://github.com/weskhaled/nuxt-hero' },
     ],
     sidebar: [
       {
-        text: 'Introduction',
+        text: 'Getting Started',
         items: [
-          { text: 'Getting Started', link: '/getting-started' },
-          { text: 'Demo', link: '/demo' },
+          { text: 'Installation & Setup', link: '/getting-started' },
+          { text: 'Configuration', link: '/configuration' },
+        ],
+      },
+      {
+        text: 'Core',
+        items: [
+          { text: 'Components', link: '/components' },
+          { text: 'useHeroSlider', link: '/composable' },
+          { text: 'Types', link: '/types' },
+        ],
+      },
+      {
+        text: 'Features',
+        items: [
+          { text: 'Animations', link: '/animations' },
+          { text: 'Video Backgrounds', link: '/video' },
+        ],
+      },
+      {
+        text: 'Resources',
+        items: [
+          { text: 'Examples', link: '/examples' },
+          { text: 'Live Demo', link: '/demo' },
         ],
       },
     ],

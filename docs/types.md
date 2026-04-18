@@ -1,0 +1,184 @@
+# Types
+
+All types are exported from the package root for TypeScript consumers:
+
+```ts
+import type {
+  HeroSlide,
+  SlideConfig,
+  ResolvedSlideConfig,
+  SlideAnimation,
+  HeroSliderProps,
+  HeroSliderUI,
+  HeroFeatures,
+  SwiperEffect,
+  OverlayPattern,
+  OverlayPatternType,
+  ParallaxConfig,
+  UseHeroSliderOptions,
+  UseHeroSliderReturn,
+  VideoMediaControls,
+  MediaControlsOptions,
+  HeroModuleOptions,
+} from 'nuxt-hero'
+```
+
+## HeroSlide
+
+Defines a single slide in the slider.
+
+```ts
+interface HeroSlide {
+  /** Background image or video URL (auto-detected from extension) */
+  bgSrc: string
+  /** Dark-mode alternative (falls back to bgSrc) */
+  bgDarkSrc?: string
+  /** Thumbnail for pagination tooltip / navigation preview */
+  thumbSrc?: string
+  /** Slide title */
+  title?: string
+  /** Poster frame for video backgrounds */
+  poster?: string
+  /** Per-slide animation config */
+  animation?: SlideAnimation
+  /** Per-slide display & media config */
+  config?: SlideConfig
+  /** Any extra data for the slot */
+  [key: string]: unknown
+}
+```
+
+Video detection is automatic based on file extension: `.mp4`, `.webm`, `.mov`, `.ogg`, `.m3u8`.
+
+## SlideConfig
+
+Per-slide display and media configuration. All fields are optional and inherit from the composable-level defaults when omitted.
+
+```ts
+interface SlideConfig {
+  showPagination?: boolean          // Show pagination dots
+  showNavigation?: boolean          // Show navigation arrows
+  showProgress?: boolean            // Show progress bar / video scrubber
+  showVideoControls?: boolean       // Show video controls overlay
+  videoLoop?: boolean               // Loop video (default: false)
+  pauseUntilVideoEnds?: boolean     // Pause autoplay until video ends (default: false)
+  mediaControlsOptions?: MediaControlsOptions  // VueUse useMediaControls options
+  watchMode?: boolean               // Cinema mode for video slides
+  watchIdleMs?: number              // Idle timeout before watch mode hides UI (default: 10000)
+}
+```
+
+## SlideAnimation
+
+```ts
+interface SlideAnimation {
+  /** CSS class for content entering (e.g., 'hero-animated hero-fadeInUp') */
+  enter?: string
+  /** CSS class for content leaving (e.g., 'hero-animated hero-fadeOutDown') */
+  leave?: string
+}
+```
+
+## OverlayPattern
+
+Stackable overlay patterns rendered on top of slide backgrounds.
+
+```ts
+type OverlayPatternType = 'lines' | 'dots' | 'gradient' | 'custom'
+
+interface OverlayPattern {
+  type: OverlayPatternType
+  opacity?: number   // 0–1, default: 0.15
+  color?: string     // CSS color, default: 'black'
+  css?: string       // Custom CSS background-image (only for type: 'custom')
+}
+```
+
+### Pattern Examples
+
+```ts
+// Diagonal lines
+{ type: 'lines', opacity: 0.1 }
+
+// Dot grid
+{ type: 'dots', opacity: 0.08, color: 'white' }
+
+// Radial gradient
+{ type: 'gradient', opacity: 0.4 }
+
+// Custom CSS background
+{ type: 'custom', css: 'linear-gradient(to bottom, transparent 50%, black)', opacity: 0.6 }
+```
+
+## ParallaxConfig
+
+GSAP ScrollTrigger parallax configuration.
+
+```ts
+interface ParallaxConfig {
+  bg?: boolean        // Parallax on background (default: true)
+  content?: boolean   // Parallax on content (default: true)
+  speed?: number      // Speed multiplier (default: 0.125)
+  minOpacity?: number // Minimum opacity during scroll (0–1, default: 0.7)
+}
+```
+
+## HeroSliderUI
+
+Class overrides for internal elements (Nuxt UI-style pattern).
+
+```ts
+interface HeroSliderUI {
+  root?: string       // Root wrapper
+  swiper?: string     // Swiper container
+  slide?: string      // Each SwiperSlide
+  container?: string  // Slide inner container
+  bg?: string         // Background layer
+  controls?: string   // UI controls overlay
+  progress?: string   // Autoplay progress bar
+}
+```
+
+## HeroFeatures
+
+Feature flags for tree-shaking Swiper modules.
+
+```ts
+type SwiperEffect = 'fade' | 'cube' | 'coverflow' | 'creative' | 'cards' | 'flip'
+
+interface HeroFeatures {
+  navigation?: boolean
+  pagination?: boolean
+  mousewheel?: boolean
+  keyboard?: boolean
+  a11y?: boolean
+  freeMode?: boolean
+  thumbs?: boolean
+  grid?: boolean
+  zoom?: boolean
+  scrollbar?: boolean
+  controller?: boolean
+  virtual?: boolean
+  hashNavigation?: boolean
+  history?: boolean
+  effects?: SwiperEffect[]
+  parallax?: boolean         // GSAP ScrollTrigger parallax
+  swiperParallax?: boolean   // Swiper transition parallax
+  video?: boolean            // Video backgrounds
+  hls?: boolean              // HLS streaming (requires video)
+}
+```
+
+## HeroModuleOptions
+
+Top-level module configuration for `nuxt.config.ts`.
+
+```ts
+interface HeroModuleOptions {
+  prefix?: string           // Component name prefix (default: 'Hero')
+  colorMode?: boolean       // Enable @nuxtjs/color-mode (default: true)
+  icon?: boolean            // Enable @nuxt/icon (default: true)
+  defaultVolume?: number    // Default video volume 0–1 (default: 0)
+  features?: HeroFeatures   // Feature flags (default: {})
+}
+```
