@@ -27,9 +27,11 @@ const emit = defineEmits<{ slideTo: [index: number] }>()
   -->
   <nav role="navigation" aria-label="Slide pagination"
     class="hero-pagination swiper-pagination pointer-events-auto absolute z-10 flex items-center gap-1 rounded-full p-1 px-1.5 ring-2 ring-white bg-black/35 backdrop-blur-sm"
-    :class="vertical
-      ? 'flex-col top-1/2 -translate-y-1/2 ltr:right-4 rtl:left-4'
-      : 'bottom-4 left-1/2 -translate-x-1/2'">
+    :class="[
+      vertical
+        ? 'hero-pagination--vertical flex-col top-1/2 -translate-y-1/2 ltr:right-4 rtl:left-4'
+        : 'hero-pagination--horizontal bottom-4 left-1/2 -translate-x-1/2'
+    ]">
     <button v-for="i in totalSnaps" :key="i - 1" type="button"
       class="group relative flex size-4 shrink-0 items-center justify-center rounded-full"
       :class="{ active: snapIndex === i - 1 }" :aria-label="`Go to slide ${i}`"
@@ -66,20 +68,51 @@ const emit = defineEmits<{ slideTo: [index: number] }>()
 
 /* ─── Pagination tooltip ─── */
 .swiper-pagination > button > .tooltip-content {
-  @apply pointer-events-none absolute bottom-full mb-1 left-1/2 z-90 w-30 -ml-[60px] cursor-default opacity-0 transition-opacity duration-300 delay-300;
+  @apply pointer-events-none absolute z-90 w-30 cursor-default opacity-0 transition-opacity duration-300 delay-300;
 }
 
-.swiper-pagination > button > .tooltip-content::after {
+/* Horizontal: tooltip above the dot */
+.hero-pagination--horizontal > button > .tooltip-content {
+  @apply bottom-full mb-1 left-1/2 -ml-[60px];
+}
+
+.hero-pagination--horizontal > button > .tooltip-content::after {
   @apply pointer-events-none absolute -bottom-2.5 left-1/2 -ml-1.25 size-0 border-5 border-transparent border-t-inherit!;
   content: '';
 }
 
+/* Vertical: tooltip to the LEFT of the dot (slides in from right) */
+.hero-pagination--vertical > button > .tooltip-content {
+  @apply right-full mr-2 top-1/2 -translate-y-1/2;
+}
+
+.hero-pagination--vertical > button > .tooltip-content::after {
+  @apply pointer-events-none absolute -right-2.5 top-1/2 -mt-1.25 size-0 border-5 border-transparent border-l-inherit!;
+  content: '';
+}
+
 .swiper-pagination > button > .tooltip-content .tooltip-text {
-  @apply overflow-hidden border-b-2 origin-left scale-x-0 scale-y-100 transition-transform duration-300 delay-300;
+  @apply overflow-hidden scale-x-0 scale-y-100 transition-transform duration-300 delay-300;
+}
+
+.hero-pagination--horizontal > button > .tooltip-content .tooltip-text {
+  @apply border-b-2 origin-left;
+}
+
+.hero-pagination--vertical > button > .tooltip-content .tooltip-text {
+  @apply border-r-2 origin-right;
 }
 
 .swiper-pagination > button > .tooltip-content .tooltip-text .tooltip-inner {
-  @apply max-w-[inherit] rounded-none p-0 translate-y-full transition-transform duration-300;
+  @apply max-w-[inherit] rounded-none p-0 transition-transform duration-300;
+}
+
+.hero-pagination--horizontal > button > .tooltip-content .tooltip-text .tooltip-inner {
+  @apply translate-y-full;
+}
+
+.hero-pagination--vertical > button > .tooltip-content .tooltip-text .tooltip-inner {
+  @apply translate-x-full;
 }
 
 .swiper-pagination > button > .tooltip-content .tooltip-text .tooltip-inner img {
@@ -96,7 +129,7 @@ const emit = defineEmits<{ slideTo: [index: number] }>()
 }
 
 .swiper-pagination > button:hover > .tooltip-content .tooltip-text .tooltip-inner {
-  @apply translate-y-0 delay-300;
+  @apply translate-x-0 translate-y-0 delay-300;
 }
 
 /* ─── SVG progress circle ─── */

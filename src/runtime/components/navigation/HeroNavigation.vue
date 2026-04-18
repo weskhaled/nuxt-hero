@@ -54,7 +54,7 @@ const nextHoverClass = computed(() =>
         <Icon :name="vertical ? 'lucide:chevron-up' : 'lucide:chevron-left'" class="block text-base" />
       </span>
       <div v-if="prevSlide?.thumbSrc" class="nav-slit-preview" :class="vertical
-        ? 'top-0 left-0 w-full h-24 -translate-y-full'
+        ? 'top-0 left-1/2 w-24 h-20 -translate-x-1/2 -translate-y-full'
         : 'left-0 top-0 h-full w-36 -translate-x-full'">
         <h3 :class="vertical
           ? 'bottom-0 left-0 w-full origin-bottom scale-y-0'
@@ -74,7 +74,7 @@ const nextHoverClass = computed(() =>
         <Icon :name="vertical ? 'lucide:chevron-down' : 'lucide:chevron-right'" class="block text-base" />
       </span>
       <div v-if="nextSlide?.thumbSrc" class="nav-slit-preview" :class="vertical
-        ? 'bottom-0 left-0 w-full h-24 translate-y-full'
+        ? 'bottom-0 left-1/2 w-24 h-20 -translate-x-1/2 translate-y-full'
         : 'right-0 top-0 h-full w-36 translate-x-full'">
         <h3 :class="vertical
           ? 'top-0 left-0 w-full origin-top scale-y-0'
@@ -117,30 +117,24 @@ const nextHoverClass = computed(() =>
   @apply dark:bg-black/70 dark:ring-black dark:text-white;
 }
 
-.nav-slit-prev .nav-slit-preview {
+.nav-slit:not(.nav-slit--vertical) .nav-slit-prev .nav-slit-preview {
   @apply left-0 -translate-x-full;
 }
 
-.nav-slit-next .nav-slit-preview {
+.nav-slit:not(.nav-slit--vertical) .nav-slit-next .nav-slit-preview {
   @apply right-0 translate-x-full text-right;
 }
 
-/* ─── Hover states (horizontal) ─── */
-.nav-slit:not(.nav-slit--vertical) .nav-slit-prev:hover .nav-slit-preview {
-  transform: translateX(100%);
-}
-
+/* ─── Hover states (horizontal) ─── slide preview adjacent to button (single 100% travel) */
+.nav-slit:not(.nav-slit--vertical) .nav-slit-prev:hover .nav-slit-preview,
 .nav-slit:not(.nav-slit--vertical) .nav-slit-next:hover .nav-slit-preview {
-  transform: translateX(-100%);
+  translate: 0 0;
 }
 
-/* ─── Hover states (vertical) ─── */
-.nav-slit--vertical .nav-slit-prev:hover .nav-slit-preview {
-  transform: translateY(100%);
-}
-
+/* ─── Hover states (vertical) ─── slide preview adjacent to button (single 100% travel) */
+.nav-slit--vertical .nav-slit-prev:hover .nav-slit-preview,
 .nav-slit--vertical .nav-slit-next:hover .nav-slit-preview {
-  transform: translateY(-100%);
+  translate: -50% 0;
 }
 
 .nav-slit-btn:hover h3 {

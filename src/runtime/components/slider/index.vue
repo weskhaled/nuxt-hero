@@ -1,5 +1,6 @@
 <script lang="ts" setup>
-import { computed, ref, toValue, useTemplateRef, watchEffect } from 'vue'
+import { computed, toValue, useTemplateRef, watchEffect } from 'vue'
+
 import { Swiper, SwiperSlide } from 'swiper/vue'
 import { useElementBounding, useWindowSize } from '@vueuse/core'
 import { useRuntimeConfig } from '#imports'
@@ -7,6 +8,7 @@ import { swiperModules } from '#hero/swiper-modules'
 import type { HeroSliderProps } from '#hero/types'
 import { resolveParallaxConfig, isVideoUrl, patternCSS, patternSize, getHeroConfig } from '#hero/utils'
 import { useGSAP } from '#hero/composables/_gsap'
+import { useWatchMode } from '#hero/composables/_watchMode'
 
 const props = withDefaults(defineProps<HeroSliderProps>(), {
   enterAnimation: '',
@@ -53,7 +55,15 @@ const {
   videoToggleMute,
   mergedSwiperOptions,
   isMultiSlide,
+  isActiveSlideVideo,
 } = props.slider
+
+// ─── Idle coordination (watch mode + fullscreen) ───
+const { idle, isWatchIdle, isFullscreenIdle } = useWatchMode(
+  activeSlideConfig,
+  isActiveSlideVideo,
+  videoPlaying,
+)
 
 /** Whether the slider runs in vertical direction */
 const isVertical = computed(() => mergedSwiperOptions.value.direction === 'vertical')
@@ -144,7 +154,9 @@ if (features.parallax) {
 </script>
 
 <template>
-  <component :is="as" ref="containerRef" class="hero-slider group/slider relative size-full" :class="ui.root">
+  <component :is="as" ref="containerRef" class="hero-slider group/slider relative size-full"
+    :class="[ui.root, { 'hero-watch-idle': isWatchIdle, 'hero-fs-idle': isFullscreenIdle }]"
+    :data-idle="idle" :data-watch-mode="activeSlideConfig.watchMode" :data-video-active="isActiveSlideVideo">
     <Swiper v-bind="mergedSwiperOptions" :parallax="true" :modules="swiperModules" class="size-full" :class="ui.swiper"
       @swiper="onSwiper" @slide-change="onSlideChange">
       <SwiperSlide v-for="(slide, index) in slides" :key="index" class="size-full overflow-hidden" :class="ui.slide">
@@ -177,7 +189,8 @@ if (features.parallax) {
             <slot name="overlay"
               v-bind="{ patterns: overlayPatterns, index, isActive: index === activeIndex, patternCSS, patternSize }">
               <!-- Default overlay rendering -->
-              <div v-for="(pattern, i) in overlayPatterns" :key="i" class="pointer-events-none absolute inset-0 z-2"
+              <div v-for="(pattern, i) in overlayPatterns" :key="i"
+                class="hero-overlay-pattern pointer-events-none absolute inset-0 z-2"
                 :style="{
                   backgroundImage: patternCSS(pattern),
                   backgroundSize: patternSize(pattern),

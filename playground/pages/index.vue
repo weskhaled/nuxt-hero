@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, computed, watch } from 'vue'
+import { reactive, ref, computed, watch } from 'vue'
 import type { HeroSlide, SwiperEffect } from '#hero/types'
 
 const containerRef = useTemplateRef<HTMLElement>('containerRef')
@@ -47,6 +47,8 @@ const slides = reactive<HeroSlide[]>([
       pauseUntilVideoEnds: false,
       showPagination: true,
       videoLoop: true,
+      watchMode: true,
+      watchIdleMs: 3000,
     },
   },
 ])
@@ -169,7 +171,7 @@ function patchActiveConfig(patch: Record<string, unknown>) {
       :overlay-patterns="[
         { type: 'lines', opacity: 0.125, color: 'black' },
         { type: 'gradient', opacity: 0.125 },
-      ]" class="h-[60svh] min-h-[420px] sm:h-[calc(100svh-10rem)] overflow-hidden bg-black">
+      ]" class="h-[60svh] min-h-420px sm:h-[calc(100svh-10rem)] overflow-hidden bg-black">
       <template #slide="{ slide, isVideo, videoPlaying, videoToggle }">
         <div v-if="isVideo" class="flex size-full items-end sm:items-center">
           <div class="w-full max-w-3xl px-6 pb-24 sm:pb-16 sm:px-12 lg:px-20 text-white">
@@ -480,6 +482,11 @@ function patchActiveConfig(patch: Record<string, unknown>) {
               <input :checked="activeCfg.pauseUntilVideoEnds ?? false" type="checkbox"
                 @change="patchActiveConfig({ pauseUntilVideoEnds: ($event.target as HTMLInputElement).checked })" />
               Pause until end
+            </label>
+            <label class="sb-check">
+              <input :checked="activeCfg.watchMode ?? false" type="checkbox"
+                @change="patchActiveConfig({ watchMode: ($event.target as HTMLInputElement).checked })" />
+              Watch mode
             </label>
           </div>
         </section>

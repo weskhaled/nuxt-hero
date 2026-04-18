@@ -66,6 +66,15 @@ export interface SlideConfig {
   pauseUntilVideoEnds?: boolean
   /** VueUse useMediaControls options passed through to the video element. @see https://vueuse.org/core/useMediaControls/ */
   mediaControlsOptions?: MediaControlsOptions
+  /**
+   * Watch mode — when active and this slide is a video, fade out content,
+   * overlay patterns, and the centered play button; slide out the video
+   * controls after `watchIdleMs` of mouse inactivity. Default: inherited
+   * from HeroSliderProps.watchMode
+   */
+  watchMode?: boolean
+  /** Idle timeout in ms before watch mode kicks in. Default: inherited from HeroSliderProps.watchIdleMs (10000) */
+  watchIdleMs?: number
 }
 
 /** Resolved slide config with boolean defaults applied */
@@ -77,6 +86,8 @@ export interface ResolvedSlideConfig {
   videoLoop: boolean
   pauseUntilVideoEnds: boolean
   mediaControlsOptions?: MediaControlsOptions
+  watchMode: boolean
+  watchIdleMs: number
 }
 
 // ─── Slide ───
@@ -202,6 +213,10 @@ export interface UseHeroSliderOptions {
   showProgress?: boolean
   /** Show video controls overlay. Default: true. Can be overridden per-slide via slide.config */
   showVideoControls?: boolean
+  /** Watch mode default. Default: false. Can be overridden per-slide via slide.config */
+  watchMode?: boolean
+  /** Watch idle timeout (ms) default. Default: 10000. Can be overridden per-slide via slide.config */
+  watchIdleMs?: number
 }
 
 // ─── Composable Return ───

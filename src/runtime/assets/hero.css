@@ -157,3 +157,47 @@
 .hero-slideInLeft { animation-name: heroSlideInLeft; }
 .hero-zoomIn { animation-name: heroZoomIn; }
 .hero-zoomOut { animation-name: heroZoomOut; }
+
+/* Fullscreen video: contain instead of crop */
+:fullscreen .hero-slide-video {
+  object-fit: contain !important;
+  background: black;
+}
+
+/* ─── Watch mode ───
+   When idle on a video slide, fade chrome and slide controls out.
+   `--hero-fadeable` selectors share the transition; `.hero-watch-idle`
+   gates the visible state. */
+.hero-slider .hero-slide-content,
+.hero-slider .hero-overlay-pattern,
+.hero-slider .hero-play-center,
+.hero-slider .hero-media-controls,
+.hero-slider .hero-pagination,
+.hero-slider .hero-nav,
+.hero-slider .hero-autoplay-progress {
+  transition: opacity 0.6s ease, transform 0.4s ease;
+}
+
+/* Idle: fade out everything (content + chrome) */
+.hero-watch-idle .hero-slide-content,
+.hero-watch-idle .hero-overlay-pattern,
+.hero-watch-idle .hero-play-center,
+.hero-watch-idle .hero-pagination,
+.hero-watch-idle .hero-nav,
+.hero-watch-idle .hero-autoplay-progress {
+  opacity: 0 !important;
+  pointer-events: none;
+}
+
+/* Idle: media controls slide down out of view */
+.hero-watch-idle .hero-media-controls {
+  opacity: 0 !important;
+  transform: translateY(100%) !important;
+  pointer-events: none;
+}
+
+/* Idle: hide cursor (watch mode + fullscreen idle) */
+.hero-watch-idle,
+.hero-watch-idle *,
+.hero-fs-idle,
+.hero-fs-idle * { cursor: none; }

@@ -55,6 +55,8 @@ export function useHeroSlider(
     showNavigation,
     showProgress,
     showVideoControls,
+    watchMode,
+    watchIdleMs,
   } = options
 
   // Merge user Swiper options with sensible defaults.
@@ -102,7 +104,7 @@ export function useHeroSlider(
     slides,
     swiper.activeIndex,
     swiper.previousIndex,
-    { showPagination, showNavigation, showProgress, showVideoControls },
+    { showPagination, showNavigation, showProgress, showVideoControls, watchMode, watchIdleMs },
     videoEnabled,
     enterAnimation,
     leaveAnimation,

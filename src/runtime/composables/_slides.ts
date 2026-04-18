@@ -25,6 +25,8 @@ export function createSlideState(
     showNavigation?: boolean
     showProgress?: boolean
     showVideoControls?: boolean
+    watchMode?: boolean
+    watchIdleMs?: number
   },
   videoEnabled = true,
   enterAnimation = '',
@@ -48,6 +50,8 @@ export function createSlideState(
       videoLoop: cfg.videoLoop ?? false,
       pauseUntilVideoEnds: cfg.pauseUntilVideoEnds ?? false,
       mediaControlsOptions: cfg.mediaControlsOptions,
+      watchMode: cfg.watchMode ?? displayDefaults.watchMode ?? false,
+      watchIdleMs: cfg.watchIdleMs ?? displayDefaults.watchIdleMs ?? 10000,
     }
   })
 
