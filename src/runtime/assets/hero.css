@@ -168,7 +168,6 @@
    When idle on a video slide, fade chrome and slide controls out.
    `--hero-fadeable` selectors share the transition; `.hero-watch-idle`
    gates the visible state. */
-.hero-slider .hero-slide-content,
 .hero-slider .hero-overlay-pattern,
 .hero-slider .hero-play-center,
 .hero-slider .hero-media-controls,
@@ -176,6 +175,10 @@
 .hero-slider .hero-nav,
 .hero-slider .hero-autoplay-progress {
   transition: opacity 0.6s ease, transform 0.4s ease;
+}
+/* Content (title, description, etc) fades separately for a more dramatic effect. */
+.hero-slider .hero-slide-content {
+  transition: opacity 0.6s ease;
 }
 
 /* Idle: fade out everything (content + chrome) */
