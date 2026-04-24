@@ -8,7 +8,8 @@ function toggle() {
 </script>
 
 <template>
-  <div class="min-h-screen transition-colors duration-300 dark:bg-neutral-950 bg-gray-50 dark:text-white text-black">
+  <div
+    class="group min-h-screen transition-colors duration-300 dark:bg-neutral-950 bg-gray-50 dark:text-white text-black">
     <nav
       class="fixed top-0 z-100 flex w-full items-center gap-1 sm:gap-3 px-4 py-3 border-b backdrop-blur-md dark:bg-neutral-950/80 dark:border-white/10 bg-gray-50/80 border-black/5">
       <NuxtLink v-for="link in [

@@ -23,9 +23,14 @@ export function setupTailwind(nuxt: Nuxt, runtimeDir: string): void {
   nuxt.options.css.unshift(dst)
 
   nuxt.hook('vite:extend', async ({ config }) => {
-    const plugin = await import('@tailwindcss/vite').then(r => r.default)
-    config.plugins ||= []
-    config.plugins.push(plugin())
+    try {
+      const plugin = await import('@tailwindcss/vite').then(r => r.default)
+      config.plugins ||= []
+      config.plugins.push(plugin())
+    }
+    catch (err) {
+      console.warn('[nuxt-hero] Failed to load @tailwindcss/vite — install it in your project. Hero styles will not render correctly.', err)
+    }
   })
 
   if (nuxt.options.builder !== '@nuxt/vite-builder') {

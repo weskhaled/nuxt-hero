@@ -29,6 +29,9 @@ importers:
       gsap:
         specifier: ^3.14.2
         version: 3.14.2
+      vue:
+        specifier: ^3.5.0
+        version: 3.5.31(typescript@6.0.2)
     devDependencies:
       '@iconify-json/lucide':
         specifier: ^1.2.101

@@ -27,15 +27,15 @@ const nextSlide = computed(() => {
 /** CSS class for the prev button arrow translation on hover */
 const prevHoverClass = computed(() =>
   props.vertical
-    ? 'px-10 py-1 group-hover:-translate-y-full'
-    : `py-10 px-1 ${prevSlide.value?.thumbSrc ? 'group-hover:-translate-x-full' : 'group-hover:-translate-x-1/10'}`,
+    ? 'px-10 py-1 group-hover/prev:-translate-y-full'
+    : `py-10 px-1 ${prevSlide.value?.thumbSrc ? 'group-hover/prev:-translate-x-full' : 'group-hover/prev:-translate-x-1/10'}`,
 )
 
 /** CSS class for the next button arrow translation on hover */
 const nextHoverClass = computed(() =>
   props.vertical
-    ? 'px-10 py-1 group-hover:translate-y-full'
-    : `py-10 px-1 ${nextSlide.value?.thumbSrc ? 'group-hover:translate-x-full' : 'group-hover:translate-x-1/10'}`,
+    ? 'px-10 py-1 group-hover/next:-translate-y-full'
+    : `py-10 px-1 ${nextSlide.value?.thumbSrc ? 'group-hover/next:-translate-x-full' : 'group-hover/next:-translate-x-1/10'}`,
 )
 </script>
 
@@ -47,7 +47,7 @@ const nextHoverClass = computed(() =>
     -->
 
     <!-- Prev -->
-    <button type="button" aria-label="Previous slide" class="nav-slit-btn nav-slit-prev group" :class="vertical
+    <button type="button" aria-label="Previous slide" class="nav-slit-btn nav-slit-prev group/prev" :class="vertical
       ? 'top-0 left-1/2 -translate-x-1/2'
       : 'left-0 top-1/2 -translate-y-1/2'" @click="emit('prev')">
       <span :class="prevHoverClass">
@@ -67,7 +67,7 @@ const nextHoverClass = computed(() =>
     </button>
 
     <!-- Next -->
-    <button type="button" aria-label="Next slide" class="nav-slit-btn nav-slit-next group" :class="vertical
+    <button type="button" aria-label="Next slide" class="nav-slit-btn nav-slit-next group/next" :class="vertical
       ? 'bottom-0 left-1/2 -translate-x-1/2'
       : 'right-0 top-1/2 -translate-y-1/2 text-right'" @click="emit('next')">
       <span :class="nextHoverClass">
