@@ -179,7 +179,7 @@ function resetSlideConfig() {
 function patchActiveConfig(patch: Record<string, unknown>) {
   const slide = slides[slider.activeIndex.value]
   if (!slide) return
-  slide.config = { ...(slide.config ?? {}), ...patch }
+  slide.config = { ...slide.config, ...patch }
 }
 </script>
 

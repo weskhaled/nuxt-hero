@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Cancel superseded runs on the same ref (e.g. rapid pushes to a PR).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      # pnpm 11 matches the local toolchain and honours the build-script
+      # approvals in pnpm-workspace.yaml (esbuild / sharp / @parcel/watcher).
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint (oxlint)
+        run: pnpm exec oxlint .
+
+      # Builds the module (nuxt-module-build) — also validates the published dist.
+      - name: Build
+        run: pnpm build
+
+      - name: Typecheck (playground)
+        run: pnpm typecheck
+
+      - name: Type tests
+        run: pnpm test:types
+
+      - name: Unit tests
+        run: pnpm test
