@@ -17,6 +17,16 @@ import { setupMousewheelGestureLock } from '#hero/composables/_mousewheelLock'
 // slider bundle entirely.
 const HeroParallax = defineAsyncComponent(() => import('./HeroParallax.client.vue'))
 
+// Pagination + navigation are lazy-imported (local bindings) rather than resolved
+// by global name. The module only *registers* them when the matching feature is
+// enabled, but Vue hoists `resolveComponent(...)` to the top of every render — so
+// a slider with e.g. pagination on but navigation off would log "Failed to
+// resolve component: HeroNavigation" on every render even though the v-if never
+// renders it. A local binding skips name resolution; the chunk still only loads
+// when the control is actually shown.
+const HeroPagination = defineAsyncComponent(() => import('../navigation/HeroPagination.vue'))
+const HeroNavigation = defineAsyncComponent(() => import('../navigation/HeroNavigation.vue'))
+
 const props = withDefaults(defineProps<HeroSliderProps>(), {
   enterAnimation: '',
   leaveAnimation: '',
