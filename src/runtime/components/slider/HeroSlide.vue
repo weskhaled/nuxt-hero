@@ -11,6 +11,13 @@ import type HeroSlideVideoComponent from '../video/HeroSlideVideo.vue'
 // HLS wrapper) only ships when a video slide actually renders — image-only
 // sliders never pull it in.
 const HeroSlideVideo = defineAsyncComponent(() => import('../video/HeroSlideVideo.vue'))
+// Lazy-imported (not resolved by global name): the module only *registers*
+// HeroVideoControls when `features.video` is on, but Vue hoists
+// `resolveComponent("HeroVideoControls")` to the top of every render — so an
+// image-only slider (video feature off) would log "Failed to resolve component"
+// on every render even though the v-if never renders it. A local binding avoids
+// the name resolution entirely; the chunk still only loads for video slides.
+const HeroVideoControls = defineAsyncComponent(() => import('../video/HeroVideoControls.vue'))
 
 interface SlideProps {
   bgSrc: string
