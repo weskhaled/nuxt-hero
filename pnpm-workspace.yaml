@@ -2,8 +2,20 @@
 # `pnpm` field is no longer honoured). `vite` is pinned to a single major so
 # vitepress's vite@5 doesn't coexist with Nuxt's vite@7 (dedup avoids the
 # @tailwindcss/vite plugin type clash).
+#
+# `packages` MUST be present and non-empty: stricter pnpm builds (e.g. the one
+# inside StackBlitz's WebContainer) reject a workspace file without it
+# (`ERR_PNPM_INVALID_WORKSPACE_CONFIGURATION packages field missing or empty`).
+# The dev playground is the one real member; it links the module via
+# `workspace:*`. `docs/` runs off the root's vitepress devDep, so it is not a
+# member.
+packages:
+  - playground
 overrides:
   vite: ^7.0.0
+# Build-script approvals. pnpm 11 expects `allowBuilds` (a name→bool map) here,
+# written/refreshed by `pnpm approve-builds`. (`onlyBuiltDependencies` is NOT
+# read in this layout — pnpm silently re-prompts and rewrites `allowBuilds`.)
 allowBuilds:
   '@parcel/watcher': true
   esbuild: true

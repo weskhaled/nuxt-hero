@@ -18,7 +18,7 @@
     "animate.css": "^4.1.1",
     "hls.js": "^1.6.2",
     "nuxt": "^4.4.2",
-    "nuxt-hero": "latest",
+    "nuxt-hero": "workspace:*",
     "swiper": "^12.1.0",
     "tailwindcss": "^4.2.2"
   }
