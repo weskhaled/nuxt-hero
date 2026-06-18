@@ -26,7 +26,7 @@ const emit = defineEmits<{ slideTo: [index: number] }>()
     Vertical: on the side — ltr:right, rtl:left — centered vertically
   -->
   <nav role="navigation" aria-label="Slide pagination"
-    class="hero-pagination swiper-pagination pointer-events-auto absolute z-10 flex items-center gap-1 rounded-full p-1 px-1.5 ring-2 ring-white bg-black/35 backdrop-blur-sm"
+    class="hero-pagination swiper-pagination pointer-events-auto absolute z-10 flex items-center gap-1 rounded-full p-1 px-1.5 ring-2 ring-white bg-[var(--hero-surface)] backdrop-blur-sm"
     :class="[
       vertical
         ? 'hero-pagination--vertical flex-col top-1/2 -translate-y-1/2 ltr:right-4 rtl:left-4'
@@ -38,7 +38,7 @@ const emit = defineEmits<{ slideTo: [index: number] }>()
       :aria-current="snapIndex === i - 1 ? 'step' : undefined" @click="emit('slideTo', i - 1)">
       <!-- Inactive dot -->
       <span v-if="snapIndex !== i - 1"
-        class="hero-dot bg-white size-2.5 cursor-pointer rounded-full transition-colors" />
+        class="hero-dot bg-[var(--hero-on-media)] size-2.5 cursor-pointer rounded-full transition-colors" />
 
       <!-- Active: progress circle -->
       <template v-else>
@@ -113,6 +113,21 @@ const emit = defineEmits<{ slideTo: [index: number] }>()
 
 .hero-pagination--vertical > button > .tooltip-content .tooltip-text .tooltip-inner {
   @apply translate-x-full;
+}
+
+/* RTL vertical: pagination sits on the LEFT, so the tooltip flips to the RIGHT
+   of the dot (otherwise it slides off the slider's left edge). */
+[dir='rtl'] .hero-pagination--vertical > button > .tooltip-content {
+  @apply left-full right-auto ml-2 mr-0;
+}
+[dir='rtl'] .hero-pagination--vertical > button > .tooltip-content::after {
+  @apply -left-2.5 right-auto border-l-transparent! border-r-inherit!;
+}
+[dir='rtl'] .hero-pagination--vertical > button > .tooltip-content .tooltip-text {
+  @apply border-r-0 border-l-2 origin-left;
+}
+[dir='rtl'] .hero-pagination--vertical > button > .tooltip-content .tooltip-text .tooltip-inner {
+  @apply -translate-x-full;
 }
 
 .swiper-pagination > button > .tooltip-content .tooltip-text .tooltip-inner img {

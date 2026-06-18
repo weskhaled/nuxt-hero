@@ -164,3 +164,41 @@ The composable returns a flat object with all slider state and controls:
 | `isHovered` | `Ref<boolean>` | Whether the container is being hovered |
 | `containerEl` | `ComputedRef<HTMLElement \| null>` | Resolved container DOM element |
 | `mergedSwiperOptions` | `ComputedRef<Record<string, unknown>>` | Final Swiper config (for component binding) |
+
+# useHeroEnvironment
+
+Reactive, **SSR-safe** client-environment signals for mobile / PWA adaptiveness.
+`<HeroSlider :data-saver="'auto'">` (the default) uses these to enable its lite
+mode — video backgrounds don't autoplay or preload, and scroll parallax is
+skipped — on data-/battery-constrained clients. You can also read them directly
+to adapt your own slot content (e.g. swap a heavy widget for a static one on
+cellular).
+
+Every flag is `false`/empty on the server **and** during the first client render
+(gated on `useMounted`), then settles to its real value after mount — so reading
+them to drive rendering never causes a hydration mismatch.
+
+## Usage
+
+```vue
+<script setup>
+const { prefersDataSaver, saveData, slowConnection, reducedMotion } = useHeroEnvironment()
+</script>
+```
+
+## Return Value
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `prefersDataSaver` | `ComputedRef<boolean>` | Data-/battery-constrained client (Save-Data, `prefers-reduced-data`, or 2g/slow-2g). Drives lite mode. |
+| `saveData` | `ComputedRef<boolean>` | `navigator.connection.saveData` |
+| `slowConnection` | `ComputedRef<boolean>` | Effective connection is `2g` / `slow-2g` |
+| `effectiveType` | `ComputedRef<string>` | Raw `navigator.connection.effectiveType` (or `''`) |
+| `reducedMotion` | `ComputedRef<boolean>` | `prefers-reduced-motion: reduce` |
+| `reducedData` | `ComputedRef<boolean>` | `prefers-reduced-data: reduce` |
+| `coarsePointer` | `ComputedRef<boolean>` | `pointer: coarse` (touch-primary device) |
+| `mounted` | `Ref<boolean>` | True once mounted on the client |
+
+> The Network Information API (`saveData` / `effectiveType`) is Chromium/Android
+> only; on browsers without it those flags stay `false` and the media-query
+> signals still work.

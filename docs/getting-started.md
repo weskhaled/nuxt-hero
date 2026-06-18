@@ -33,19 +33,19 @@ export default defineNuxtConfig({
 ::: code-group
 
 ```bash [pnpm]
-pnpm add tailwindcss @tailwindcss/vite swiper @vueuse/nuxt @vueuse/core @nuxtjs/color-mode
+pnpm add tailwindcss swiper @vueuse/nuxt @vueuse/core @nuxtjs/color-mode
 ```
 
 ```bash [npm]
-npm install tailwindcss @tailwindcss/vite swiper @vueuse/nuxt @vueuse/core @nuxtjs/color-mode
+npm install tailwindcss swiper @vueuse/nuxt @vueuse/core @nuxtjs/color-mode
 ```
 
 :::
 
-**Optional:**
+**Optional** (only needed for the matching feature):
 
 ```bash
-pnpm add @nuxt/image hls.js animate.css
+pnpm add @nuxt/image hls.js animate.css gsap @tailwindcss/vite
 ```
 
 | Package | Purpose |
@@ -53,15 +53,17 @@ pnpm add @nuxt/image hls.js animate.css
 | `@nuxt/image` | Optimized image loading with presets |
 | `hls.js` | HLS video streaming (`.m3u8`) |
 | `animate.css` | Extra animation classes beyond built-in ones |
+| `gsap` | Scroll parallax (`features.parallax`) |
+| `@tailwindcss/vite` | Only when the module sets up Tailwind itself (skip if a host like Nuxt UI provides it, or set `hero: { tailwind: false }`) |
 
-## Basic Usage
+## Basic Usage (drop-in)
 
-The slider uses a **composable + component** pattern. Call `useHeroSlider()` to create the slider state, then pass it to `<HeroSlider>`:
+The fastest way in: pass `:slides` (and optional `:options`) and `<HeroSlider>`
+creates and owns the slider state internally — no `useHeroSlider()` call, no
+`containerRef` wiring.
 
 ```vue
 <script setup>
-const containerRef = useTemplateRef('containerRef')
-
 const slides = [
   {
     bgSrc: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb',
@@ -76,17 +78,12 @@ const slides = [
     title: 'Golden Valley',
   },
 ]
-
-const slider = useHeroSlider(containerRef, slides, {
-  swiperOptions: { autoplay: { delay: 5000 }, speed: 600 },
-})
 </script>
 
 <template>
   <HeroSlider
-    ref="containerRef"
-    :slider="slider"
     :slides="slides"
+    :options="{ swiperOptions: { autoplay: { delay: 5000 }, speed: 600 } }"
     :parallax="{ bg: true, content: true, speed: 0.5 }"
     :overlay-patterns="[{ type: 'lines', opacity: 0.1 }]"
     class="h-screen"
@@ -99,3 +96,61 @@ const slider = useHeroSlider(containerRef, slides, {
   </HeroSlider>
 </template>
 ```
+
+Need to drive the slider from outside (custom buttons, synced state)? Put a
+template ref on `<HeroSlider>` — the internally-created slider is exposed:
+
+```vue
+<script setup>
+const hero = useTemplateRef('hero')
+</script>
+
+<template>
+  <HeroSlider ref="hero" :slides="slides" />
+  <button @click="hero?.slider.prev()">Prev</button>
+  <button @click="hero?.slider.next()">Next</button>
+</template>
+```
+
+## Controlled Usage
+
+For full external control — sharing the slider across multiple components, or
+reacting to its state in your own logic — create the state yourself with
+`useHeroSlider()` and pass it via `:slider`. Wire `ref` so the composable can
+scope hover/visibility/parallax to the rendered root:
+
+```vue
+<script setup>
+const containerRef = useTemplateRef('containerRef')
+
+const slides = [
+  { bgSrc: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb', title: 'Mountain Vista' },
+  { bgSrc: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e', title: 'Golden Valley' },
+]
+
+const slider = useHeroSlider(containerRef, slides, {
+  swiperOptions: { autoplay: { delay: 5000 }, speed: 600 },
+})
+
+// `slider.activeIndex`, `slider.next()`, `slider.autoplayPause()`, … are all
+// reactive and callable from here.
+</script>
+
+<template>
+  <HeroSlider
+    ref="containerRef"
+    :slider="slider"
+    :slides="slides"
+    class="h-screen"
+  >
+    <template #slide="{ slide }">
+      <div class="flex size-full items-center justify-center">
+        <h1 class="text-5xl font-bold text-white">{{ slide.title }}</h1>
+      </div>
+    </template>
+  </HeroSlider>
+</template>
+```
+
+> When you pass `:slider`, the `options` prop is ignored — configure the
+> controlled instance through `useHeroSlider()` instead.

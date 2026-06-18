@@ -20,6 +20,7 @@ import type {
   VideoMediaControls,
   MediaControlsOptions,
   HeroModuleOptions,
+  HeroEnvironment,
 } from 'nuxt-hero'
 ```
 
@@ -151,7 +152,7 @@ interface HeroFeatures {
   pagination?: boolean
   mousewheel?: boolean
   keyboard?: boolean
-  a11y?: boolean
+  a11y?: boolean             // Screen-reader support (default: true; set false to opt out)
   freeMode?: boolean
   thumbs?: boolean
   grid?: boolean
@@ -175,10 +176,47 @@ Top-level module configuration for `nuxt.config.ts`.
 
 ```ts
 interface HeroModuleOptions {
-  prefix?: string           // Component name prefix (default: 'Hero')
-  colorMode?: boolean       // Enable @nuxtjs/color-mode (default: true)
-  icon?: boolean            // Enable @nuxt/icon (default: true)
-  defaultVolume?: number    // Default video volume 0–1 (default: 0)
-  features?: HeroFeatures   // Feature flags (default: {})
+  prefix?: string                  // Component name prefix (default: 'Hero')
+  defaultVolume?: number           // Default video volume 0–1 (default: 0)
+  tailwind?: 'auto' | boolean      // Tailwind v4 wiring (default: 'auto')
+  features?: HeroFeatures          // Feature flags (default: {} — a11y is on unless disabled)
+}
+```
+
+## HeroLabels
+
+Localizable `aria-label`s for the built-in chrome — pass via `<HeroSlider :labels>`
+(e.g. to provide Arabic strings in a bilingual app). Any omitted key falls back to
+its English default.
+
+```ts
+interface HeroLabels {
+  carousel?: string         // Carousel region name (default: 'Carousel')
+  prev?: string             // Previous-slide button (default: 'Previous slide')
+  next?: string             // Next-slide button (default: 'Next slide')
+  play?: string             // Play (default: 'Play video')
+  pause?: string            // Pause (default: 'Pause video')
+  mute?: string             // Mute toggle (default: 'Toggle mute')
+  settings?: string         // Settings / speed (default: 'Settings')
+  fullscreenEnter?: string  // Enter fullscreen (default: 'Enter fullscreen')
+  fullscreenExit?: string   // Exit fullscreen (default: 'Exit fullscreen')
+}
+```
+
+## HeroEnvironment
+
+Return type of [`useHeroEnvironment()`](/composable#useheroenvironment) —
+reactive, SSR-safe client-environment signals for mobile / PWA adaptiveness.
+
+```ts
+interface HeroEnvironment {
+  mounted: Ref<boolean>                  // true once mounted on the client
+  reducedMotion: ComputedRef<boolean>    // prefers-reduced-motion: reduce
+  reducedData: ComputedRef<boolean>      // prefers-reduced-data: reduce
+  coarsePointer: ComputedRef<boolean>    // pointer: coarse (touch-primary)
+  saveData: ComputedRef<boolean>         // navigator.connection.saveData
+  slowConnection: ComputedRef<boolean>   // effectiveType is 2g / slow-2g
+  effectiveType: ComputedRef<string>     // raw effectiveType, or ''
+  prefersDataSaver: ComputedRef<boolean> // data-/battery-constrained → lite mode
 }
 ```

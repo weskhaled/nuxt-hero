@@ -1,19 +1,18 @@
 import { describe, expect, it, vi } from 'vitest'
 
-vi.mock('@vueuse/core', () => ({
-  useElementHover: () => {
-    const { ref } = require('vue')
-    return ref(false)
-  },
-  useIntervalFn: (cb: () => void, interval: number, opts?: { immediate?: boolean }) => {
-    let id: ReturnType<typeof setInterval> | null = null
-    if (opts?.immediate) id = setInterval(cb, interval)
-    return {
-      pause: () => { if (id) { clearInterval(id); id = null } },
-      resume: () => { if (!id) id = setInterval(cb, interval) },
-    }
-  },
-}))
+vi.mock('@vueuse/core', () => {
+  const { ref } = require('vue')
+  return {
+    useElementHover: () => ref(false),
+    useElementVisibility: () => ref(true),
+    useRafFn: (_cb: () => void, _opts?: { immediate?: boolean }) => ({
+      pause: () => {},
+      resume: () => {},
+    }),
+    useDocumentVisibility: () => ref('visible'),
+    useMediaQuery: () => ref(false),
+  }
+})
 
 import { ref } from 'vue'
 import { useHeroSlider } from '../src/runtime/composables/useHeroSlider'

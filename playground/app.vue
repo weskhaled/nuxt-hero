@@ -14,6 +14,7 @@ function toggle() {
       class="fixed top-0 z-100 flex w-full items-center gap-1 sm:gap-3 px-4 py-3 border-b backdrop-blur-md dark:bg-neutral-950/80 dark:border-white/10 bg-gray-50/80 border-black/5">
       <NuxtLink v-for="link in [
         { to: '/', label: 'Basic' },
+        { to: '/simple', label: 'Drop-in' },
         { to: '/parallax', label: 'Parallax' },
         { to: '/custom-animations', label: 'Animations' },
         { to: '/freemode', label: 'FreeMode' },

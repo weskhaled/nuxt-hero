@@ -120,6 +120,22 @@ Use `bgDarkSrc` to provide an alternative video for dark mode:
 }
 ```
 
+The two sources may even be **different formats** — e.g. a progressive `.mp4`
+in light and an HLS `.m3u8` stream in dark. On a theme switch the `<video>`
+element is re-created for the new source (it's keyed by URL), so there's no
+residual `MediaSource`/buffer left behind and the new source always loads
+cleanly. The poster shows briefly while the new source buffers.
+
+## Mobile / data saver
+
+Video backgrounds ship mobile-friendly by default: `preload="metadata"`,
+`playsinline` (+ legacy `webkit-playsinline`), `disablepictureinpicture`,
+`disableremoteplayback`, and a forced `muted` property for reliable inline
+autoplay on iOS. On data-/battery-constrained clients (Save-Data,
+`prefers-reduced-data`, slow connection) the slider's lite mode kicks in and the
+video **doesn't autoplay or preload** — the poster shows until the user taps
+play. See [`dataSaver` / `useHeroEnvironment`](/composable#useheroenvironment).
+
 ## Custom Video Controls
 
 Replace the built-in controls via the `#video-controls` slot:

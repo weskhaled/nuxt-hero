@@ -35,6 +35,34 @@ export interface HeroFeatures {
   hls?: boolean
 }
 
+// ─── Accessibility labels (localizable) ───
+
+/**
+ * Overridable `aria-label`s for the built-in chrome. Pass via `<HeroSlider :labels>`
+ * to localize (e.g. Arabic in a bilingual app). Any omitted key falls back to its
+ * English default.
+ */
+export interface HeroLabels {
+  /** Accessible name for the carousel region (aria-label). Default: 'Carousel' */
+  carousel?: string
+  /** Previous-slide navigation button */
+  prev?: string
+  /** Next-slide navigation button */
+  next?: string
+  /** Play button (video) */
+  play?: string
+  /** Pause button (video) */
+  pause?: string
+  /** Mute toggle (video) */
+  mute?: string
+  /** Settings / playback-speed button (video) */
+  settings?: string
+  /** Enter-fullscreen button (video) */
+  fullscreenEnter?: string
+  /** Exit-fullscreen button (video) */
+  fullscreenExit?: string
+}
+
 // ─── Animation ───
 
 export interface SlideAnimation {
@@ -158,13 +186,56 @@ export interface HeroSliderUI {
   progress?: string
 }
 
+// ─── Environment (mobile / PWA adaptiveness) ───
+
+/**
+ * Reactive, SSR-safe client-environment signals returned by `useHeroEnvironment()`.
+ * Every flag is `false`/empty on the server and during the first client render,
+ * then settles to its real value after mount — safe to drive rendering with.
+ */
+export interface HeroEnvironment {
+  /** True once the component has mounted on the client. */
+  mounted: Ref<boolean>
+  /** `prefers-reduced-motion: reduce`. */
+  reducedMotion: ComputedRef<boolean>
+  /** `prefers-reduced-data: reduce`. */
+  reducedData: ComputedRef<boolean>
+  /** `pointer: coarse` — touch-primary device. */
+  coarsePointer: ComputedRef<boolean>
+  /** `navigator.connection.saveData` (Save-Data). */
+  saveData: ComputedRef<boolean>
+  /** Effective connection type is `2g` / `slow-2g`. */
+  slowConnection: ComputedRef<boolean>
+  /** Raw `navigator.connection.effectiveType` (`'4g'`, `'3g'`, …) or `''`. */
+  effectiveType: ComputedRef<string>
+  /**
+   * Data-/battery-constrained client → drives the slider's lite mode. True when
+   * Save-Data, `prefers-reduced-data`, or a slow connection is detected.
+   */
+  prefersDataSaver: ComputedRef<boolean>
+}
+
 // ─── Component Props ───
 
 export interface HeroSliderProps {
   /** Array of slides */
   slides: HeroSlide[]
-  /** Composable return value — makes HeroSlider a controlled component */
-  slider: UseHeroSliderReturn
+  /**
+   * Composable return value — makes `<HeroSlider>` a *controlled* component.
+   *
+   * **Optional.** Omit it for the drop-in / *uncontrolled* mode: the component
+   * creates its own `useHeroSlider()` internally (configured via the `options`
+   * prop) and exposes it on a template ref (`heroRef.value?.slider`). Pass your
+   * own when you need to drive the slider from the parent (external nav buttons,
+   * synced state, multiple control surfaces).
+   */
+  slider?: UseHeroSliderReturn
+  /**
+   * Composable options for the *uncontrolled* mode (Swiper config, animations,
+   * display defaults). Ignored when a `slider` prop is supplied — configure the
+   * controlled instance through `useHeroSlider()` instead.
+   */
+  options?: UseHeroSliderOptions
   /** Default animation class for content entering */
   enterAnimation?: string
   /** Default animation class for content leaving */
@@ -175,10 +246,36 @@ export interface HeroSliderProps {
   parallax?: MaybeRefOrGetter<boolean | ParallaxConfig>
   /** @nuxt/image preset name for slide backgrounds */
   imagePreset?: string
+  /**
+   * `@nuxt/image` `sizes` for slide backgrounds — drives a responsive `srcset`
+   * so small screens download a smaller image (a mobile/PWA win). **Off by
+   * default** (`''`): a single preset-width `src` is emitted, unchanged. Set
+   * `'100vw'` for a full-bleed hero **when your `@nuxt/image` provider can
+   * transform widths** (e.g. ipx, Cloudinary, a Supabase-render provider) —
+   * otherwise the provider returns the same URL per width and the srcset is
+   * degenerate (harmless but pointless).
+   *
+   * ⚠️ This is `@nuxt/image`'s key:value DSL, **not** CSS `sizes` syntax. Use
+   * `'100vw'` or breakpoint keys like `'xs:100vw md:100vw lg:100vw'`. Passing CSS
+   * media-query syntax (`'(min-width: 1024px) 1024px, 100vw'`) mis-parses and
+   * collapses the rendered width to ~1px.
+   */
+  imageSizes?: string
   /** Wrapper element tag. Default: 'div' */
   as?: string
   /** Class overrides for internal elements (Nuxt UI-style) */
   ui?: HeroSliderUI
+  /** Localizable aria-labels for the built-in navigation + video controls */
+  labels?: HeroLabels
+  /**
+   * Adaptive "lite mode" for constrained mobile / PWA clients. When active,
+   * video backgrounds don't autoplay or preload (the poster shows, tap to play)
+   * and scroll parallax is skipped — saving cellular data, CPU and battery.
+   * - `'auto'` (default): follow the client environment (Save-Data /
+   *   `prefers-reduced-data` / slow connection) via `useHeroEnvironment()`.
+   * - `true`: always lite. `false`: never lite (always autoplay + parallax).
+   */
+  dataSaver?: 'auto' | boolean
 }
 
 // ─── Composable Options ───

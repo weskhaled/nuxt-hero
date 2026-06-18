@@ -2,8 +2,10 @@
 import { computed, ref } from 'vue'
 import type { Ref } from 'vue'
 import { useFullscreen } from '@vueuse/core'
+import type { HeroLabels } from '#hero/types'
 import { formatTime } from '#hero/utils'
 import HeroVideoScrubber from './HeroVideoScrubber.vue'
+import HeroIcon from '../HeroIcon.vue'
 
 interface VideoControlsProps {
   playing: Ref<boolean>
@@ -18,11 +20,23 @@ interface VideoControlsProps {
   onSeek?: (time: number) => void
   onScrubStart?: () => void
   onScrubEnd?: () => void
+  /** Localizable aria-labels (any omitted key falls back to English) */
+  labels?: HeroLabels
 }
 
 const props = defineProps<VideoControlsProps>()
 
 const { isFullscreen } = useFullscreen()
+
+/** Resolved aria-labels with English fallbacks. */
+const L = computed(() => ({
+  play: props.labels?.play ?? 'Play video',
+  pause: props.labels?.pause ?? 'Pause video',
+  mute: props.labels?.mute ?? 'Toggle mute',
+  settings: props.labels?.settings ?? 'Settings',
+  fullscreenEnter: props.labels?.fullscreenEnter ?? 'Enter fullscreen',
+  fullscreenExit: props.labels?.fullscreenExit ?? 'Exit fullscreen',
+}))
 
 function toggleFullscreen() {
   const el = props.getContainerEl?.()
@@ -106,11 +120,11 @@ function setPlaybackRate(rate: number) {
   <!-- Center play button -->
   <div aria-live="polite" class="hero-play-center">
     <button type="button" class="hero-ctrl-btn hero-play-center-btn group" :disabled="waiting.value"
-      :aria-label="playing.value ? 'Pause video' : 'Play video'" @click="toggle">
+      :aria-label="playing.value ? L.pause : L.play" @click="toggle">
       <span v-if="waiting.value" class="hero-spinner size-5 text-white" />
-      <Icon v-else-if="playing.value" name="lucide:pause"
+      <HeroIcon v-else-if="playing.value" name="pause"
         class="size-4 transition-transform duration-150 group-hover:scale-110" />
-      <Icon v-else name="lucide:play" class="size-4 transition-transform duration-150 group-hover:scale-110" />
+      <HeroIcon v-else name="play" class="size-4 transition-transform duration-150 group-hover:scale-110" />
 
       <div class="absolute flex size-full items-center justify-center">
         <div class="hero-radial-progress size-full m-auto"
@@ -137,20 +151,20 @@ function setPlaybackRate(rate: number) {
       <!-- Left: play, volume, time -->
       <div class="flex items-center gap-1">
         <button type="button" class="hero-ctrl-btn hero-ctrl-btn--filled size-8"
-          :aria-label="playing.value ? 'Pause video' : 'Play video'" @click="toggle">
+          :aria-label="playing.value ? L.pause : L.play" @click="toggle">
           <span v-if="waiting.value" class="hero-spinner size-4 text-white" />
           <Transition v-else name="hero-vol-icon" mode="out-in">
-            <Icon v-if="playing.value" key="pause" name="lucide:pause" class="size-4" />
-            <Icon v-else key="play" name="lucide:play" class="size-4" />
+            <HeroIcon v-if="playing.value" key="pause" name="pause" class="size-4" />
+            <HeroIcon v-else key="play" name="play" class="size-4" />
           </Transition>
         </button>
 
         <div class="hero-volume-group">
-          <button type="button" class="hero-ctrl-btn size-8 flex-none" aria-label="Toggle mute" @click="toggleMute">
+          <button type="button" class="hero-ctrl-btn size-8 flex-none" :aria-label="L.mute" @click="toggleMute">
             <Transition name="hero-vol-icon" mode="out-in">
-              <Icon v-if="volumeIcon === 'high'" key="high" name="lucide:volume-2" class="size-4" />
-              <Icon v-else-if="volumeIcon === 'low'" key="low" name="lucide:volume-1" class="size-4" />
-              <Icon v-else key="muted" name="lucide:volume-x" class="size-4" />
+              <HeroIcon v-if="volumeIcon === 'high'" key="high" name="volume-2" class="size-4" />
+              <HeroIcon v-else-if="volumeIcon === 'low'" key="low" name="volume-1" class="size-4" />
+              <HeroIcon v-else key="muted" name="volume-x" class="size-4" />
             </Transition>
           </button>
           <div class="hero-volume-expand">
@@ -170,9 +184,9 @@ function setPlaybackRate(rate: number) {
       <div class="flex items-center gap-1">
         <!-- Settings -->
         <div class="relative">
-          <button type="button" class="hero-ctrl-btn hero-ctrl-btn--filled size-8" aria-label="Settings"
+          <button type="button" class="hero-ctrl-btn hero-ctrl-btn--filled size-8" :aria-label="L.settings"
             @click="settingsOpen = !settingsOpen">
-            <Icon name="lucide:settings" class="size-4 transition-transform duration-300"
+            <HeroIcon name="settings" class="size-4 transition-transform duration-300"
               :class="{ 'rotate-90': settingsOpen }" />
           </button>
           <Transition name="hero-settings">
@@ -181,7 +195,7 @@ function setPlaybackRate(rate: number) {
               <button v-for="rate in playbackRates" :key="rate" type="button" class="hero-settings-rate-btn"
                 @click="setPlaybackRate(rate)">
                 <span>{{ rate === 1 ? 'Normal' : `${rate}x` }}</span>
-                <Icon v-if="playbackRate === rate" name="lucide:check" class="size-3 text-white/70" />
+                <HeroIcon v-if="playbackRate === rate" name="check" class="size-3 text-white/70" />
               </button>
             </div>
           </Transition>
@@ -189,10 +203,10 @@ function setPlaybackRate(rate: number) {
 
         <!-- Fullscreen -->
         <button type="button" class="hero-ctrl-btn hero-ctrl-btn--filled size-8"
-          :aria-label="isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'" @click="toggleFullscreen">
+          :aria-label="isFullscreen ? L.fullscreenExit : L.fullscreenEnter" @click="toggleFullscreen">
           <Transition name="hero-vol-icon" mode="out-in">
-            <Icon v-if="isFullscreen" key="minimize" name="lucide:minimize" class="size-4" />
-            <Icon v-else key="maximize" name="lucide:maximize" class="size-4" />
+            <HeroIcon v-if="isFullscreen" key="minimize" name="minimize" class="size-4" />
+            <HeroIcon v-else key="maximize" name="maximize" class="size-4" />
           </Transition>
         </button>
       </div>
@@ -202,7 +216,7 @@ function setPlaybackRate(rate: number) {
 
 <style scoped>
 @reference "tailwindcss";
-@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+@custom-variant dark (&:where(.dark, .dark *));
 
 /* Shared styles (`.hero-range-*`, `.hero-ctrl-btn`, `.hero-spinner`,
    `.hero-radial-progress`) live in runtime/assets/hero.css. */

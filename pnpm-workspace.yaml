@@ -1,0 +1,10 @@
+# pnpm 11 reads overrides / build-script approvals from here (the package.json
+# `pnpm` field is no longer honoured). `vite` is pinned to a single major so
+# vitepress's vite@5 doesn't coexist with Nuxt's vite@7 (dedup avoids the
+# @tailwindcss/vite plugin type clash).
+overrides:
+  vite: ^7.0.0
+allowBuilds:
+  '@parcel/watcher': true
+  esbuild: true
+  sharp: true

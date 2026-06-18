@@ -11,6 +11,7 @@
  */
 
 import type {
+  HeroEnvironment,
   HeroFeatures,
   HeroModuleOptions,
   HeroSlide,
@@ -68,13 +69,29 @@ export const _resolved: ResolvedSlideConfig = {
   showVideoControls: true,
   videoLoop: false,
   pauseUntilVideoEnds: false,
+  watchMode: false,
+  watchIdleMs: 10000,
 }
 export const _slideCfg: SlideConfig = { showPagination: false }
 export const _anim: SlideAnimation = { enter: 'animate__fadeIn' }
 
-// ─── HeroSliderProps requires slides + slider ───
+// ─── HeroSliderProps: slides required; slider + options optional (drop-in mode) ───
 type PropsHasSlides = HeroSliderProps['slides'] extends HeroSlide[] ? true : false
 export const _propsSlidesCheck: PropsHasSlides = true
+// `slider` is optional — undefined is assignable (uncontrolled / drop-in usage).
+type SliderIsOptional = undefined extends HeroSliderProps['slider'] ? true : false
+export const _sliderOptionalCheck: SliderIsOptional = true
+// `options` (uncontrolled-mode composable config) is part of the prop surface.
+type OptionsIsUseHeroSliderOptions
+  = NonNullable<HeroSliderProps['options']> extends UseHeroSliderOptions ? true : false
+export const _propsOptionsCheck: OptionsIsUseHeroSliderOptions = true
+// `dataSaver` accepts 'auto' | boolean (mobile/PWA lite mode).
+export const _dataSaver: HeroSliderProps['dataSaver'] = 'auto'
+// `imageSizes` is the @nuxt/image responsive-sizes passthrough (string DSL).
+export const _imageSizes: HeroSliderProps['imageSizes'] = '100vw'
+// `useHeroEnvironment()` return shape — `prefersDataSaver` is a boolean signal.
+type EnvDataSaverIsBool = HeroEnvironment['prefersDataSaver'] extends { value: boolean } ? true : false
+export const _envCheck: EnvDataSaverIsBool = true
 
 // ─── VideoMediaControls + MediaControlsOptions ───
 type VmcHasPlaying = VideoMediaControls extends { playing: infer _P } ? true : false

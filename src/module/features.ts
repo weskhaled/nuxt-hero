@@ -8,6 +8,11 @@ import { VALID_EFFECTS } from './constants'
 export function resolveFeatures(raw: HeroFeatures): HeroFeatures {
   const features: HeroFeatures = { ...raw }
 
+  // Accessibility on by default — registers Swiper's A11y module, which adds the
+  // carousel role, an aria-live region announcing slide changes, and aria-hidden
+  // on inactive slides. Opt out explicitly with `a11y: false`.
+  if (features.a11y === undefined) features.a11y = true
+
   // hls requires video
   if (features.hls && !features.video) {
     console.warn('[nuxt-hero] `hls: true` requires `video: true` — auto-enabling video.')

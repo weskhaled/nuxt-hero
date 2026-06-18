@@ -1,6 +1,6 @@
 import type { MaybeRefOrGetter } from 'vue'
 import { computed, toValue } from 'vue'
-import { useElementHover } from '@vueuse/core'
+import { useElementHover, useElementVisibility } from '@vueuse/core'
 import type { HeroSlide, UseHeroSliderOptions, UseHeroSliderReturn } from '#hero/types'
 import { createSwiperState } from './_swiper'
 import { createSlideState } from './_slides'
@@ -63,13 +63,31 @@ export function useHeroSlider(
   // Native autoplay is always disabled — the composable manages its own timer.
   const mergedSwiperOptions = computed(() => {
     const { __autoplay, ...userOpts } = swiperOptions as Record<string, unknown>
-    return {
+    const merged = {
       slidesPerView: 1,
       spaceBetween: 0,
       grabCursor: true,
+      // Listen for drags on the container, not the wrapper. Swiper's default
+      // ('wrapper') breaks 3D effects (cube/flip): the wrapper is rotated
+      // edge-on, so its hit-area collapses to a sliver and pointer-downs over
+      // the visible face land on the container instead — making every slide
+      // after the first un-draggable. The container always covers the face.
+      touchEventsTarget: 'container',
       ...userOpts,
       autoplay: false,
     } as Record<string, unknown>
+
+    // Default mousewheel to on-axis only (vertical page-scroll shouldn't drive a
+    // horizontal slider, and vice-versa). One-slide-per-gesture debouncing is
+    // handled in <HeroSlider> (see the gesture lock) rather than a fixed
+    // `thresholdTime`, which can't cover variable trackpad-inertia length.
+    // Any option the consumer passes still wins.
+    if (merged.mousewheel) {
+      const mw = merged.mousewheel === true ? {} : (merged.mousewheel as Record<string, unknown>)
+      merged.mousewheel = { forceToAxis: true, ...mw }
+    }
+
+    return merged
   })
 
   // Multiple slides visible at once — disables content animations
@@ -113,6 +131,8 @@ export function useHeroSlider(
   // Resolve DOM element from ref — handles component instances (ref on <HeroSlider>)
   const resolvedContainer = computed(() => resolveElement(containerRef))
   const isHovered = useElementHover(resolvedContainer)
+  // Drives autoplay's offscreen-pause — no per-frame work when scrolled away.
+  const isVisible = useElementVisibility(resolvedContainer)
 
   const video = createVideoState(swiper.activeIndex, videoEnabled)
 
@@ -123,12 +143,18 @@ export function useHeroSlider(
   // timer resumes — so the slide still honours its full autoplay delay before
   // advancing, rather than jumping immediately on video end.
   //
+  // The `videoPlaying || videoWaiting` guard means we only hold the timer while
+  // the video is actually playing or buffering toward play — never indefinitely.
+  // Without it, a slide that never plays (e.g. data-saver / lite mode suppresses
+  // autoplay) would strand the timer and the slider would get stuck on that slide.
+  //
   // This is the single source of truth for video-driven advancement: the
   // autoplay timer alone decides when to call advanceSlide.
   const shouldPauseForVideo = computed(() =>
     slideState.isActiveSlideVideo.value
     && slideState.activeSlideConfig.value.pauseUntilVideoEnds
-    && !video.videoEnded.value,
+    && !video.videoEnded.value
+    && (video.videoPlaying.value || video.videoWaiting.value),
   )
 
   const autoplay = createAutoplayState(
@@ -136,6 +162,7 @@ export function useHeroSlider(
     shouldPauseForVideo,
     isHovered,
     options,
+    isVisible,
   )
 
   // Autoplay progress always reflects the autoplay timer.

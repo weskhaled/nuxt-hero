@@ -17,6 +17,8 @@ export type {
   SlideAnimation,
   HeroSliderProps,
   HeroSliderUI,
+  HeroLabels,
+  HeroEnvironment,
   OverlayPattern,
   OverlayPatternType,
   ParallaxConfig,
@@ -35,21 +37,17 @@ export default defineNuxtModule<HeroModuleOptions>({
   },
   defaults: {
     prefix: 'Hero',
-    colorMode: true,
-    icon: true,
     defaultVolume: 0,
+    tailwind: 'auto',
     features: {},
   },
   moduleDependencies: (_nuxt: any): Record<string, { defaults?: Record<string, unknown> }> => ({
+    // color-mode powers the optional dark-image swap. We only nudge `classSuffix`
+    // to '' so the toggled class is `.dark` (matching Tailwind/Nuxt UI), and never
+    // touch `dataValue` — the host keeps full ownership of its <html> attributes.
     '@nuxtjs/color-mode': {
       defaults: {
         classSuffix: '',
-        dataValue: 'theme',
-      },
-    },
-    '@nuxt/icon': {
-      defaults: {
-        cssLayer: 'base',
       },
     },
   }),
@@ -61,8 +59,9 @@ export default defineNuxtModule<HeroModuleOptions>({
     // Resolve & validate features
     const features = resolveFeatures(options.features ?? {})
 
-    // Tailwind v4 integration
-    setupTailwind(nuxt, runtimeDir)
+    // Tailwind v4 integration ('auto' skips our own setup when the host already
+    // provides Tailwind — e.g. Nuxt UI — so we never double-register the plugin)
+    setupTailwind(nuxt, runtimeDir, options.tailwind ?? 'auto')
 
     // CSS: core always, modules conditional
     setupCss(nuxt, runtimeDir, features)

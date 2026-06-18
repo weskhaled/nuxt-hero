@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import { computed, onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue'
-import { useMediaControls } from '@vueuse/core'
+import { computed, onUnmounted, ref, useTemplateRef, watch } from 'vue'
+import { useEventListener, useMediaControls } from '@vueuse/core'
 import { useRuntimeConfig } from '#imports'
 import type { MediaControlsOptions, VideoMediaControls } from '#hero/types'
 import { isHlsUrl, getHeroConfig } from '#hero/utils'
@@ -27,6 +27,8 @@ interface SlideVideoProps {
   videoLoop?: boolean
   /** Whether the video should auto-play when active. Default: true */
   autoPlay?: boolean
+  /** Lite mode — don't autoplay or preload; show the poster, tap to play. Default: false */
+  dataSaver?: boolean
 }
 
 const props = withDefaults(defineProps<SlideVideoProps>(), {
@@ -39,7 +41,14 @@ const props = withDefaults(defineProps<SlideVideoProps>(), {
   showVideoControls: false,
   videoLoop: false,
   autoPlay: true,
+  dataSaver: false,
 })
+
+// Lite mode suppresses autoplay (saves cellular data — the poster shows until
+// the user taps play) and drops `preload` to `none` so no bytes download until
+// then. `metadata` otherwise: enough for duration/poster without the full body.
+const effectiveAutoPlay = computed(() => props.autoPlay && !props.dataSaver)
+const preload = computed(() => props.dataSaver ? 'none' : 'metadata')
 
 const heroConfig = getHeroConfig(useRuntimeConfig())
 const defaultVolume = heroConfig.defaultVolume ?? 0
@@ -65,21 +74,40 @@ const hlsState = hlsEnabled
 // Set default volume from module config
 mediaControls.volume.value = defaultVolume
 
-// Track ended state (not provided by useMediaControls)
+// Track ended state (not provided by useMediaControls) + readiness.
 const ended = ref(false)
+const mediaReady = ref(false)
 
-onMounted(() => {
-  const el = videoRef.value
+function tryAutoplay() {
+  if (effectiveAutoPlay.value && props.isActive && mediaReady.value) {
+    mediaControls.playing.value = true
+  }
+}
+
+// ─── Element-level setup (re-runs per <video> element) ───
+// The <video> is keyed by `src` (see template), so switching between an HLS and
+// a progressive source — e.g. a dark-mode video swap — mounts a FRESH element
+// instead of reusing one that still holds the previous src / MediaSource /
+// buffered data. That stale state, plus useMediaControls and useHls both
+// driving `el.src`, is what broke "video won't load after theme switch".
+// `useEventListener` on the ref auto-rebinds its listeners to each new element.
+useEventListener(videoRef, 'ended', () => { ended.value = true })
+useEventListener(videoRef, 'canplay', () => { mediaReady.value = true })
+
+watch(videoRef, (el) => {
   if (!el) return
-  el.addEventListener('ended', () => { ended.value = true })
-})
+  // iOS inline-autoplay needs `muted` as a *property*, not just the attribute.
+  el.muted = true
+  // Fresh element starts unready; a cached/instant source may already be playable.
+  mediaReady.value = el.readyState >= 3
+}, { immediate: true, flush: 'post' })
 
-// Reset ended when video starts playing again
+// Reset ended when playback (re)starts.
 watch(() => mediaControls.playing.value, (playing) => {
   if (playing) ended.value = false
 })
 
-// Register/unregister with parent slider
+// Register / unregister with the parent slider on active change.
 watch(
   () => props.isActive,
   (active) => {
@@ -99,65 +127,11 @@ onUnmounted(() => {
   }
 })
 
-// Track whether the media is ready to play
-const mediaReady = ref(false)
-
-onMounted(() => {
-  const el = videoRef.value
-  if (!el) return
-
-  const onCanPlay = () => {
-    mediaReady.value = true
-    if (props.autoPlay && props.isActive) {
-      mediaControls.playing.value = true
-    }
-  }
-
-  if (el.readyState >= 3) {
-    mediaReady.value = true
-    // Video already loaded (cached) — auto-play if active
-    if (props.autoPlay && props.isActive) {
-      mediaControls.playing.value = true
-    }
-  } else {
-    el.addEventListener('canplay', onCanPlay, { once: true })
-  }
-})
-
-// Play/pause based on active state (only auto-play/pause when autoPlay is true)
-watch(
-  () => props.isActive,
-  (active) => {
-    if (!props.autoPlay) return
-    if (active && mediaReady.value) {
-      mediaControls.playing.value = true
-    } else if (!active) {
-      mediaControls.playing.value = false
-    }
-  },
-  { immediate: true },
-)
-
-// Auto-play when media becomes ready while slide is already active
-watch(mediaReady, (ready) => {
-  if (ready && props.autoPlay && props.isActive) {
-    mediaControls.playing.value = true
-  }
-})
-
-// Re-check readiness when src changes (color mode switch)
-watch(() => props.src, () => {
-  mediaReady.value = false
-  const el = videoRef.value
-  if (!el) return
-  const onCanPlay = () => {
-    mediaReady.value = true
-    if (props.autoPlay && props.isActive) {
-      mediaControls.playing.value = true
-    }
-  }
-  el.addEventListener('canplay', onCanPlay, { once: true })
-})
+// Drive autoplay off readiness + active state; pause when the slide goes inactive.
+watch([mediaReady, () => props.isActive], () => {
+  if (props.isActive) tryAutoplay()
+  else if (effectiveAutoPlay.value) mediaControls.playing.value = false
+}, { immediate: true })
 
 // Expose media controls so parent can render UI outside the parallax layer
 defineExpose({
@@ -167,6 +141,9 @@ defineExpose({
 </script>
 
 <template>
-  <video ref="videoRef" muted :loop="videoLoop" playsinline :poster="poster"
+  <!-- Keyed by `src`: each distinct source (incl. the dark-mode swap, HLS or
+       progressive) gets a fresh element with no residual MediaSource/buffer. -->
+  <video :key="src" ref="videoRef" muted :loop="videoLoop" :preload="preload" playsinline webkit-playsinline
+    disablepictureinpicture disableremoteplayback x-webkit-airplay="deny" :poster="poster"
     class="hero-slide-video size-full bg-black object-cover will-change-transform" />
 </template>

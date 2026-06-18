@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { reactive, ref, computed, watch } from 'vue'
+import type { KeyboardOptions, MousewheelOptions } from 'swiper/types'
 import type { HeroSlide, SwiperEffect } from '#hero/types'
 
 const containerRef = useTemplateRef<HTMLElement>('containerRef')
@@ -62,8 +63,8 @@ const swiperOptions = reactive({
   centeredSlides: false,
   loop: false,
   rewind: false,
-  mousewheel: { forceToAxis: true, sensitivity: 1 },
-  keyboard: true as boolean | { enabled?: boolean, onlyInViewport?: boolean },
+  mousewheel: { forceToAxis: true, sensitivity: 1 } as boolean | MousewheelOptions,
+  keyboard: true as boolean | KeyboardOptions,
   effect: 'creative' as SwiperEffect | 'slide',
   creativeEffect: {
     prev: { shadow: true, translate: [0, 0, -400] as [number | string, number | string, number] },
@@ -110,6 +111,24 @@ watch(() => swiperOptions.direction, (dir) => {
   swiperOptions.creativeEffect.next.translate
     = dir === 'vertical' ? [0, '100%', 0] : ['100%', 0, 0]
 }, { immediate: true })
+
+// ─── Mousewheel control (boolean | object) ───
+// `mousewheel` accepts `true` or a `MousewheelOptions` object. The checkbox
+// toggles it on (as an object so the sub-options are live) / off; the sub-
+// controls edit `forceToAxis` + `sensitivity` on that object.
+const mwEnabled = computed({
+  get: () => !!swiperOptions.mousewheel,
+  set: on => (swiperOptions.mousewheel = on ? { forceToAxis: true, sensitivity: 1 } : false),
+})
+const mwOpts = computed(() => (typeof swiperOptions.mousewheel === 'object' ? swiperOptions.mousewheel : null))
+const mwForceToAxis = computed({
+  get: () => !!mwOpts.value?.forceToAxis,
+  set: (v) => { if (mwOpts.value) mwOpts.value.forceToAxis = v },
+})
+const mwSensitivity = computed({
+  get: () => mwOpts.value?.sensitivity ?? 1,
+  set: (v) => { if (mwOpts.value) mwOpts.value.sensitivity = v },
+})
 
 // ─── Helpers ───
 const progressPercent = computed(() => Math.round(slider.autoplayProgress.value * 100))
@@ -365,7 +384,7 @@ function patchActiveConfig(patch: Record<string, unknown>) {
           </h3>
           <div class="grid grid-cols-2 gap-2 mb-2">
             <label class="sb-check">
-              <input v-model="swiperOptions.mousewheel" type="checkbox" />
+              <input v-model="mwEnabled" type="checkbox" />
               <Icon name="lucide:mouse" class="size-3.5" /> Mousewheel
             </label>
             <label class="sb-check">
@@ -391,6 +410,19 @@ function patchActiveConfig(patch: Record<string, unknown>) {
               <Icon name="lucide:rewind" class="size-3.5" /> Rewind
             </label>
           </div>
+
+          <!-- Mousewheel as an object: forceToAxis + sensitivity (shown when enabled) -->
+          <div v-if="mwEnabled" class="mt-2 space-y-2 border-l-2 pl-3 dark:border-white/15 border-black/10">
+            <div class="sb-hint normal-case">mousewheel: object</div>
+            <label class="sb-check">
+              <input v-model="mwForceToAxis" type="checkbox" /> Force to axis
+            </label>
+            <div>
+              <label class="sb-label">Sensitivity · {{ mwSensitivity.toFixed(1) }}</label>
+              <input v-model.number="mwSensitivity" type="range" min="0.5" max="3" step="0.1" class="sb-range" />
+            </div>
+          </div>
+
           <div class="sb-row mt-2">
             <label class="sb-label flex items-center justify-between">
               <span>Slides per view · {{ swiperOptions.slidesPerView === 'auto' ? 'auto' : swiperOptions.slidesPerView
@@ -544,7 +576,7 @@ function patchActiveConfig(patch: Record<string, unknown>) {
 
 <style scoped>
 @reference "tailwindcss";
-@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+@custom-variant dark (&:where(.dark, .dark *));
 
 /* ─── Storybook control kit ─── */
 .sb-card {

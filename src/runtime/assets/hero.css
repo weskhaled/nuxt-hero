@@ -1,8 +1,20 @@
 @reference "tailwindcss";
 
-/* ─── CSS custom properties ─── */
+/* ─── CSS custom properties ───
+   The slider chrome sits over imagery, so neutrals default to a media-safe
+   white/scrim that reads in both light and dark. The accent (`--hero-primary`)
+   adopts the host's theme primary automatically — Nuxt UI's `--ui-primary`
+   already shifts shade per color-scheme, so active states match the app brand
+   AND adapt to light/dark for free. Every value is overridable by the consumer
+   (e.g. `.hero-slider { --hero-primary: var(--ui-color-primary-400) }`). */
 :root {
-  --hero-primary: currentColor;
+  /* Accent — active pagination ring, autoplay progress, video scrubber fill. */
+  --hero-primary: var(--ui-primary, #ffffff);
+  /* Neutral foreground over media — icons, inactive dots, time labels. */
+  --hero-on-media: #ffffff;
+  /* Translucent chrome surface — pagination bar, etc. */
+  --hero-surface: rgb(0 0 0 / 0.35);
+  /* Track behind progress / scrubber / volume. */
   --hero-progress-bg: rgb(255 255 255 / 0.2);
 }
 
@@ -14,7 +26,7 @@
   @apply inline-grid place-content-center rounded-full;
   width: var(--hero-progress-size);
   height: var(--hero-progress-size);
-  background: conic-gradient(currentColor calc(var(--hero-progress-value) * 1%), transparent 0);
+  background: conic-gradient(var(--hero-primary) calc(var(--hero-progress-value) * 1%), transparent 0);
   -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - var(--hero-progress-thickness)), #000 calc(100% - var(--hero-progress-thickness)));
   mask: radial-gradient(farthest-side, transparent calc(100% - var(--hero-progress-thickness)), #000 calc(100% - var(--hero-progress-thickness)));
 }
@@ -25,7 +37,8 @@
    (.hero-range-input) for a11y + keyboard + free browser behavior.
    Add `.hero-range--reveal` to hide the thumb until hover / `.is-active`. */
 .hero-range-track {
-  @apply relative w-full h-1 bg-white/20 rounded-full cursor-pointer;
+  @apply relative w-full h-1 rounded-full cursor-pointer;
+  background: var(--hero-progress-bg);
   transition: height 0.15s ease;
 }
 .hero-range-track:hover,
@@ -38,7 +51,7 @@
   @apply absolute top-0 left-0 h-full rounded-full pointer-events-none;
 }
 .hero-range-buffered { @apply bg-white/35; }
-.hero-range-fill { @apply bg-white; }
+.hero-range-fill { background: var(--hero-primary); }
 
 .hero-range-input {
   @apply appearance-none absolute -top-1 left-0 w-full m-0 bg-transparent cursor-pointer outline-none;

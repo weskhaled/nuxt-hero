@@ -9,14 +9,18 @@ The main slider component. Wraps Swiper and manages backgrounds, overlays, anima
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `slides` | `HeroSlide[]` | **required** | Array of slide objects |
-| `slider` | `UseHeroSliderReturn` | **required** | Return value of `useHeroSlider()` |
+| `slider` | `UseHeroSliderReturn` | — | `useHeroSlider()` return value for *controlled* mode. Omit for drop-in (the component creates its own, exposed on a template ref as `.slider`). |
+| `options` | `UseHeroSliderOptions` | `{}` | Composable config for *uncontrolled* mode. Ignored when `slider` is passed. |
 | `enterAnimation` | `string` | `''` | Default enter animation class |
 | `leaveAnimation` | `string` | `''` | Default leave animation class |
 | `overlayPatterns` | `OverlayPattern[]` | `[{ type: 'lines', opacity: 0.1 }]` | Stacked overlay patterns |
 | `parallax` | `boolean \| ParallaxConfig` | `true` | Parallax config — `false` to disable, `true` for defaults, or object |
 | `imagePreset` | `string` | `''` | `@nuxt/image` preset name for backgrounds |
+| `imageSizes` | `string` | `''` | `@nuxt/image` `sizes` DSL → responsive `srcset` so small screens fetch a smaller image. Off by default; set `'100vw'` for a full-bleed hero **with a transform-capable provider** (ipx / Cloudinary / Supabase-render). Use the key:value DSL (`'100vw'`, `'xs:100vw md:50vw'`), **not** CSS `sizes` syntax (which mis-parses to ~1px). |
 | `as` | `string` | `'div'` | Wrapper element tag |
 | `ui` | `HeroSliderUI` | `{}` | Class overrides for internal elements |
+| `dataSaver` | `'auto' \| boolean` | `'auto'` | Mobile/PWA lite mode. `'auto'` follows the client environment (Save-Data / `prefers-reduced-data` / slow connection) via `useHeroEnvironment()`; `true`/`false` force it. Suppresses video autoplay + preload and skips parallax. |
+| `labels` | `HeroLabels` | `{}` | Localizable `aria-label`s for nav / video controls / carousel region |
 
 ### Slots
 

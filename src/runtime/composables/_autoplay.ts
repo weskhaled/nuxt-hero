@@ -1,17 +1,28 @@
 import type { ComputedRef, Ref } from 'vue'
 import { computed, ref, watch } from 'vue'
-import { useIntervalFn } from '@vueuse/core'
+import { useDocumentVisibility, useMediaQuery, useRafFn } from '@vueuse/core'
 import type { UseHeroSliderOptions } from '#hero/types'
 
 /**
- * Creates the autoplay timer state. Manages elapsed time, progress,
- * and pause/resume logic. Pauses automatically when the active slide
- * requests video-wait mode (`pauseUntilVideoEnds`) or the slider is hovered.
+ * Creates the autoplay timer state. Drives slide advancement off a
+ * `requestAnimationFrame` loop (delta-accumulated elapsed time) rather than a
+ * fixed-interval timer, and only ticks when it actually should:
+ *
+ * - paused via the public API (`autoplayPause`)
+ * - the active slide opts into video-wait (`pauseUntilVideoEnds`)
+ * - the slider is hovered
+ * - the slider is scrolled offscreen (`isVisible`)
+ * - the browser tab is hidden (`useDocumentVisibility`)
+ * - the user prefers reduced motion (`prefers-reduced-motion`)
+ *
+ * When none of those hold the rAF loop runs; otherwise it's fully paused, so an
+ * idle / offscreen / backgrounded slider does zero per-frame work.
  *
  * @param advanceSlide - Callback to advance to the next slide
  * @param shouldPauseForVideo - Reactive flag: true when active slide is a video AND opts into pause-until-end
  * @param isHovered - Whether the user is hovering over the slider
  * @param options - Swiper options containing autoplay delay config
+ * @param isVisible - Whether the slider is currently within the viewport (defaults to always-visible)
  * @returns Autoplay state refs and control functions
  */
 export function createAutoplayState(
@@ -19,6 +30,7 @@ export function createAutoplayState(
   shouldPauseForVideo: ComputedRef<boolean>,
   isHovered: Ref<boolean>,
   options: Pick<UseHeroSliderOptions, 'swiperOptions'>,
+  isVisible?: Ref<boolean>,
 ) {
   const swiperOptions = options.swiperOptions ?? {}
 
@@ -28,58 +40,61 @@ export function createAutoplayState(
       ? (swiperOptions.autoplay.delay ?? 5000)
       : 5000
 
-  const TICK_MS = 50
   const elapsed = ref(0)
   const autoplayDelay = ref(initialDelay)
   const autoplayPaused = ref(!autoplayEnabled)
 
-  const autoplayProgress = computed(() => {
-    return Math.min(elapsed.value / autoplayDelay.value, 1)
-  })
+  const autoplayProgress = computed(() => Math.min(elapsed.value / autoplayDelay.value, 1))
+  const autoplayRemaining = computed(() => Math.max(autoplayDelay.value - elapsed.value, 0))
 
-  const autoplayRemaining = computed(() => {
-    return Math.max(autoplayDelay.value - elapsed.value, 0)
-  })
+  // Environmental pause signals.
+  const documentVisibility = useDocumentVisibility()
+  const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
+  const visible = isVisible ?? ref(true)
 
-  const { pause: pauseTimer, resume: resumeTimer } = useIntervalFn(() => {
-    if (shouldPauseForVideo.value || isHovered.value) return
-    elapsed.value += TICK_MS
-    if (elapsed.value >= autoplayDelay.value) {
-      advanceSlide()
+  // rAF loop — `delta` is ms since the previous frame. Paused/resumed by the
+  // `canRun` watcher below, so it never schedules frames while idle.
+  const { pause: pauseRaf, resume: resumeRaf } = useRafFn(
+    ({ delta }) => {
+      elapsed.value += delta
+      if (elapsed.value >= autoplayDelay.value) {
+        advanceSlide()
+        elapsed.value = 0
+      }
+    },
+    { immediate: false },
+  )
+
+  // Single source of truth for whether the timer should be ticking.
+  const canRun = computed(() =>
+    autoplayEnabled
+    && !autoplayPaused.value
+    && !shouldPauseForVideo.value
+    && !isHovered.value
+    && visible.value
+    && documentVisibility.value !== 'hidden'
+    && !prefersReducedMotion.value,
+  )
+
+  watch(canRun, (run) => {
+    if (run) {
+      // Restart the full delay whenever the timer (re)starts — preserves the
+      // previous hover / video-resume semantics (a slide always gets its full
+      // delay after a pause rather than advancing immediately).
       elapsed.value = 0
+      resumeRaf()
     }
-  }, TICK_MS, { immediate: autoplayEnabled })
-
-  // Pause timer when active slide opts into pause-until-video-ends
-  watch(shouldPauseForVideo, (shouldPause) => {
-    if (!autoplayEnabled) return
-    if (shouldPause) {
-      pauseTimer()
-    } else if (!autoplayPaused.value && !isHovered.value) {
-      elapsed.value = 0
-      resumeTimer()
+    else {
+      pauseRaf()
     }
-  })
-
-  // Pause timer on hover
-  watch(isHovered, (hovered) => {
-    if (!autoplayEnabled) return
-    if (hovered) {
-      elapsed.value = 0
-      pauseTimer()
-    } else if (!autoplayPaused.value && !shouldPauseForVideo.value) {
-      resumeTimer()
-    }
-  })
+  }, { immediate: true })
 
   function autoplayPause() {
     autoplayPaused.value = true
-    pauseTimer()
   }
 
   function autoplayResume() {
     autoplayPaused.value = false
-    resumeTimer()
   }
 
   function autoplayReset() {

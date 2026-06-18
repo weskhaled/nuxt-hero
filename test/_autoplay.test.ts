@@ -1,17 +1,19 @@
 import { describe, expect, it, vi } from 'vitest'
 import { ref, computed } from 'vue'
 
-// Mock @vueuse/core
-vi.mock('@vueuse/core', () => ({
-  useIntervalFn: (cb: () => void, interval: number, opts?: { immediate?: boolean }) => {
-    let id: ReturnType<typeof setInterval> | null = null
-    if (opts?.immediate) id = setInterval(cb, interval)
-    return {
-      pause: () => { if (id) { clearInterval(id); id = null } },
-      resume: () => { if (!id) id = setInterval(cb, interval) },
-    }
-  },
-}))
+// Mock @vueuse/core. The rAF loop is a no-op in tests (these specs assert
+// initial state + pause/resume/reset/setDelay, not real-time ticking).
+vi.mock('@vueuse/core', () => {
+  const { ref } = require('vue')
+  return {
+    useRafFn: (_cb: () => void, _opts?: { immediate?: boolean }) => ({
+      pause: () => {},
+      resume: () => {},
+    }),
+    useDocumentVisibility: () => ref('visible'),
+    useMediaQuery: () => ref(false),
+  }
+})
 
 import { createAutoplayState } from '../src/runtime/composables/_autoplay'
 

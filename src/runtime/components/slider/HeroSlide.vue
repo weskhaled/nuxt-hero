@@ -1,16 +1,24 @@
 <script lang="ts" setup>
-import { computed, ref, useTemplateRef, watch } from 'vue'
+import { computed, defineAsyncComponent, ref, useTemplateRef, watch } from 'vue'
 import { useMounted } from '@vueuse/core'
 import { useColorMode, useRuntimeConfig } from '#imports'
-import type { MediaControlsOptions, VideoMediaControls } from '#hero/types'
+import type { HeroLabels, MediaControlsOptions, VideoMediaControls } from '#hero/types'
 import { isVideoUrl, getHeroConfig } from '#hero/utils'
-import HeroSlideVideo from '../video/HeroSlideVideo.vue'
+// Type-only import (erased at build) just for the template-ref instance type.
+import type HeroSlideVideoComponent from '../video/HeroSlideVideo.vue'
+
+// Runtime component is loaded lazily so the video stack (useMediaControls + the
+// HLS wrapper) only ships when a video slide actually renders — image-only
+// sliders never pull it in.
+const HeroSlideVideo = defineAsyncComponent(() => import('../video/HeroSlideVideo.vue'))
 
 interface SlideProps {
   bgSrc: string
   bgDarkSrc?: string
   poster?: string
   imagePreset?: string
+  /** @nuxt/image `sizes` DSL for responsive srcset (e.g. '100vw'). Empty disables. */
+  imageSizes?: string
   eager?: boolean
   isActive?: boolean
   animationClass?: string
@@ -22,16 +30,21 @@ interface SlideProps {
   videoLoop?: boolean
   /** Whether video should auto-play when slide becomes active */
   autoPlay?: boolean
+  /** Lite mode — suppress video autoplay/preload to save data (poster shown) */
+  dataSaver?: boolean
   containerClass?: string
   bgClass?: string
   getContainerEl?: () => HTMLElement | null
   onSeek?: (time: number) => void
   onScrubStart?: () => void
   onScrubEnd?: () => void
+  /** Localizable aria-labels forwarded to the default video controls */
+  labels?: HeroLabels
 }
 
 const props = withDefaults(defineProps<SlideProps>(), {
   imagePreset: '',
+  imageSizes: '',
   eager: false,
   isActive: false,
   animationClass: '',
@@ -42,6 +55,7 @@ const props = withDefaults(defineProps<SlideProps>(), {
   showVideoControls: false,
   videoLoop: false,
   autoPlay: true,
+  dataSaver: false,
   containerClass: '',
   bgClass: '',
   onSeek: undefined,
@@ -64,7 +78,7 @@ const activeBgSrc = computed(() =>
 const isBgVideo = computed(() => videoEnabled && isVideoUrl(activeBgSrc.value))
 
 // Video component ref — exposes mediaControls and hlsState
-const videoComponentRef = useTemplateRef<InstanceType<typeof HeroSlideVideo>>('videoComponentRef')
+const videoComponentRef = useTemplateRef<InstanceType<typeof HeroSlideVideoComponent>>('videoComponentRef')
 
 // Leave animation: keep content visible while leave animation plays.
 // When no animation class is set (e.g. multi-slide mode), always show content.
@@ -119,11 +133,14 @@ const hlsSlotData = computed(() => {
       <!-- Video background (lazy loaded) -->
       <HeroSlideVideo v-if="isBgVideo" ref="videoComponentRef" :src="activeBgSrc" :poster="poster" :is-active="isActive"
         :slide-index="slideIndex" :on-video-ready="onVideoReady" :on-video-removed="onVideoRemoved"
-        :media-controls-options="mediaControlsOptions" :video-loop="videoLoop" :auto-play="autoPlay" />
-      <!-- Image background -->
+        :media-controls-options="mediaControlsOptions" :video-loop="videoLoop" :auto-play="autoPlay"
+        :data-saver="dataSaver" />
+      <!-- Image background. The first slide is the LCP candidate: load it eagerly
+           with high fetch priority so the largest paint isn't queued behind lazy assets. -->
       <NuxtImg v-else-if="hasNuxtImage" :src="activeBgSrc" :preset="imagePreset || undefined"
-        :loading="eager ? 'eager' : 'lazy'" alt="" class="size-full object-cover will-change-transform" />
-      <img v-else :src="activeBgSrc" :loading="eager ? 'eager' : 'lazy'" alt=""
+        :sizes="imageSizes || undefined" :loading="eager ? 'eager' : 'lazy'"
+        :fetchpriority="eager ? 'high' : 'auto'" alt="" class="size-full object-cover will-change-transform" />
+      <img v-else :src="activeBgSrc" :loading="eager ? 'eager' : 'lazy'" :fetchpriority="eager ? 'high' : 'auto'" alt=""
         class="size-full object-cover will-change-transform" />
     </div>
 
@@ -153,7 +170,7 @@ const hlsSlotData = computed(() => {
         waiting: videoComponentRef!.mediaControls.waiting,
         hls: hlsSlotData,
       }">
-        <HeroVideoControls :playing="videoComponentRef!.mediaControls.playing"
+        <HeroVideoControls :labels="labels" :playing="videoComponentRef!.mediaControls.playing"
           :waiting="videoComponentRef!.mediaControls.waiting"
           :current-time="videoComponentRef!.mediaControls.currentTime"
           :duration="videoComponentRef!.mediaControls.duration" :buffered="videoComponentRef!.mediaControls.buffered"
