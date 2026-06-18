@@ -36,6 +36,7 @@
   "sideEffects": false,
   "scripts": {
     "dev": "nuxi dev playground",
+    "dev:fresh": "rm -rf node_modules/.vite playground/.nuxt && nuxi dev playground",
     "dev:build": "nuxi build playground",
     "build": "nuxt-module-build build",
     "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare",
