@@ -31,6 +31,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # The root tsconfig.json extends the generated playground/.nuxt/tsconfig.json,
+      # which nuxt-module-build + tsc both read — so the playground must be prepared
+      # before build / typecheck / test:types on a fresh checkout.
+      - name: Prepare Nuxt (generate playground/.nuxt)
+        run: pnpm exec nuxi prepare playground
+
       - name: Lint (oxlint)
         run: pnpm exec oxlint .
 
