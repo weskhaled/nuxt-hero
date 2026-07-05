@@ -6,13 +6,15 @@ export interface HeroModuleOptions {
   /** Default volume for video backgrounds (0-1). Default: 0 */
   defaultVolume?: number
   /**
-   * How to wire Tailwind CSS v4.
-   * - `'auto'` (default): set Tailwind up ourselves **unless** the host already
-   *   provides it (e.g. Nuxt UI) — in which case we only register our runtime as
-   *   a `@source` and reuse the host's pipeline (no duplicate `@tailwindcss/vite`).
-   * - `true`: always set Tailwind up (standalone apps with no Tailwind).
-   * - `false`: do nothing — the host is fully responsible for Tailwind and for
-   *   scanning this module's runtime directory.
+   * How dark mode is detected for the `bgDarkSrc` image/video swap:
+   * - `'class'` (default): a `dark` class on `<html>` (Tailwind class strategy,
+   *   Nuxt UI, `@nuxtjs/color-mode` with `classSuffix: ''`).
+   * - `'media'`: the OS-level `prefers-color-scheme: dark` media query.
+   */
+  darkMode?: 'class' | 'media'
+  /**
+   * @deprecated No longer used — hero styles ship as plain CSS with no Tailwind
+   * pipeline required. Setting this logs a warning and does nothing. Remove it.
    */
   tailwind?: 'auto' | boolean
   /** Opt-in feature flags. Default: {} (nothing enabled) */

@@ -2,7 +2,7 @@ import { defineConfig } from 'vitepress'
 
 export default defineConfig({
   title: 'nuxt-hero',
-  description: 'A full-featured hero slider Nuxt module with parallax, video backgrounds, overlay patterns, and customizable animations.',
+  description: 'A full-featured hero slider for Nuxt and plain Vue 3 — parallax, video backgrounds, overlay patterns, and customizable animations.',
   base: '/nuxt-hero/',
   head: [
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/nuxt-hero/logo.svg' }],
@@ -21,6 +21,7 @@ export default defineConfig({
         items: [
           { text: 'Installation & Setup', link: '/getting-started' },
           { text: 'Configuration', link: '/configuration' },
+          { text: 'Plain Vue (no Nuxt)', link: '/vue' },
         ],
       },
       {

@@ -7,6 +7,8 @@ const props = defineProps({
   max: { type: Number, default: 100 },
   /** Secondary progress (e.g. buffered time for a video) in the same unit as value. */
   secondary: { type: Number, default: 0 },
+  /** Accessible label for the underlying range input. */
+  label: { type: String, default: 'Seek' },
 })
 
 const emit = defineEmits<{
@@ -75,35 +77,15 @@ function onScrubEnd() {
 
     <!-- Native range input drives interaction + a11y -->
     <input type="range" min="0" max="100" step="0.1" :value="progressPercent" class="hero-range-input"
-      :aria-valuemin="min" :aria-valuemax="max" :aria-valuenow="Math.round(value)" aria-label="Seek"
-      @input="onInput" @mousedown="onScrubStart" @touchstart="onScrubStart"
-      @mouseup="onScrubEnd" @touchend="onScrubEnd" @touchcancel="onScrubEnd" />
+      :aria-valuemin="min" :aria-valuemax="max" :aria-valuenow="Math.round(value)" :aria-label="label"
+      @input="onInput" @pointerdown="onScrubStart" @pointerup="onScrubEnd" @pointercancel="onScrubEnd" />
 
     <!-- Hover preview line -->
     <div v-if="active && !scrubbing" class="hero-range-hover-line" :style="{ left: `${pendingPercent}%` }" />
 
     <!-- Tooltip slot (scoped with pendingValue + position) -->
-    <div class="hero-range-tooltip-slot" :class="active ? 'opacity-100' : 'opacity-0'">
+    <div class="hero-range-tooltip-slot" :class="{ 'is-visible': active }">
       <slot :pending-value="pendingValue" :position="tooltipPosition" />
     </div>
   </div>
 </template>
-
-<style scoped>
-@reference "tailwindcss";
-
-/* Track / fill / input / thumb styles live in runtime/assets/hero.css
-   under `.hero-range-*` — shared with the volume slider. Only styles
-   unique to this component stay here. */
-
-.hero-range-hover-line {
-  @apply absolute top-0 h-full w-px bg-white/50 pointer-events-none z-1 -translate-x-1/2;
-}
-
-/* Slot wrapper: transparent opacity+z-index layer. Slotted tooltip content
-   is absolutely positioned relative to the track (nearest positioned
-   ancestor) and is expected to anchor itself via `bottom: ...`. */
-.hero-range-tooltip-slot {
-  @apply pointer-events-none transition-opacity duration-100;
-}
-</style>

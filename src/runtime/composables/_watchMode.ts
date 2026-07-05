@@ -1,7 +1,7 @@
 import type { ComputedRef, Ref } from 'vue'
 import { computed, ref } from 'vue'
 import { useEventListener, useIdle } from '@vueuse/core'
-import type { ResolvedSlideConfig } from '#hero/types'
+import type { ResolvedSlideConfig } from '../types'
 
 /**
  * Watch-mode + fullscreen idle coordination.

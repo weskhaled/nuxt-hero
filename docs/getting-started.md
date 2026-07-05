@@ -33,19 +33,22 @@ export default defineNuxtConfig({
 ::: code-group
 
 ```bash [pnpm]
-pnpm add tailwindcss swiper @vueuse/nuxt @vueuse/core @nuxtjs/color-mode
+pnpm add swiper @vueuse/core
 ```
 
 ```bash [npm]
-npm install tailwindcss swiper @vueuse/nuxt @vueuse/core @nuxtjs/color-mode
+npm install swiper @vueuse/core
 ```
 
 :::
 
+Styles are plain CSS injected by the module — **no Tailwind, `@nuxtjs/color-mode`
+or icon package is required**.
+
 **Optional** (only needed for the matching feature):
 
 ```bash
-pnpm add @nuxt/image hls.js animate.css gsap @tailwindcss/vite
+pnpm add @nuxt/image hls.js animate.css gsap
 ```
 
 | Package | Purpose |
@@ -54,7 +57,22 @@ pnpm add @nuxt/image hls.js animate.css gsap @tailwindcss/vite
 | `hls.js` | HLS video streaming (`.m3u8`) |
 | `animate.css` | Extra animation classes beyond built-in ones |
 | `gsap` | Scroll parallax (`features.parallax`) |
-| `@tailwindcss/vite` | Only when the module sets up Tailwind itself (skip if a host like Nuxt UI provides it, or set `hero: { tailwind: false }`) |
+
+## Using with plain Vue (no Nuxt)
+
+Everything also works in any Vue 3 app via the `nuxt-hero/vue` entry — as an
+app plugin or à-la-carte imports. See [Vue usage](/vue) for the full guide.
+
+```ts
+import { createApp } from 'vue'
+import { HeroPlugin } from 'nuxt-hero/vue'
+import { A11y } from 'swiper/modules'
+
+import 'swiper/css'
+import 'nuxt-hero/hero.css'
+
+createApp(App).use(HeroPlugin, { swiperModules: [A11y] }).mount('#app')
+```
 
 ## Basic Usage (drop-in)
 

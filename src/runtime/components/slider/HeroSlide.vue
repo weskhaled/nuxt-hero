@@ -1,9 +1,10 @@
 <script lang="ts" setup>
 import { computed, defineAsyncComponent, ref, useTemplateRef, watch } from 'vue'
 import { useMounted } from '@vueuse/core'
-import { useColorMode, useRuntimeConfig } from '#imports'
-import type { HeroLabels, MediaControlsOptions, VideoMediaControls } from '#hero/types'
-import { isVideoUrl, getHeroConfig } from '#hero/utils'
+import type { HeroLabels, MediaControlsOptions, VideoMediaControls } from '../../types'
+import { useHeroConfig } from '../../config'
+import { useHeroDark } from '../../composables/_dark'
+import { isVideoUrl } from '../../utils'
 // Type-only import (erased at build) just for the template-ref instance type.
 import type HeroSlideVideoComponent from '../video/HeroSlideVideo.vue'
 
@@ -11,15 +12,12 @@ import type HeroSlideVideoComponent from '../video/HeroSlideVideo.vue'
 // HLS wrapper) only ships when a video slide actually renders — image-only
 // sliders never pull it in.
 const HeroSlideVideo = defineAsyncComponent(() => import('../video/HeroSlideVideo.vue'))
-// Lazy-imported (not resolved by global name): the module only *registers*
-// HeroVideoControls when `features.video` is on, but Vue hoists
-// `resolveComponent("HeroVideoControls")` to the top of every render — so an
-// image-only slider (video feature off) would log "Failed to resolve component"
-// on every render even though the v-if never renders it. A local binding avoids
-// the name resolution entirely; the chunk still only loads for video slides.
+// Lazy-imported (not resolved by global name) so an image-only slider never
+// logs "Failed to resolve component"; the chunk still only loads for video
+// slides.
 const HeroVideoControls = defineAsyncComponent(() => import('../video/HeroVideoControls.vue'))
 
-interface SlideProps {
+export interface SlideProps {
   bgSrc: string
   bgDarkSrc?: string
   poster?: string
@@ -70,19 +68,31 @@ const props = withDefaults(defineProps<SlideProps>(), {
   onScrubEnd: undefined,
 })
 
-const colorMode = useColorMode()
-const isDark = computed(() => colorMode.value === 'dark')
-const isMounted = useMounted()
-
-const heroConfig = getHeroConfig(useRuntimeConfig())
-const hasNuxtImage = !!heroConfig.hasNuxtImage
+const heroConfig = useHeroConfig()
 const videoEnabled = !!heroConfig.features?.video
+
+// Dark-mode swap for `bgDarkSrc`: framework-agnostic `.dark`-class (or media
+// query) detection — no color-mode module required. Mount-gated so SSR and the
+// first client render agree (SSR always serves the light source).
+const isDark = useHeroDark(heroConfig.darkMode)
+const isMounted = useMounted()
 
 const activeBgSrc = computed(() =>
   isMounted.value && isDark.value && props.bgDarkSrc ? props.bgDarkSrc : props.bgSrc,
 )
 
 const isBgVideo = computed(() => videoEnabled && isVideoUrl(activeBgSrc.value))
+
+// Image rendering: the configured component (NuxtImg in Nuxt with @nuxt/image;
+// anything the consumer provides in plain Vue) or a native <img>. Preset/sizes
+// props are only forwarded to a real component — they'd land as junk DOM
+// attributes on <img>.
+const imageComponent = computed(() => heroConfig.imageComponent ?? null)
+const imageExtraProps = computed(() =>
+  imageComponent.value
+    ? { preset: props.imagePreset || undefined, sizes: props.imageSizes || undefined }
+    : {},
+)
 
 // Video component ref — exposes mediaControls and hlsState
 const videoComponentRef = useTemplateRef<InstanceType<typeof HeroSlideVideoComponent>>('videoComponentRef')
@@ -134,9 +144,9 @@ const hlsSlotData = computed(() => {
 </script>
 
 <template>
-  <div class="hero-slide relative flex size-full" :class="containerClass">
-    <!-- Background layer (GSAP targets .hero-slide-bg) -->
-    <div class="hero-slide-bg absolute inset-0 z-0 flex items-center justify-center overflow-hidden" :class="bgClass">
+  <div class="hero-slide" :class="containerClass">
+    <!-- Background layer (parallax targets .hero-slide-bg) -->
+    <div class="hero-slide-bg" :class="bgClass">
       <!-- Video background (lazy loaded) -->
       <HeroSlideVideo v-if="isBgVideo" ref="videoComponentRef" :src="activeBgSrc" :poster="poster" :is-active="isActive"
         :slide-index="slideIndex" :on-video-ready="onVideoReady" :on-video-removed="onVideoRemoved"
@@ -144,22 +154,21 @@ const hlsSlotData = computed(() => {
         :data-saver="dataSaver" />
       <!-- Image background. The first slide is the LCP candidate: load it eagerly
            with high fetch priority so the largest paint isn't queued behind lazy assets. -->
-      <NuxtImg v-else-if="hasNuxtImage" :src="activeBgSrc" :preset="imagePreset || undefined"
-        :sizes="imageSizes || undefined" :loading="eager ? 'eager' : 'lazy'"
-        :fetchpriority="eager ? 'high' : 'auto'" alt="" class="size-full object-cover will-change-transform" />
-      <img v-else :src="activeBgSrc" :loading="eager ? 'eager' : 'lazy'" :fetchpriority="eager ? 'high' : 'auto'" alt=""
-        class="size-full object-cover will-change-transform" />
+      <component :is="imageComponent ?? 'img'" v-else :src="activeBgSrc" v-bind="imageExtraProps"
+        :loading="eager ? 'eager' : 'lazy'" :fetchpriority="eager ? 'high' : 'auto'" alt=""
+        class="hero-slide-img" />
     </div>
 
-    <!-- Inset shadow overlay -->
-    <span class="pointer-events-none absolute inset-0 z-1 [box-shadow:0rem_-8rem_8rem_-6rem_#000000_inset]" />
+    <!-- Inset scrim overlay (disable via `--hero-scrim: none`) -->
+    <span class="hero-slide-scrim" />
 
     <!-- Overlay patterns (delegated from parent via slot) -->
     <slot name="overlay" />
 
-    <!-- Content container (GSAP targets .hero-slide-content) -->
-    <div class="hero-slide-content relative z-5 flex size-full flex-col">
-      <div v-show="contentVisible" :class="contentAnimClass" class="size-full" @animationend="onAnimationEnd">
+    <!-- Content container (parallax targets .hero-slide-content) -->
+    <div class="hero-slide-content">
+      <div v-show="contentVisible" :class="contentAnimClass" class="hero-slide-content-inner"
+        @animationend="onAnimationEnd">
         <slot />
       </div>
     </div>
@@ -175,6 +184,7 @@ const hlsSlotData = computed(() => {
         volume: videoComponentRef!.mediaControls.volume,
         muted: videoComponentRef!.mediaControls.muted,
         waiting: videoComponentRef!.mediaControls.waiting,
+        rate: videoComponentRef!.mediaControls.rate,
         hls: hlsSlotData,
       }">
         <HeroVideoControls :labels="labels" :playing="videoComponentRef!.mediaControls.playing"
@@ -182,8 +192,8 @@ const hlsSlotData = computed(() => {
           :current-time="videoComponentRef!.mediaControls.currentTime"
           :duration="videoComponentRef!.mediaControls.duration" :buffered="videoComponentRef!.mediaControls.buffered"
           :volume="videoComponentRef!.mediaControls.volume" :muted="videoComponentRef!.mediaControls.muted"
-          :get-container-el="getContainerEl" :on-seek="onSeek" :on-scrub-start="onScrubStart"
-          :on-scrub-end="onScrubEnd" />
+          :rate="videoComponentRef!.mediaControls.rate" :get-container-el="getContainerEl" :on-seek="onSeek"
+          :on-scrub-start="onScrubStart" :on-scrub-end="onScrubEnd" />
       </slot>
     </template>
   </div>

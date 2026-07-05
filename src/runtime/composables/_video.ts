@@ -1,6 +1,6 @@
 import type { Ref } from 'vue'
 import { computed, ref } from 'vue'
-import type { VideoMediaControls } from '#hero/types'
+import type { VideoMediaControls } from '../types'
 
 /**
  * Creates reactive video state management for the slider.

@@ -65,8 +65,3 @@ export function formatTime(seconds: number): string {
   const s = Math.floor(seconds % 60)
   return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
 }
-
-/** Safely extract hero config from Nuxt runtime config */
-export function getHeroConfig(runtimeConfig: { public: Record<string, unknown> }): Record<string, any> {
-  return (runtimeConfig.public as Record<string, any>).hero ?? {}
-}

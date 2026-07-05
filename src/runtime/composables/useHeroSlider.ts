@@ -1,7 +1,7 @@
 import type { MaybeRefOrGetter } from 'vue'
 import { computed, toValue } from 'vue'
 import { useElementHover, useElementVisibility } from '@vueuse/core'
-import type { HeroSlide, UseHeroSliderOptions, UseHeroSliderReturn } from '#hero/types'
+import type { HeroSlide, UseHeroSliderOptions, UseHeroSliderReturn } from '../types'
 import { createSwiperState } from './_swiper'
 import { createSlideState } from './_slides'
 import { createAutoplayState } from './_autoplay'
@@ -103,8 +103,8 @@ export function useHeroSlider(
   const videoEnabled = true
 
   // Dev-time sanity checks on common Swiper misconfigurations.
-  // Suppressed in production — Nuxt sets import.meta.dev during SSR/dev.
-  if (import.meta.dev && swiperOptions.effect === 'cube') {
+  // Suppressed in production — Nuxt sets import.meta.env?.DEV during SSR/dev.
+  if (import.meta.env?.DEV && swiperOptions.effect === 'cube') {
     const count = toValue(slides).length
     if (count !== 4) {
       // eslint-disable-next-line no-console

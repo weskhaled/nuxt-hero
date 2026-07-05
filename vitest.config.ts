@@ -1,12 +1,8 @@
 import { defineConfig } from 'vitest/config'
-import { resolve } from 'node:path'
+import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
-  resolve: {
-    alias: {
-      '#hero': resolve(__dirname, 'src/runtime'),
-    },
-  },
+  plugins: [vue()],
   test: {
     include: ['test/**/*.test.ts'],
     environment: 'node',

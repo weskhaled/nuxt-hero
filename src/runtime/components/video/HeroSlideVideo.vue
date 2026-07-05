@@ -1,12 +1,12 @@
 <script lang="ts" setup>
 import { computed, onUnmounted, ref, useTemplateRef, watch } from 'vue'
 import { useEventListener, useMediaControls } from '@vueuse/core'
-import { useRuntimeConfig } from '#imports'
-import type { MediaControlsOptions, VideoMediaControls } from '#hero/types'
-import { isHlsUrl, getHeroConfig } from '#hero/utils'
-import { useHls } from '#hero/composables/_hls'
+import type { MediaControlsOptions, VideoMediaControls } from '../../types'
+import { useHeroConfig } from '../../config'
+import { isHlsUrl } from '../../utils'
+import { useHls } from '../../composables/_hls'
 
-interface SlideVideoProps {
+export interface SlideVideoProps {
   /** Video source URL */
   src: string
   /** Poster frame */
@@ -50,7 +50,7 @@ const props = withDefaults(defineProps<SlideVideoProps>(), {
 const effectiveAutoPlay = computed(() => props.autoPlay && !props.dataSaver)
 const preload = computed(() => props.dataSaver ? 'none' : 'metadata')
 
-const heroConfig = getHeroConfig(useRuntimeConfig())
+const heroConfig = useHeroConfig()
 const defaultVolume = heroConfig.defaultVolume ?? 0
 const hlsEnabled = heroConfig.features?.hls ?? false
 
@@ -145,5 +145,5 @@ defineExpose({
        progressive) gets a fresh element with no residual MediaSource/buffer. -->
   <video :key="src" ref="videoRef" muted :loop="videoLoop" :preload="preload" playsinline webkit-playsinline
     disablepictureinpicture disableremoteplayback x-webkit-airplay="deny" :poster="poster"
-    class="hero-slide-video size-full bg-black object-cover will-change-transform" />
+    class="hero-slide-video" />
 </template>

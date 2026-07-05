@@ -1,7 +1,7 @@
 import type { MaybeRefOrGetter } from 'vue'
 import { ref, shallowRef, toValue } from 'vue'
 import type { Swiper } from 'swiper'
-import type { HeroSlide } from '#hero/types'
+import type { HeroSlide } from '../types'
 
 /**
  * Creates the Swiper instance state — tracks active/snap indices,

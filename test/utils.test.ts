@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_PARALLAX, formatTime, getHeroConfig, isHlsUrl, isVideoUrl, patternCSS, patternSize, resolveParallaxConfig } from '../src/runtime/utils'
+import { DEFAULT_PARALLAX, formatTime, isHlsUrl, isVideoUrl, patternCSS, patternSize, resolveParallaxConfig } from '../src/runtime/utils'
 
 describe('isVideoUrl', () => {
   it('detects mp4 URLs', () => {
@@ -123,14 +123,3 @@ describe('formatTime', () => {
   })
 })
 
-describe('getHeroConfig', () => {
-  it('returns hero config from runtimeConfig', () => {
-    const config = { public: { hero: { features: { video: true } } } }
-    expect(getHeroConfig(config)).toEqual({ features: { video: true } })
-  })
-
-  it('returns empty object when hero config missing', () => {
-    const config = { public: {} }
-    expect(getHeroConfig(config)).toEqual({})
-  })
-})

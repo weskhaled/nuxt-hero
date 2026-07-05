@@ -1,5 +1,6 @@
 <script lang="ts" setup>
-import type { HeroSlide } from '#hero/types'
+import { nextTick, useTemplateRef, watch } from 'vue'
+import type { HeroSlide } from '../../types'
 
 interface PaginationProps {
   slides: HeroSlide[]
@@ -12,151 +13,66 @@ interface PaginationProps {
   progress: number
   /** When true, renders vertically on the side (RTL/LTR aware) */
   vertical?: boolean
+  /** Accessible label for the pagination nav (localizable) */
+  label?: string
+  /** Accessible label template for each dot — `{n}` is the 1-based slide number */
+  goToLabel?: string
 }
 
 const props = withDefaults(defineProps<PaginationProps>(), {
   vertical: false,
+  label: 'Slide pagination',
+  goToLabel: 'Go to slide {n}',
 })
 const emit = defineEmits<{ slideTo: [index: number] }>()
+
+const rootEl = useTemplateRef<HTMLElement>('rootEl')
+
+function dotLabel(n: number): string {
+  return props.goToLabel.replace('{n}', String(n))
+}
+
+// The pill scrolls when many dots overflow (see .hero-pagination--* CSS).
+// Keep the active dot in view. `scrollIntoView({ nearest })` only moves
+// ancestors where the target is actually clipped — the page doesn't jump, and
+// it's RTL-safe (no scrollLeft sign math).
+watch(() => props.snapIndex, async (i) => {
+  await nextTick()
+  const btn = rootEl.value?.children[i] as HTMLElement | undefined
+  btn?.scrollIntoView?.({ block: 'nearest', inline: 'nearest', behavior: 'smooth' })
+})
 </script>
 
 <template>
   <!--
-    Horizontal (default): centered at bottom
-    Vertical: on the side — ltr:right, rtl:left — centered vertically
+    Horizontal (default): centered at bottom. Vertical: on the side —
+    ltr:right, rtl:left — centered vertically. Styling in assets/hero.css.
   -->
-  <nav role="navigation" aria-label="Slide pagination"
-    class="hero-pagination swiper-pagination pointer-events-auto absolute z-10 flex items-center gap-1 rounded-full p-1 px-1.5 ring-2 ring-white bg-[var(--hero-surface)] backdrop-blur-sm"
-    :class="[
-      vertical
-        ? 'hero-pagination--vertical flex-col top-1/2 -translate-y-1/2 ltr:right-4 rtl:left-4'
-        : 'hero-pagination--horizontal bottom-4 left-1/2 -translate-x-1/2'
-    ]">
-    <button v-for="i in totalSnaps" :key="i - 1" type="button"
-      class="group relative flex size-4 shrink-0 items-center justify-center rounded-full"
-      :class="{ active: snapIndex === i - 1 }" :aria-label="`Go to slide ${i}`"
+  <nav ref="rootEl" role="navigation" :aria-label="label" class="hero-pagination swiper-pagination"
+    :class="vertical ? 'hero-pagination--vertical' : 'hero-pagination--horizontal'">
+    <button v-for="i in totalSnaps" :key="i - 1" type="button" class="hero-page-btn"
+      :class="{ active: snapIndex === i - 1 }" :aria-label="dotLabel(i)"
       :aria-current="snapIndex === i - 1 ? 'step' : undefined" @click="emit('slideTo', i - 1)">
       <!-- Inactive dot -->
-      <span v-if="snapIndex !== i - 1"
-        class="hero-dot bg-[var(--hero-on-media)] size-2.5 cursor-pointer rounded-full transition-colors" />
+      <span v-if="snapIndex !== i - 1" class="hero-dot" />
 
-      <!-- Active: progress circle -->
+      <!-- Active: progress ring over a faint full track -->
       <template v-else>
-        <div class="hero-radial-progress text-white "
+        <div class="hero-radial-progress"
           :style="{ '--hero-progress-value': Math.round(progress * 100), '--hero-progress-size': '0.75rem', '--hero-progress-thickness': '0.15rem' }"
-          :aria-valuenow="Math.round(progress * 100)" role="progressbar" />
-        <div class="hero-radial-progress absolute text-white  opacity-25"
-          :style="{ '--hero-progress-value': 100, '--hero-progress-size': '0.75rem', '--hero-progress-thickness': '0.15rem' }"
-          aria-valuenow="100" role="progressbar" />
+          role="progressbar" :aria-valuenow="Math.round(progress * 100)" aria-valuemin="0" aria-valuemax="100" />
+        <div class="hero-radial-progress hero-radial-progress--track" aria-hidden="true"
+          :style="{ '--hero-progress-value': 100, '--hero-progress-size': '0.75rem', '--hero-progress-thickness': '0.15rem' }" />
       </template>
 
       <!-- Thumbnail tooltip on hover (show first slide of the snap group) -->
-      <div v-if="slides[i - 1]?.thumbSrc" class="tooltip-content border-white">
-        <div class="tooltip-text border-inherit">
-          <div class="tooltip-inner overflow-hidden rounded-sm bg-black">
-            <img :src="slides[i - 1]?.thumbSrc" :alt="slides[i - 1]?.title ?? `Slide ${i}`"
-              class="size-full object-cover opacity-65" loading="lazy" />
+      <div v-if="slides[i - 1]?.thumbSrc" class="tooltip-content">
+        <div class="tooltip-text">
+          <div class="tooltip-inner">
+            <img :src="slides[i - 1]?.thumbSrc" :alt="slides[i - 1]?.title ?? dotLabel(i)" loading="lazy" />
           </div>
         </div>
       </div>
     </button>
   </nav>
 </template>
-
-<style scoped>
-@reference "tailwindcss";
-
-/* ─── Pagination tooltip ─── */
-.swiper-pagination > button > .tooltip-content {
-  @apply pointer-events-none absolute z-90 w-30 cursor-default opacity-0 transition-opacity duration-300 delay-300;
-}
-
-/* Horizontal: tooltip above the dot */
-.hero-pagination--horizontal > button > .tooltip-content {
-  @apply bottom-full mb-1 left-1/2 -ml-[60px];
-}
-
-.hero-pagination--horizontal > button > .tooltip-content::after {
-  @apply pointer-events-none absolute -bottom-2.5 left-1/2 -ml-1.25 size-0 border-5 border-transparent border-t-inherit!;
-  content: '';
-}
-
-/* Vertical: tooltip to the LEFT of the dot (slides in from right) */
-.hero-pagination--vertical > button > .tooltip-content {
-  @apply right-full mr-2 top-1/2 -translate-y-1/2;
-}
-
-.hero-pagination--vertical > button > .tooltip-content::after {
-  @apply pointer-events-none absolute -right-2.5 top-1/2 -mt-1.25 size-0 border-5 border-transparent border-l-inherit!;
-  content: '';
-}
-
-.swiper-pagination > button > .tooltip-content .tooltip-text {
-  @apply overflow-hidden scale-x-0 scale-y-100 transition-transform duration-300 delay-300;
-}
-
-.hero-pagination--horizontal > button > .tooltip-content .tooltip-text {
-  @apply border-b-2 origin-left;
-}
-
-.hero-pagination--vertical > button > .tooltip-content .tooltip-text {
-  @apply border-r-2 origin-right;
-}
-
-.swiper-pagination > button > .tooltip-content .tooltip-text .tooltip-inner {
-  @apply max-w-[inherit] rounded-none p-0 transition-transform duration-300;
-}
-
-.hero-pagination--horizontal > button > .tooltip-content .tooltip-text .tooltip-inner {
-  @apply translate-y-full;
-}
-
-.hero-pagination--vertical > button > .tooltip-content .tooltip-text .tooltip-inner {
-  @apply translate-x-full;
-}
-
-/* RTL vertical: pagination sits on the LEFT, so the tooltip flips to the RIGHT
-   of the dot (otherwise it slides off the slider's left edge). */
-[dir='rtl'] .hero-pagination--vertical > button > .tooltip-content {
-  @apply left-full right-auto ml-2 mr-0;
-}
-[dir='rtl'] .hero-pagination--vertical > button > .tooltip-content::after {
-  @apply -left-2.5 right-auto border-l-transparent! border-r-inherit!;
-}
-[dir='rtl'] .hero-pagination--vertical > button > .tooltip-content .tooltip-text {
-  @apply border-r-0 border-l-2 origin-left;
-}
-[dir='rtl'] .hero-pagination--vertical > button > .tooltip-content .tooltip-text .tooltip-inner {
-  @apply -translate-x-full;
-}
-
-.swiper-pagination > button > .tooltip-content .tooltip-text .tooltip-inner img {
-  @apply opacity-65;
-}
-
-/* Tooltip hover states */
-.swiper-pagination > button:hover > .tooltip-content {
-  @apply z-99 opacity-100 delay-0;
-}
-
-.swiper-pagination > button:hover > .tooltip-content .tooltip-text {
-  @apply scale-x-100 delay-0;
-}
-
-.swiper-pagination > button:hover > .tooltip-content .tooltip-text .tooltip-inner {
-  @apply translate-x-0 translate-y-0 delay-300;
-}
-
-/* ─── SVG progress circle ─── */
-.progress-circle-svg {
-  @apply -rotate-90;
-}
-
-.progress-circle-bar {
-  stroke: var(--hero-primary);
-}
-
-.progress-circle-bg {
-  stroke: var(--hero-progress-bg);
-}
-</style>

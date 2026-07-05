@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs'
 import { join } from 'pathe'
 import type { Nuxt } from '@nuxt/schema'
 import type { HeroFeatures } from '../runtime/types'
-import { SWIPER_MODULE_MAP } from './constants'
+import { swiperModuleNames } from './plugin'
 
 export function setupVite(nuxt: Nuxt, runtimeDir: string, features: HeroFeatures): void {
   // ─── Deduplicate shared deps ───
@@ -40,9 +40,7 @@ export function setupVite(nuxt: Nuxt, runtimeDir: string, features: HeroFeatures
   }
 
   // Only pre-bundle swiper/modules if any Swiper modules are enabled
-  const hasAnyModule = Object.keys(SWIPER_MODULE_MAP).some(k => features[k as keyof HeroFeatures])
-    || (features.effects && features.effects.length > 0)
-  if (hasAnyModule) {
+  if (swiperModuleNames(features).length > 0) {
     nuxt.options.vite.optimizeDeps.include.push('swiper/modules')
   }
 

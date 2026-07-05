@@ -1,0 +1,6 @@
+/* Playground's own Tailwind pipeline — the module no longer wires Tailwind
+   (its styles ship as plain CSS); demo pages style themselves. */
+@import 'tailwindcss';
+
+/* Dark variant follows the `.dark` class toggled by @nuxtjs/color-mode. */
+@custom-variant dark (&:where(.dark, .dark *));

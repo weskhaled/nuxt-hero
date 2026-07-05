@@ -29,4 +29,4 @@ export const EFFECT_MAP: Record<SwiperEffect, { module: string; css: string }> =
   flip: { module: 'EffectFlip', css: 'swiper/css/effect-flip' },
 }
 
-export const VALID_EFFECTS: SwiperEffect[] = ['fade', 'cube', 'coverflow', 'creative', 'cards', 'flip']
+// VALID_EFFECTS moved to '../runtime/config' (shared with the Vue plugin).

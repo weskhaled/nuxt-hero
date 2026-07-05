@@ -1,27 +1,28 @@
 # nuxt-hero
 
-A full-featured hero slider Nuxt module with parallax, video backgrounds, overlay patterns, and customizable animations.
+A full-featured hero slider for **Nuxt** and **plain Vue 3** — parallax, video backgrounds, overlay patterns, and customizable animations.
 
 ## Features
 
+- **Works in Nuxt (module) AND any Vue 3 app (plugin / à-la-carte imports)** — same components, same API
+- **Zero styling toolchain required** — chrome ships as plain CSS (no Tailwind, no color-mode module, no icon dependency)
 - Swiper-based slider with rAF autoplay progress (pauses offscreen / hidden / reduced-motion)
 - GSAP-powered parallax (background + content) — **lazy-loaded**, only when `parallax` is enabled
 - Video backgrounds (MP4, WebM, HLS via hls.js) — **lazy-loaded**, only on video slides
+- Touch-friendly chrome: bigger targets on coarse pointers, tap-to-play stays visible, safe-area aware in fullscreen
+- Keyboard accessible: visible `:focus-visible` rings, ARIA menu for playback speed, WAI-ARIA APG carousel pattern, localizable labels
 - Overlay patterns (lines, dots, gradient, custom)
-- Dark mode via the `.dark` class (Tailwind / Nuxt UI compatible)
+- Dark mode via the `.dark` class (Tailwind / Nuxt UI compatible) or `prefers-color-scheme`
 - Themeable chrome via `--hero-*` CSS variables (accent adopts your `--ui-primary`)
 - Full RTL support (slide direction syncs at init + on runtime locale switch)
 - Mobile / PWA "lite mode": no video autoplay/preload + no parallax on Save-Data / slow connections
-- Accessible: WAI-ARIA APG carousel pattern + localizable labels + reduced-motion
 - Built-in + animate.css animations, thumbnail navigation previews
 - Vertical and horizontal layouts
-- Local inline-SVG icons (no icon dependency)
-- Tailwind CSS v4 (auto-detects a host Tailwind, e.g. Nuxt UI)
 
-## Installation
+## Installation (Nuxt)
 
 ```bash
-pnpm add nuxt-hero
+pnpm add nuxt-hero swiper @vueuse/core
 ```
 
 Add the module to your `nuxt.config.ts`:
@@ -32,23 +33,64 @@ export default defineNuxtConfig({
 })
 ```
 
-### Peer dependencies
+That's it — styles are injected automatically. No Tailwind, color-mode or icon setup needed.
 
-Required:
-
-```bash
-pnpm add tailwindcss swiper @vueuse/nuxt @vueuse/core @nuxtjs/color-mode
-```
-
-Optional (installed only if you use the matching feature):
+### Optional peers (only if you use the matching feature)
 
 ```bash
-pnpm add @nuxt/image hls.js animate.css gsap @tailwindcss/vite
+pnpm add @nuxt/image gsap hls.js animate.css
 ```
 
-- `gsap` — only for `parallax`
-- `@tailwindcss/vite` — only if the module sets Tailwind up itself (skip it when a host like Nuxt UI already provides Tailwind, or set `hero: { tailwind: false }`)
-- `@nuxt/image` — optimized backgrounds · `hls.js` — `.m3u8` video · `animate.css` — extra animation classes
+- `@nuxt/image` — optimized backgrounds (auto-detected; `imagePreset` / `imageSizes` activate)
+- `gsap` — only for scroll `parallax`
+- `hls.js` — `.m3u8` video on non-Safari browsers
+- `animate.css` — extra animation classes for `enterAnimation` / `leaveAnimation`
+
+## Installation (plain Vue 3)
+
+```bash
+pnpm add nuxt-hero swiper @vueuse/core
+```
+
+Register the plugin (global components + app-wide config):
+
+```ts
+import { createApp } from 'vue'
+import { HeroPlugin } from 'nuxt-hero/vue'
+import { A11y, EffectFade } from 'swiper/modules'
+
+import 'swiper/css'
+import 'swiper/css/effect-fade'
+import 'nuxt-hero/hero.css'
+
+createApp(App)
+  .use(HeroPlugin, {
+    // Swiper modules every slider gets (pass what you use)
+    swiperModules: [A11y, EffectFade],
+    // features default to everything-on except `hls`
+    // features: { navigation: true, pagination: true, video: true, parallax: true },
+  })
+  .mount('#app')
+```
+
+…or import à la carte without the plugin (tree-shaken, defaults apply):
+
+```vue
+<script setup>
+import { HeroSlider } from 'nuxt-hero/vue'
+import 'swiper/css'
+import 'nuxt-hero/hero.css'
+
+const slides = [{ bgSrc: '/photo.jpg', title: 'Hello' }]
+</script>
+
+<template>
+  <HeroSlider :slides="slides" style="height: 100vh" />
+</template>
+```
+
+Per-instance Swiper modules also work without the plugin:
+`:options="{ swiperOptions: { modules: [EffectFade], effect: 'fade' } }"`.
 
 ## Usage
 
@@ -239,7 +281,7 @@ export default defineNuxtConfig({
   hero: {
     prefix: 'Hero',       // Component name prefix
     defaultVolume: 0,     // Default volume for video backgrounds (0-1)
-    tailwind: 'auto',     // 'auto' (skip setup when a host Tailwind exists) | true | false
+    darkMode: 'class',    // 'class' (.dark on <html>) | 'media' (prefers-color-scheme)
     features: {           // Opt-in Swiper modules / capabilities (a11y is on by default)
       navigation: true,
       pagination: true,
@@ -248,6 +290,9 @@ export default defineNuxtConfig({
   },
 })
 ```
+
+> The old `tailwind` option is deprecated and ignored — hero styles ship as
+> plain CSS, so no Tailwind pipeline (and no `@nuxtjs/color-mode`) is required.
 
 See the [configuration docs](./docs/configuration.md) for all options, feature
 flags, dark mode, RTL, theming (`--hero-*` variables), and accessibility.
@@ -322,24 +367,25 @@ HLS video playback composable — dynamically loads hls.js, with Safari native f
 ## Project Structure
 
 ```
-src/runtime/
-  components/
-    slider/          # Core slider
-      index.vue      # HeroSlider — main component
-      HeroSlide.vue  # Individual slide with bg image/video
-    video/           # Video playback controls
-      HeroVideoControls.vue
-      HeroVideoScrubber.vue
-    navigation/      # Slide navigation UI
-      HeroNavigation.vue
-      HeroPagination.vue
-  composables/
-    useHeroSlider.ts # Core slider state, autoplay, video registration
-    useGSAP.ts       # Scoped GSAP animations with cleanup
-    useHls.ts        # HLS video playback
-  utils.ts           # Shared utilities (video detection, patterns, formatting)
-  types.ts           # TypeScript interfaces
+src/
+  module.ts          # Nuxt module entry (`nuxt-hero`)
+  module/            # Nuxt-only wiring (component registration, CSS, config plugin)
+  vue/index.ts       # Vue plugin entry (`nuxt-hero/vue`)
+  runtime/           # Framework-agnostic runtime (plain Vue — no Nuxt imports)
+    config.ts        # provide/inject runtime config + defaults
+    components/
+      slider/        # HeroSlider, HeroSlide, HeroParallax
+      video/         # HeroSlideVideo, HeroVideoControls, HeroVideoScrubber
+      navigation/    # HeroNavigation, HeroPagination
+    composables/     # useHeroSlider, useHeroEnvironment, useHeroDark, …
+    assets/hero.css  # All chrome styles — plain CSS, no Tailwind
+    utils.ts         # Shared utilities (video detection, patterns, formatting)
+    types.ts         # TypeScript interfaces
 ```
+
+The `runtime/` tree never imports Nuxt APIs — components read app config via
+`provide/inject` (`useHeroConfig()`), which the Nuxt module supplies from a
+generated plugin and the Vue plugin supplies from `app.use(...)` options.
 
 ## Development
 

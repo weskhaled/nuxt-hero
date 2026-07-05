@@ -1,9 +1,9 @@
 <script lang="ts" setup>
-import { computed, ref } from 'vue'
+import { computed, ref, useTemplateRef } from 'vue'
 import type { Ref } from 'vue'
-import { useFullscreen } from '@vueuse/core'
-import type { HeroLabels } from '#hero/types'
-import { formatTime } from '#hero/utils'
+import { onClickOutside, useFullscreen } from '@vueuse/core'
+import type { HeroLabels } from '../../types'
+import { formatTime } from '../../utils'
 import HeroVideoScrubber from './HeroVideoScrubber.vue'
 import HeroIcon from '../HeroIcon.vue'
 
@@ -16,6 +16,8 @@ interface VideoControlsProps {
   duration: Ref<number>
   /** Raw buffered time ranges from useMediaControls: [start, end][] */
   buffered?: Ref<[number, number][]>
+  /** Playback rate from useMediaControls — drives the speed menu */
+  rate?: Ref<number>
   getContainerEl?: () => HTMLElement | null
   onSeek?: (time: number) => void
   onScrubStart?: () => void
@@ -33,10 +35,18 @@ const L = computed(() => ({
   play: props.labels?.play ?? 'Play video',
   pause: props.labels?.pause ?? 'Pause video',
   mute: props.labels?.mute ?? 'Toggle mute',
+  volume: props.labels?.volume ?? 'Volume',
+  seek: props.labels?.seek ?? 'Seek',
   settings: props.labels?.settings ?? 'Settings',
+  speed: props.labels?.speed ?? 'Playback speed',
+  speedNormal: props.labels?.speedNormal ?? 'Normal',
   fullscreenEnter: props.labels?.fullscreenEnter ?? 'Enter fullscreen',
   fullscreenExit: props.labels?.fullscreenExit ?? 'Exit fullscreen',
 }))
+
+// Fullscreen is per-element and not universally available (iOS Safari only
+// fullscreens <video> natively) — hide the button when the API is absent.
+const fullscreenSupported = typeof document !== 'undefined' && !!document.fullscreenEnabled
 
 function toggleFullscreen() {
   const el = props.getContainerEl?.()
@@ -44,11 +54,9 @@ function toggleFullscreen() {
   if (document.fullscreenElement) {
     document.exitFullscreen()
   } else {
-    el.requestFullscreen()
+    el.requestFullscreen?.()
   }
 }
-
-const settingsOpen = ref(false)
 
 const formattedTime = computed(
   () => `${formatTime(Number(props.currentTime.value))} / ${formatTime(Number(props.duration.value))}`,
@@ -100,36 +108,39 @@ function onScrubUpdate(time: number) {
   props.onSeek?.(time)
 }
 
-// ─── Playback speed ───
+// ─── Playback speed menu ───
+// Rate is driven through the media-controls `rate` ref (survives the keyed
+// <video> element swaps — dark-mode source change, HLS ↔ progressive), never a
+// DOM query. The menu follows the WAI-ARIA menu pattern: aria-haspopup +
+// aria-expanded on the trigger, menuitemradio + aria-checked per option,
+// Escape and click-outside close it.
+const settingsOpen = ref(false)
+const settingsWrapEl = useTemplateRef<HTMLElement>('settingsWrapEl')
+onClickOutside(settingsWrapEl, () => { settingsOpen.value = false })
 
-const playbackRate = ref(1)
 const playbackRates = [0.5, 0.75, 1, 1.25, 1.5, 2]
+const playbackRate = computed(() => props.rate?.value ?? 1)
 
-function setPlaybackRate(rate: number) {
-  playbackRate.value = rate
-  const el = props.getContainerEl?.()
-  if (el) {
-    const video = el.querySelector('.swiper-slide-active video') as HTMLVideoElement | null
-    if (video) video.playbackRate = rate
-  }
+function setPlaybackRate(r: number) {
+  if (props.rate) props.rate.value = r
   settingsOpen.value = false
 }
 </script>
 
 <template>
-  <!-- Center play button -->
+  <!-- Center play button. `.is-paused` keeps it visible while paused — including
+       on touch devices where there's no hover to reveal it (tap-to-play). -->
   <div aria-live="polite" class="hero-play-center">
-    <button type="button" class="hero-ctrl-btn hero-play-center-btn group" :disabled="waiting.value"
-      :aria-label="playing.value ? L.pause : L.play" @click="toggle">
-      <span v-if="waiting.value" class="hero-spinner size-5 text-white" />
-      <HeroIcon v-else-if="playing.value" name="pause"
-        class="size-4 transition-transform duration-150 group-hover:scale-110" />
-      <HeroIcon v-else name="play" class="size-4 transition-transform duration-150 group-hover:scale-110" />
+    <button type="button" class="hero-ctrl-btn hero-play-center-btn" :class="{ 'is-paused': !playing.value }"
+      :disabled="waiting.value" :aria-label="playing.value ? L.pause : L.play" @click="toggle">
+      <span v-if="waiting.value" class="hero-spinner hero-spinner--lg" />
+      <HeroIcon v-else-if="playing.value" name="pause" class="hero-play-center-icon" />
+      <HeroIcon v-else name="play" class="hero-play-center-icon" />
 
-      <div class="absolute flex size-full items-center justify-center">
-        <div class="hero-radial-progress size-full m-auto"
-          :style="{ '--hero-progress-value': Math.round(progress), '--hero-progress-size': '3rem', '--hero-progress-thickness': '0.25rem' }"
-          :aria-valuenow="Math.round(progress)" role="progressbar" />
+      <div class="hero-play-center-ring">
+        <div class="hero-radial-progress"
+          :style="{ '--hero-progress-value': Math.round(progress), '--hero-progress-size': '100%', '--hero-progress-thickness': '0.25rem' }"
+          role="progressbar" :aria-valuenow="Math.round(progress)" aria-valuemin="0" aria-valuemax="100" />
       </div>
     </button>
   </div>
@@ -138,7 +149,8 @@ function setPlaybackRate(rate: number) {
   <div class="hero-media-controls">
     <!-- Scrubber: full-width time track, native input-driven -->
     <HeroVideoScrubber :model-value="currentTime.value" :max="duration.value" :secondary="bufferedEnd"
-      @update:model-value="onScrubUpdate" @scrubber-mousedown="onScrubStart?.()" @scrubber-mouseup="onScrubEnd?.()">
+      :label="L.seek" @update:model-value="onScrubUpdate" @scrubber-mousedown="onScrubStart?.()"
+      @scrubber-mouseup="onScrubEnd?.()">
       <template #default="{ pendingValue, position }">
         <span class="hero-scrubber-tooltip" :style="{ left: position }">
           {{ formatTime(pendingValue) }}
@@ -147,32 +159,33 @@ function setPlaybackRate(rate: number) {
     </HeroVideoScrubber>
 
     <!-- Controls row -->
-    <div class="flex items-center justify-between w-full">
-      <!-- Left: play, volume, time -->
-      <div class="flex items-center gap-1">
-        <button type="button" class="hero-ctrl-btn hero-ctrl-btn--filled size-8"
+    <div class="hero-controls-row">
+      <!-- Start: play, volume, time -->
+      <div class="hero-controls-group">
+        <button type="button" class="hero-ctrl-btn hero-ctrl-btn--filled"
           :aria-label="playing.value ? L.pause : L.play" @click="toggle">
-          <span v-if="waiting.value" class="hero-spinner size-4 text-white" />
+          <span v-if="waiting.value" class="hero-spinner" />
           <Transition v-else name="hero-vol-icon" mode="out-in">
-            <HeroIcon v-if="playing.value" key="pause" name="pause" class="size-4" />
-            <HeroIcon v-else key="play" name="play" class="size-4" />
+            <HeroIcon v-if="playing.value" key="pause" name="pause" />
+            <HeroIcon v-else key="play" name="play" />
           </Transition>
         </button>
 
         <div class="hero-volume-group">
-          <button type="button" class="hero-ctrl-btn size-8 flex-none" :aria-label="L.mute" @click="toggleMute">
+          <button type="button" class="hero-ctrl-btn" :aria-label="L.mute" :aria-pressed="muted.value"
+            @click="toggleMute">
             <Transition name="hero-vol-icon" mode="out-in">
-              <HeroIcon v-if="volumeIcon === 'high'" key="high" name="volume-2" class="size-4" />
-              <HeroIcon v-else-if="volumeIcon === 'low'" key="low" name="volume-1" class="size-4" />
-              <HeroIcon v-else key="muted" name="volume-x" class="size-4" />
+              <HeroIcon v-if="volumeIcon === 'high'" key="high" name="volume-2" />
+              <HeroIcon v-else-if="volumeIcon === 'low'" key="low" name="volume-1" />
+              <HeroIcon v-else key="muted" name="volume-x" />
             </Transition>
           </button>
           <div class="hero-volume-expand">
             <!-- Volume slider: same .hero-range-* pattern as the scrubber -->
-            <div class="hero-range-track w-20! mx-2">
+            <div class="hero-range-track hero-volume-slider">
               <div class="hero-range-fill" :style="{ width: `${muted.value ? 0 : volumePercent}%` }" />
               <input type="range" min="0" max="100" :value="muted.value ? 0 : volumePercent" class="hero-range-input"
-                aria-label="Volume" :aria-valuetext="`${muted.value ? 0 : volumePercent}%`" @input="onVolumeInput" />
+                :aria-label="L.volume" :aria-valuetext="`${muted.value ? 0 : volumePercent}%`" @input="onVolumeInput" />
             </div>
           </div>
         </div>
@@ -180,135 +193,35 @@ function setPlaybackRate(rate: number) {
         <span class="hero-time-label">{{ formattedTime }}</span>
       </div>
 
-      <!-- Right: settings, fullscreen -->
-      <div class="flex items-center gap-1">
-        <!-- Settings -->
-        <div class="relative">
-          <button type="button" class="hero-ctrl-btn hero-ctrl-btn--filled size-8" :aria-label="L.settings"
-            @click="settingsOpen = !settingsOpen">
-            <HeroIcon name="settings" class="size-4 transition-transform duration-300"
-              :class="{ 'rotate-90': settingsOpen }" />
+      <!-- End: settings, fullscreen -->
+      <div class="hero-controls-group">
+        <!-- Settings (playback speed) -->
+        <div ref="settingsWrapEl" class="hero-settings-wrap" @keydown.escape="settingsOpen = false">
+          <button type="button" class="hero-ctrl-btn hero-ctrl-btn--filled" :aria-label="L.settings"
+            aria-haspopup="menu" :aria-expanded="settingsOpen" @click="settingsOpen = !settingsOpen">
+            <HeroIcon name="settings" class="hero-settings-icon" :class="{ 'is-open': settingsOpen }" />
           </button>
           <Transition name="hero-settings">
-            <div v-if="settingsOpen" class="hero-settings-panel">
-              <div class="hero-settings-header">Playback speed</div>
-              <button v-for="rate in playbackRates" :key="rate" type="button" class="hero-settings-rate-btn"
-                @click="setPlaybackRate(rate)">
-                <span>{{ rate === 1 ? 'Normal' : `${rate}x` }}</span>
-                <HeroIcon v-if="playbackRate === rate" name="check" class="size-3 text-white/70" />
+            <div v-if="settingsOpen" class="hero-settings-panel" role="menu" :aria-label="L.speed">
+              <div class="hero-settings-header" aria-hidden="true">{{ L.speed }}</div>
+              <button v-for="r in playbackRates" :key="r" type="button" class="hero-settings-rate-btn"
+                role="menuitemradio" :aria-checked="playbackRate === r" @click="setPlaybackRate(r)">
+                <span>{{ r === 1 ? L.speedNormal : `${r}x` }}</span>
+                <HeroIcon v-if="playbackRate === r" name="check" />
               </button>
             </div>
           </Transition>
         </div>
 
         <!-- Fullscreen -->
-        <button type="button" class="hero-ctrl-btn hero-ctrl-btn--filled size-8"
+        <button v-if="fullscreenSupported" type="button" class="hero-ctrl-btn hero-ctrl-btn--filled"
           :aria-label="isFullscreen ? L.fullscreenExit : L.fullscreenEnter" @click="toggleFullscreen">
           <Transition name="hero-vol-icon" mode="out-in">
-            <HeroIcon v-if="isFullscreen" key="minimize" name="minimize" class="size-4" />
-            <HeroIcon v-else key="maximize" name="maximize" class="size-4" />
+            <HeroIcon v-if="isFullscreen" key="minimize" name="minimize" />
+            <HeroIcon v-else key="maximize" name="maximize" />
           </Transition>
         </button>
       </div>
     </div>
   </div>
 </template>
-
-<style scoped>
-@reference "tailwindcss";
-@custom-variant dark (&:where(.dark, .dark *));
-
-/* Shared styles (`.hero-range-*`, `.hero-ctrl-btn`, `.hero-spinner`,
-   `.hero-radial-progress`) live in runtime/assets/hero.css. */
-
-/* ─── Layout ─── */
-.hero-play-center {
-  @apply pointer-events-auto absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10;
-  @apply flex items-center justify-center;
-}
-
-.hero-media-controls {
-  @apply pointer-events-auto absolute z-999 bottom-0 left-0 right-0 flex flex-col gap-1 px-3 pb-3;
-}
-
-/* ─── Center play button (reveals on slider hover) ─── */
-.hero-play-center-btn {
-  @apply size-12 bg-white/35 backdrop-blur-sm opacity-0 hover:scale-110;
-  @apply dark:bg-black/35;
-}
-
-.hero-slider:hover .hero-play-center-btn {
-  @apply opacity-100;
-}
-
-/* ─── Volume pill (expands on hover) ─── */
-.hero-volume-group {
-  @apply flex items-center bg-white/25 rounded-full backdrop-blur-sm overflow-hidden;
-  @apply transition-all duration-300 ease-out hover:bg-white/35;
-}
-
-.hero-volume-expand {
-  @apply flex items-center overflow-x-clip transition-all duration-300 ease-out;
-  max-width: 0;
-}
-
-.hero-volume-group:hover .hero-volume-expand {
-  max-width: 7rem;
-}
-
-/* ─── Time label ─── */
-.hero-time-label {
-  @apply text-xs text-white/80 px-2 tabular-nums whitespace-nowrap;
-}
-
-/* ─── Scrubber hover tooltip (slotted into HeroVideoScrubber) ───
-   Absolutely positioned relative to the track. `bottom` offsets it above
-   the track with a small gap; `left: position` is set inline per cursor. */
-.hero-scrubber-tooltip {
-  @apply absolute -translate-x-1/2 px-2 py-1 text-xs leading-4 tabular-nums whitespace-nowrap z-10;
-  @apply text-black bg-white backdrop-blur rounded;
-  bottom: calc(100% + 0.5rem);
-  box-shadow: 0 2px 8px rgb(0 0 0 / 0.15);
-}
-
-.hero-scrubber-tooltip::after {
-  @apply absolute left-1/2 -bottom-1 -translate-x-1/2 rotate-45 size-2 bg-white;
-  content: '';
-}
-
-/* ─── Settings panel ─── */
-.hero-settings-panel {
-  @apply absolute bottom-full right-0 mb-2 rounded-lg;
-  @apply bg-black/80 backdrop-blur-md text-white text-xs min-w-36 overflow-hidden shadow-lg;
-}
-
-.hero-settings-header {
-  @apply px-3 py-2 flex text-white/75 font-medium border-b border-white/10;
-}
-
-.hero-settings-rate-btn {
-  @apply flex w-full items-center justify-between px-3 py-1.5;
-  @apply hover:bg-white/10 transition-colors cursor-pointer;
-}
-
-/* ─── Transitions ─── */
-.hero-settings-enter-active,
-.hero-settings-leave-active {
-  @apply transition duration-200 ease-in-out;
-}
-
-.hero-settings-enter-from,
-.hero-settings-leave-to {
-  @apply opacity-0 translate-y-2 scale-95;
-}
-
-.hero-vol-icon-enter-active,
-.hero-vol-icon-leave-active {
-  @apply transition duration-150 ease-in-out;
-}
-
-.hero-vol-icon-enter-from,
-.hero-vol-icon-leave-to {
-  @apply opacity-0 scale-80;
-}
-</style>

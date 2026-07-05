@@ -1,7 +1,7 @@
 import type { MaybeRefOrGetter, Ref } from 'vue'
 import { computed, toValue } from 'vue'
-import type { HeroSlide, ResolvedSlideConfig, SlideAnimation } from '#hero/types'
-import { isVideoUrl } from '#hero/utils'
+import type { HeroSlide, ResolvedSlideConfig, SlideAnimation } from '../types'
+import { isVideoUrl } from '../utils'
 
 /**
  * Creates reactive slide state — active slide, per-slide config resolution,

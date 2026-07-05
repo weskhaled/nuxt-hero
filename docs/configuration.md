@@ -13,8 +13,8 @@ export default defineNuxtConfig({
     // Default volume for video backgrounds (0 = muted, 1 = full)
     defaultVolume: 0,
 
-    // Tailwind v4 wiring: 'auto' (default) | true | false — see below
-    tailwind: 'auto',
+    // Dark detection for bgDarkSrc: 'class' (.dark on <html>) | 'media'
+    darkMode: 'class',
 
     // Feature flags — opt-in to Swiper modules and capabilities
     features: {
@@ -50,17 +50,22 @@ export default defineNuxtConfig({
 Only `a11y` is enabled by default; every other feature is opt-in (an empty
 `features: {}` registers just the core slider + the accessibility module).
 
-### `tailwind`
+### `darkMode`
 
-How the module wires Tailwind CSS v4 for its own runtime styles:
+How dark mode is detected for the per-slide `bgDarkSrc` image/video swap:
 
-- **`'auto'`** (default) — sets Tailwind up itself **unless the host already
-  provides it** (e.g. Nuxt UI). When a host Tailwind is detected the module
-  registers its runtime directory as a `@source` and reuses the host pipeline,
-  so it never double-registers `@tailwindcss/vite`.
-- **`true`** — always set Tailwind up (standalone apps with no Tailwind).
-- **`false`** — do nothing; the host owns Tailwind entirely and is responsible
-  for scanning this module's runtime directory.
+- **`'class'`** (default) — reactively tracks a `dark` class on `<html>` (the
+  convention shared by Tailwind's class strategy, Nuxt UI, and
+  `@nuxtjs/color-mode` with `classSuffix: ''`). Works with any color-mode
+  implementation that toggles that class — none is required.
+- **`'media'`** — the OS-level `prefers-color-scheme: dark` media query, for
+  apps with no class-based dark mode.
+
+### `tailwind` (deprecated)
+
+No longer used. Hero styles ship as **plain CSS** (injected by the module), so
+no Tailwind pipeline is involved. Setting the option logs a warning and does
+nothing — remove it from your config.
 
 ### Feature Flags
 
@@ -109,16 +114,17 @@ hero: {
 ### Auto-Enabled Dependencies
 
 - Setting `hls: true` automatically enables `video: true`.
-- `@nuxtjs/color-mode` is registered with `classSuffix: ''` so dark mode toggles
-  the `.dark` class. The module **does not** touch `dataValue` — your app keeps
-  full ownership of its `<html>` attributes.
+- If your app happens to use `@nuxtjs/color-mode`, the module nudges its
+  `classSuffix` to `''` so the toggled class is `.dark` — but color-mode is
+  **not required** (dark detection watches the `.dark` class directly).
 
 ## Dark mode
 
-The chrome is dark-mode aware via the **`.dark` class** convention
-(`@custom-variant dark (&:where(.dark, .dark *))`) — the same strategy Tailwind,
-Nuxt UI, and a `color-mode` `classSuffix: ''` setup use. Dropped into such an app
-the hero shares the existing `.dark` toggle with no extra wiring.
+The chrome is dark-mode aware via the **`.dark` class** convention (`:where(.dark)`
+ancestor selectors in the shipped CSS) — the same strategy Tailwind, Nuxt UI, and
+a `color-mode` `classSuffix: ''` setup use. Dropped into such an app the hero
+shares the existing `.dark` toggle with no extra wiring; apps without a class
+toggle can set `darkMode: 'media'` to follow `prefers-color-scheme` instead.
 
 ## Theming (colors)
 

@@ -1,7 +1,7 @@
 import type { ComputedRef, Ref } from 'vue'
 import { computed, ref, watch } from 'vue'
 import { useDocumentVisibility, useMediaQuery, useRafFn } from '@vueuse/core'
-import type { UseHeroSliderOptions } from '#hero/types'
+import type { UseHeroSliderOptions } from '../types'
 
 /**
  * Creates the autoplay timer state. Drives slide advancement off a

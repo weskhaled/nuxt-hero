@@ -1,6 +1,23 @@
-@reference "tailwindcss";
+/**
+ * nuxt-hero — self-contained styles.
+ *
+ * Plain CSS on purpose: no Tailwind, no preprocessor, no build step required by
+ * the consumer. Works identically in Nuxt (pushed by the module) and plain Vue
+ * (`import 'nuxt-hero/hero.css'`). Pair with `import 'swiper/css'` (+ the CSS of
+ * any Swiper effect you enable).
+ *
+ * Conventions:
+ * - Flat selectors (no native nesting) for maximum browser/tooling compat.
+ * - `-webkit-backdrop-filter` always BEFORE `backdrop-filter` — some minifiers
+ *   drop the later duplicate-named declaration, and the prefixed-last order is
+ *   the one that survives everywhere.
+ * - Dark styles key off a `.dark` ancestor class via `:where()` (zero added
+ *   specificity). RTL keys off `[dir='rtl']`.
+ * - Every color/size a consumer may want to tune is a `--hero-*` custom
+ *   property, overridable per-instance on `.hero-slider`.
+ */
 
-/* ─── CSS custom properties ───
+/* ─── Design tokens ───
    The slider chrome sits over imagery, so neutrals default to a media-safe
    white/scrim that reads in both light and dark. The accent (`--hero-primary`)
    adopts the host's theme primary automatically — Nuxt UI's `--ui-primary`
@@ -8,7 +25,7 @@
    AND adapt to light/dark for free. Every value is overridable by the consumer
    (e.g. `.hero-slider { --hero-primary: var(--ui-color-primary-400) }`). */
 :root {
-  /* Accent — active pagination ring, autoplay progress, video scrubber fill. */
+  /* Accent — active pagination ring, autoplay progress, video scrubber fill, focus rings. */
   --hero-primary: var(--ui-primary, #ffffff);
   /* Neutral foreground over media — icons, inactive dots, time labels. */
   --hero-on-media: #ffffff;
@@ -16,6 +33,122 @@
   --hero-surface: rgb(0 0 0 / 0.35);
   /* Track behind progress / scrubber / volume. */
   --hero-progress-bg: rgb(255 255 255 / 0.2);
+  /* Hairline ring around the pagination pill. */
+  --hero-ring: rgb(255 255 255 / 0.9);
+  /* Bottom inset scrim over each slide (legibility for light imagery).
+     Set to `none` to disable. */
+  --hero-scrim: 0rem -8rem 8rem -6rem rgb(0 0 0) inset;
+  /* Control sizing — bumped for coarse pointers below. */
+  --hero-ctrl-size: 2rem;
+  --hero-play-size: 3rem;
+  --hero-dot-size: 0.625rem;
+  --hero-dot-hit: 1rem;
+}
+
+/* ─── Root & structural layout ─── */
+.hero-slider {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.hero-swiper {
+  width: 100%;
+  height: 100%;
+}
+
+.hero-swiper-slide {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.hero-slide {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+
+.hero-slide-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  will-change: transform;
+}
+
+.hero-slide-img,
+.hero-slide-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.hero-slide-video {
+  background: #000;
+}
+
+/* Bottom inset scrim — keeps slot content legible over bright imagery. */
+.hero-slide-scrim {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  box-shadow: var(--hero-scrim);
+}
+
+.hero-overlay-pattern {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+
+.hero-slide-content {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+}
+
+.hero-slide-content-inner {
+  width: 100%;
+  height: 100%;
+}
+
+/* Slider-level UI layer (pagination / navigation / autoplay progress). */
+.hero-controls {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  overflow: hidden;
+}
+
+/* ─── Icons ─── */
+.hero-icon {
+  display: block;
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+}
+
+/* ─── Focus visibility ───
+   Keyboard users get a clear ring on every interactive control; pointer clicks
+   stay clean. Never remove focus outlines without this replacement. */
+.hero-slider :is(button, input):focus {
+  outline: none;
+}
+.hero-slider :is(button, input):focus-visible {
+  outline: 2px solid var(--hero-primary);
+  outline-offset: 2px;
+  border-radius: 0.25rem;
 }
 
 /* ─── Radial progress (shared: HeroPagination + HeroVideoControls) ─── */
@@ -23,7 +156,9 @@
   --hero-progress-value: 0;
   --hero-progress-size: 1.25rem;
   --hero-progress-thickness: 2px;
-  @apply inline-grid place-content-center rounded-full;
+  display: inline-grid;
+  place-content: center;
+  border-radius: 9999px;
   width: var(--hero-progress-size);
   height: var(--hero-progress-size);
   background: conic-gradient(var(--hero-primary) calc(var(--hero-progress-value) * 1%), transparent 0);
@@ -37,130 +172,773 @@
    (.hero-range-input) for a11y + keyboard + free browser behavior.
    Add `.hero-range--reveal` to hide the thumb until hover / `.is-active`. */
 .hero-range-track {
-  @apply relative w-full h-1 rounded-full cursor-pointer;
+  position: relative;
+  width: 100%;
+  height: 0.25rem;
+  border-radius: 9999px;
+  cursor: pointer;
   background: var(--hero-progress-bg);
   transition: height 0.15s ease;
 }
 .hero-range-track:hover,
 .hero-range-track.is-active {
-  @apply h-1.5;
+  height: 0.375rem;
 }
 
 .hero-range-buffered,
 .hero-range-fill {
-  @apply absolute top-0 left-0 h-full rounded-full pointer-events-none;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  border-radius: 9999px;
 }
-.hero-range-buffered { @apply bg-white/35; }
+.hero-range-buffered { background: rgb(255 255 255 / 0.35); }
 .hero-range-fill { background: var(--hero-primary); }
 
 .hero-range-input {
-  @apply appearance-none absolute -top-1 left-0 w-full m-0 bg-transparent cursor-pointer outline-none;
+  appearance: none;
+  -webkit-appearance: none;
+  position: absolute;
+  top: -0.25rem;
+  left: 0;
+  width: 100%;
   height: calc(100% + 8px);
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
 }
 .hero-range-input::-webkit-slider-thumb {
-  @apply appearance-none size-3.5 rounded-full bg-white cursor-pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  width: 0.875rem;
+  height: 0.875rem;
+  border-radius: 9999px;
+  background: #fff;
+  cursor: pointer;
   box-shadow: 0 0 4px rgb(0 0 0 / 0.3);
   transition: transform 0.15s ease, width 0.15s ease, height 0.15s ease;
 }
-.hero-range-input::-webkit-slider-thumb:hover {
-  @apply scale-110;
-}
-.hero-range-input::-moz-range-track {
-  @apply bg-transparent border-none;
-}
+.hero-range-input::-webkit-slider-thumb:hover { transform: scale(1.1); }
+.hero-range-input::-moz-range-track { background: transparent; border: none; }
 .hero-range-input::-moz-range-thumb {
-  @apply size-3.5 rounded-full bg-white cursor-pointer border-none;
+  width: 0.875rem;
+  height: 0.875rem;
+  border-radius: 9999px;
+  background: #fff;
+  cursor: pointer;
+  border: none;
   box-shadow: 0 0 4px rgb(0 0 0 / 0.3);
   transition: transform 0.15s ease, width 0.15s ease, height 0.15s ease;
 }
-.hero-range-input::-moz-range-thumb:hover {
-  @apply scale-110;
-}
+.hero-range-input::-moz-range-thumb:hover { transform: scale(1.1); }
 
 /* Reveal variant: thumb hidden until interaction */
-.hero-range--reveal .hero-range-input::-webkit-slider-thumb {
-  @apply size-0;
-}
-.hero-range--reveal .hero-range-input::-moz-range-thumb {
-  @apply size-0;
-}
+.hero-range--reveal .hero-range-input::-webkit-slider-thumb { width: 0; height: 0; }
+.hero-range--reveal .hero-range-input::-moz-range-thumb { width: 0; height: 0; }
 .hero-range--reveal:hover .hero-range-input::-webkit-slider-thumb,
-.hero-range--reveal.is-active .hero-range-input::-webkit-slider-thumb {
-  @apply size-3.5;
-}
+.hero-range--reveal.is-active .hero-range-input::-webkit-slider-thumb { width: 0.875rem; height: 0.875rem; }
 .hero-range--reveal:hover .hero-range-input::-moz-range-thumb,
-.hero-range--reveal.is-active .hero-range-input::-moz-range-thumb {
-  @apply size-3.5;
-}
+.hero-range--reveal.is-active .hero-range-input::-moz-range-thumb { width: 0.875rem; height: 0.875rem; }
 
-/* ─── Control button (shared: HeroVideoControls bar + center play) ───
-   Base pill; callers compose size + bg (filled / ghost) via utilities. */
+/* Hover preview line + tooltip slot (HeroVideoScrubber) */
+.hero-range-hover-line {
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  z-index: 1;
+  height: 100%;
+  width: 1px;
+  background: rgb(255 255 255 / 0.5);
+  transform: translateX(-50%);
+}
+.hero-range-tooltip-slot {
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+}
+.hero-range-tooltip-slot.is-visible { opacity: 1; }
+
+/* ─── Control button (shared: HeroVideoControls bar + center play) ─── */
 .hero-ctrl-btn {
-  @apply inline-flex items-center justify-center rounded-full;
-  @apply text-white cursor-pointer relative shadow-none border-none;
-  @apply transition-all duration-200;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 9999px;
+  padding: 0;
+  background: transparent;
+  color: var(--hero-on-media);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
 }
 .hero-ctrl-btn--filled {
-  @apply bg-white/25 backdrop-blur-sm hover:bg-white/35;
+  background: rgb(255 255 255 / 0.25);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
 }
+.hero-ctrl-btn--filled:hover { background: rgb(255 255 255 / 0.35); }
 
 /* ─── Spinner (shared) ─── */
 @keyframes heroSpin {
   to { transform: rotate(360deg); }
 }
 .hero-spinner {
-  @apply inline-block rounded-full;
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  border-radius: 9999px;
   border: 2px solid transparent;
   border-top-color: currentColor;
   border-left-color: currentColor;
   animation: heroSpin 0.6s linear infinite;
 }
 
-/* ─── Built-in animations ─── */
+/* ─── Pagination ─── */
+.hero-pagination {
+  pointer-events: auto;
+  position: absolute;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.375rem;
+  border-radius: 9999px;
+  background: var(--hero-surface);
+  box-shadow: 0 0 0 2px var(--hero-ring);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+/* Horizontal (default): centered at the bottom. Scrolls when dots overflow. */
+.hero-pagination--horizontal {
+  bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100% - 5rem);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.hero-pagination--horizontal::-webkit-scrollbar { display: none; }
+
+/* Vertical: on the side — ltr:right, rtl:left — centered vertically. */
+.hero-pagination--vertical {
+  flex-direction: column;
+  top: 50%;
+  transform: translateY(-50%);
+  inset-inline-end: 1rem;
+  max-height: calc(100% - 5rem);
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-width: none;
+}
+.hero-pagination--vertical::-webkit-scrollbar { display: none; }
+
+.hero-page-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--hero-dot-hit);
+  height: var(--hero-dot-hit);
+  padding: 0;
+  border: none;
+  border-radius: 9999px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.hero-dot {
+  width: var(--hero-dot-size);
+  height: var(--hero-dot-size);
+  border-radius: 9999px;
+  background: var(--hero-on-media);
+  opacity: 0.75;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+@media (hover: hover) {
+  .hero-page-btn:hover .hero-dot { opacity: 1; transform: scale(1.15); }
+}
+
+/* Faint 100% ring behind the active dot's progress ring. */
+.hero-radial-progress--track {
+  position: absolute;
+  opacity: 0.25;
+}
+
+/* ─── Pagination thumbnail tooltip ─── */
+.hero-pagination .tooltip-content {
+  pointer-events: none;
+  position: absolute;
+  z-index: 90;
+  width: 7.5rem;
+  cursor: default;
+  opacity: 0;
+  border-color: var(--hero-ring);
+  transition: opacity 0.3s ease 0.3s;
+}
+
+/* Horizontal: tooltip above the dot */
+.hero-pagination--horizontal .tooltip-content {
+  bottom: 100%;
+  margin-bottom: 0.25rem;
+  left: 50%;
+  margin-left: -3.75rem;
+}
+.hero-pagination--horizontal .tooltip-content::after {
+  content: '';
+  pointer-events: none;
+  position: absolute;
+  bottom: -0.625rem;
+  left: 50%;
+  margin-left: -0.3125rem;
+  width: 0;
+  height: 0;
+  border: 5px solid transparent;
+  border-top-color: inherit;
+}
+
+/* Vertical: tooltip to the LEFT of the dot (slides in from right) */
+.hero-pagination--vertical .tooltip-content {
+  right: 100%;
+  margin-right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.hero-pagination--vertical .tooltip-content::after {
+  content: '';
+  pointer-events: none;
+  position: absolute;
+  right: -0.625rem;
+  top: 50%;
+  margin-top: -0.3125rem;
+  width: 0;
+  height: 0;
+  border: 5px solid transparent;
+  border-left-color: inherit;
+}
+
+.hero-pagination .tooltip-text {
+  overflow: hidden;
+  border-color: inherit;
+  transform: scaleX(0) scaleY(1);
+  transition: transform 0.3s ease 0.3s;
+}
+.hero-pagination--horizontal .tooltip-text { border-bottom: 2px solid; border-color: inherit; transform-origin: left; }
+.hero-pagination--vertical .tooltip-text { border-right: 2px solid; border-color: inherit; transform-origin: right; }
+
+.hero-pagination .tooltip-inner {
+  overflow: hidden;
+  border-radius: 0.25rem;
+  background: #000;
+  max-width: inherit;
+  padding: 0;
+  transition: transform 0.3s ease;
+}
+.hero-pagination--horizontal .tooltip-inner { transform: translateY(100%); }
+.hero-pagination--vertical .tooltip-inner { transform: translateX(100%); }
+
+.hero-pagination .tooltip-inner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.65;
+}
+
+/* RTL vertical: pagination sits on the LEFT, so the tooltip flips to the RIGHT
+   of the dot (otherwise it slides off the slider's left edge). */
+[dir='rtl'] .hero-pagination--vertical .tooltip-content {
+  left: 100%;
+  right: auto;
+  margin-left: 0.5rem;
+  margin-right: 0;
+}
+[dir='rtl'] .hero-pagination--vertical .tooltip-content::after {
+  left: -0.625rem;
+  right: auto;
+  border-left-color: transparent;
+  border-right-color: inherit;
+}
+[dir='rtl'] .hero-pagination--vertical .tooltip-text {
+  border-right: none;
+  border-left: 2px solid;
+  border-color: inherit;
+  transform-origin: left;
+}
+[dir='rtl'] .hero-pagination--vertical .tooltip-inner { transform: translateX(-100%); }
+
+/* Tooltip hover states — hover-capable pointers only (a sticky tap on touch
+   would wedge the tooltip open over the pagination). */
+@media (hover: hover) {
+  .hero-page-btn:hover .tooltip-content { z-index: 99; opacity: 1; transition-delay: 0s; }
+  .hero-page-btn:hover .tooltip-content .tooltip-text { transform: scaleX(1) scaleY(1); transition-delay: 0s; }
+  .hero-page-btn:hover .tooltip-content .tooltip-inner { transform: translate(0, 0); transition-delay: 0.3s; }
+}
+
+/* ─── Navigation (slit arrows + thumb previews) ───
+   Direction & RTL handled via semantic classes + logical `inset-inline-*` +
+   `[dir=rtl]` overrides. `.has-preview` enables the "arrow slides fully out on
+   hover" travel when a thumb exists.
+   Horizontal: prev = inline-start, next = inline-end. Vertical: prev = top,
+   next = bottom. */
+.hero-nav { min-height: 0; }
+
+.nav-slit-btn {
+  pointer-events: auto;
+  position: absolute;
+  z-index: 10;
+  display: block;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.nav-slit-arrow {
+  position: relative;
+  display: block;
+  font-size: 1rem;
+  color: #000;
+  background: rgb(255 255 255 / 0.4);
+  box-shadow: 0 0 0 1px #fff;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  transition: transform 0.3s ease;
+}
+:where(.dark) .nav-slit-arrow {
+  color: #fff;
+  background: rgb(0 0 0 / 0.4);
+  box-shadow: 0 0 0 1px #000;
+}
+
+.nav-slit-preview {
+  position: absolute;
+  background: #fff;
+  box-shadow: 0 0 0 1px #fff;
+  transition: transform 0.3s ease 0.3s;
+}
+:where(.dark) .nav-slit-preview {
+  background: #000;
+  box-shadow: 0 0 0 1px #000;
+}
+.nav-slit-preview img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.nav-slit-preview-title {
+  position: absolute;
+  margin: 0;
+  padding: 0.125rem 0.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 300;
+  text-transform: capitalize;
+  color: #000;
+  background: rgb(255 255 255 / 0.7);
+  box-shadow: 0 0 0 1px #fff;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  backface-visibility: hidden;
+  transition: transform 0.3s ease;
+}
+:where(.dark) .nav-slit-preview-title {
+  color: #fff;
+  background: rgb(0 0 0 / 0.7);
+  box-shadow: 0 0 0 1px #000;
+}
+
+@media (hover: hover) {
+  .nav-slit-btn:hover .nav-slit-preview-title {
+    transform: rotateX(0deg) scaleY(1);
+    transition-delay: 0.6s;
+  }
+}
+
+/* ─── Horizontal (default) ─── prev = inline-start, next = inline-end ─── */
+.nav-slit:not(.nav-slit--vertical) .nav-slit-prev {
+  inset-inline-start: 0;
+  top: 50%;
+  translate: 0 -50%;
+}
+.nav-slit:not(.nav-slit--vertical) .nav-slit-next {
+  inset-inline-end: 0;
+  top: 50%;
+  translate: 0 -50%;
+}
+
+.nav-slit:not(.nav-slit--vertical) .nav-slit-arrow {
+  padding: 2.5rem 0.25rem;
+}
+
+/* Arrow slides out toward the screen edge on hover (full travel when a preview
+   exists, a small nudge otherwise). `[dir=rtl]` mirrors the travel direction.
+   Hover-capable pointers only — a sticky tap on touch would shove the arrow
+   half off-screen and leave it there. */
+@media (hover: hover) {
+  .nav-slit:not(.nav-slit--vertical) .nav-slit-prev.has-preview:hover .nav-slit-arrow { translate: -100% 0; }
+  .nav-slit:not(.nav-slit--vertical) .nav-slit-prev:not(.has-preview):hover .nav-slit-arrow { translate: -10% 0; }
+  .nav-slit:not(.nav-slit--vertical) .nav-slit-next.has-preview:hover .nav-slit-arrow { translate: 100% 0; }
+  .nav-slit:not(.nav-slit--vertical) .nav-slit-next:not(.has-preview):hover .nav-slit-arrow { translate: 10% 0; }
+  [dir='rtl'] .nav-slit:not(.nav-slit--vertical) .nav-slit-prev.has-preview:hover .nav-slit-arrow { translate: 100% 0; }
+  [dir='rtl'] .nav-slit:not(.nav-slit--vertical) .nav-slit-prev:not(.has-preview):hover .nav-slit-arrow { translate: 10% 0; }
+  [dir='rtl'] .nav-slit:not(.nav-slit--vertical) .nav-slit-next.has-preview:hover .nav-slit-arrow { translate: -100% 0; }
+  [dir='rtl'] .nav-slit:not(.nav-slit--vertical) .nav-slit-next:not(.has-preview):hover .nav-slit-arrow { translate: -10% 0; }
+}
+
+/* Chevrons point "back"/"forward" — flip horizontally under RTL. */
+[dir='rtl'] .nav-slit:not(.nav-slit--vertical) .nav-slit-arrow .hero-icon { scale: -1 1; }
+
+/* Horizontal preview: a tall thumb strip hidden off the adjacent edge. */
+.nav-slit:not(.nav-slit--vertical) .nav-slit-preview {
+  top: 0;
+  height: 100%;
+  width: 9rem;
+}
+.nav-slit:not(.nav-slit--vertical) .nav-slit-prev .nav-slit-preview { inset-inline-start: 0; translate: -100% 0; }
+.nav-slit:not(.nav-slit--vertical) .nav-slit-next .nav-slit-preview { inset-inline-end: 0; translate: 100% 0; }
+[dir='rtl'] .nav-slit:not(.nav-slit--vertical) .nav-slit-prev .nav-slit-preview { translate: 100% 0; }
+[dir='rtl'] .nav-slit:not(.nav-slit--vertical) .nav-slit-next .nav-slit-preview { translate: -100% 0; }
+.nav-slit:not(.nav-slit--vertical) .nav-slit-preview-title {
+  top: 100%;
+  width: 100%;
+  transform-origin: top;
+  transform: rotateX(-90deg);
+}
+@media (hover: hover) {
+  .nav-slit:not(.nav-slit--vertical) .nav-slit-prev:hover .nav-slit-preview,
+  .nav-slit:not(.nav-slit--vertical) .nav-slit-next:hover .nav-slit-preview { translate: 0 0; }
+}
+
+/* ─── Vertical ─── prev = top, next = bottom (RTL-agnostic) ─── */
+.nav-slit--vertical .nav-slit-prev { top: 0; left: 50%; translate: -50% 0; }
+.nav-slit--vertical .nav-slit-next { bottom: 0; left: 50%; translate: -50% 0; }
+
+.nav-slit--vertical .nav-slit-arrow {
+  padding: 0.25rem 2.5rem;
+}
+/* Arrow slides out toward its own edge on hover: top button up, bottom button
+   down (full travel when a preview exists, a small nudge otherwise). */
+@media (hover: hover) {
+  .nav-slit--vertical .nav-slit-prev.has-preview:hover .nav-slit-arrow { translate: 0 -100%; }
+  .nav-slit--vertical .nav-slit-prev:not(.has-preview):hover .nav-slit-arrow { translate: 0 -10%; }
+  .nav-slit--vertical .nav-slit-next.has-preview:hover .nav-slit-arrow { translate: 0 100%; }
+  .nav-slit--vertical .nav-slit-next:not(.has-preview):hover .nav-slit-arrow { translate: 0 10%; }
+}
+
+.nav-slit--vertical .nav-slit-preview {
+  left: 50%;
+  width: 6rem;
+  height: 5rem;
+}
+.nav-slit--vertical .nav-slit-prev .nav-slit-preview { top: 0; translate: -50% -100%; }
+.nav-slit--vertical .nav-slit-next .nav-slit-preview { bottom: 0; translate: -50% 100%; }
+@media (hover: hover) {
+  .nav-slit--vertical .nav-slit-prev:hover .nav-slit-preview,
+  .nav-slit--vertical .nav-slit-next:hover .nav-slit-preview { translate: -50% 0; }
+}
+
+.nav-slit--vertical .nav-slit-prev .nav-slit-preview-title { bottom: 0; left: 0; width: 100%; transform-origin: bottom; transform: scaleY(0); }
+.nav-slit--vertical .nav-slit-next .nav-slit-preview-title { top: 0; left: 0; width: 100%; transform-origin: top; transform: scaleY(0); }
+
+/* ─── Center play button (video) ───
+   Visible whenever the video is paused — including on touch devices, where
+   there is no hover to reveal it (critical for data-saver / tap-to-play).
+   While playing it stays hidden until the slider is hovered or it's focused. */
+.hero-play-center {
+  pointer-events: auto;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translate(-50%, -50%);
+}
+
+.hero-play-center-btn {
+  width: var(--hero-play-size);
+  height: var(--hero-play-size);
+  background: rgb(255 255 255 / 0.35);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  opacity: 0;
+}
+:where(.dark) .hero-play-center-btn { background: rgb(0 0 0 / 0.35); }
+.hero-play-center-btn:hover { transform: scale(1.1); }
+
+.hero-play-center-btn.is-paused,
+.hero-play-center-btn:focus-visible {
+  opacity: 1;
+}
+@media (hover: hover) {
+  .hero-slider:hover .hero-play-center-btn { opacity: 1; }
+  .hero-play-center-btn:hover .hero-play-center-icon { transform: scale(1.1); }
+}
+
+.hero-play-center-icon {
+  transition: transform 0.15s ease;
+}
+
+/* Progress ring hugging the center play button's edge. */
+.hero-play-center-ring {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.hero-play-center-ring .hero-radial-progress {
+  width: 100%;
+  height: 100%;
+}
+
+.hero-spinner--lg {
+  width: 1.25em;
+  height: 1.25em;
+}
+
+.hero-settings-icon {
+  transition: transform 0.3s ease;
+}
+.hero-settings-icon.is-open {
+  transform: rotate(90deg);
+}
+
+/* ─── Video media controls bar ─── */
+.hero-media-controls {
+  pointer-events: auto;
+  position: absolute;
+  z-index: 20;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0 0.75rem 0.75rem;
+  animation: heroControlsIn 0.3s ease both;
+}
+
+@keyframes heroControlsIn {
+  from { opacity: 0; transform: translateY(0.5rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.hero-controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.hero-controls-group {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.hero-media-controls .hero-ctrl-btn {
+  width: var(--hero-ctrl-size);
+  height: var(--hero-ctrl-size);
+  flex: none;
+}
+
+/* ─── Volume pill (expands on hover / keyboard focus) ─── */
+.hero-volume-group {
+  display: flex;
+  align-items: center;
+  border-radius: 9999px;
+  background: rgb(255 255 255 / 0.25);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  overflow: hidden;
+  transition: background-color 0.3s ease;
+}
+.hero-volume-group:hover { background: rgb(255 255 255 / 0.35); }
+
+.hero-volume-expand {
+  display: flex;
+  align-items: center;
+  overflow-x: clip;
+  max-width: 0;
+  transition: max-width 0.3s ease;
+}
+.hero-volume-group:focus-within .hero-volume-expand {
+  max-width: 7rem;
+}
+@media (hover: hover) {
+  .hero-volume-group:hover .hero-volume-expand { max-width: 7rem; }
+}
+
+.hero-volume-slider {
+  width: 5rem;
+  margin: 0 0.5rem;
+}
+
+/* ─── Time label ─── */
+.hero-time-label {
+  padding: 0 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--hero-on-media);
+  opacity: 0.8;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ─── Scrubber hover tooltip ─── */
+.hero-scrubber-tooltip {
+  position: absolute;
+  bottom: calc(100% + 0.5rem);
+  z-index: 10;
+  transform: translateX(-50%);
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: #000;
+  background: #fff;
+  border-radius: 0.25rem;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.15);
+}
+.hero-scrubber-tooltip::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -0.25rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  background: #fff;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+/* ─── Settings panel (playback speed menu) ─── */
+.hero-settings-wrap { position: relative; }
+
+.hero-settings-panel {
+  position: absolute;
+  bottom: 100%;
+  inset-inline-end: 0;
+  margin-bottom: 0.5rem;
+  min-width: 9rem;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  background: rgb(0 0 0 / 0.8);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  color: #fff;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+.hero-settings-header {
+  display: flex;
+  padding: 0.5rem 0.75rem;
+  color: rgb(255 255 255 / 0.75);
+  font-weight: 500;
+  border-bottom: 1px solid rgb(255 255 255 / 0.1);
+}
+
+.hero-settings-rate-btn {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.375rem 0.75rem;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.hero-settings-rate-btn:hover,
+.hero-settings-rate-btn[aria-checked='true'] { background: rgb(255 255 255 / 0.1); }
+.hero-settings-rate-btn .hero-icon { width: 0.75rem; height: 0.75rem; color: rgb(255 255 255 / 0.7); }
+
+/* Settings / volume-icon transitions (Vue <Transition> hooks) */
+.hero-settings-enter-active,
+.hero-settings-leave-active { transition: opacity 0.2s ease, transform 0.2s ease; }
+.hero-settings-enter-from,
+.hero-settings-leave-to { opacity: 0; transform: translateY(0.5rem) scale(0.95); }
+
+.hero-vol-icon-enter-active,
+.hero-vol-icon-leave-active { transition: opacity 0.15s ease, transform 0.15s ease; }
+.hero-vol-icon-enter-from,
+.hero-vol-icon-leave-to { opacity: 0; transform: scale(0.8); }
+
+/* ─── Autoplay progress bar ───
+   Fill animates with `transform: scale*` (compositor-only — no per-frame
+   layout/paint like the old width-% updates). Progress is driven by the
+   `--hero-autoplay-progress` custom property set inline by the component. */
+.hero-autoplay-progress {
+  pointer-events: none;
+  position: absolute;
+  z-index: 4;
+  overflow: hidden;
+  background: var(--hero-progress-bg);
+}
+.hero-autoplay-progress--horizontal {
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 0.25rem;
+}
+.hero-autoplay-progress--vertical {
+  top: 0;
+  inset-inline-end: 0;
+  height: 100%;
+  width: 0.25rem;
+}
+
+.hero-autoplay-progress-fill {
+  width: 100%;
+  height: 100%;
+  background: var(--hero-primary);
+  will-change: transform;
+}
+.hero-autoplay-progress--horizontal .hero-autoplay-progress-fill {
+  transform: scaleX(var(--hero-autoplay-progress, 0));
+  transform-origin: left center;
+}
+[dir='rtl'] .hero-autoplay-progress--horizontal .hero-autoplay-progress-fill {
+  transform-origin: right center;
+}
+.hero-autoplay-progress--vertical .hero-autoplay-progress-fill {
+  transform: scaleY(var(--hero-autoplay-progress, 0));
+  transform-origin: center top;
+}
+
+/* ─── Built-in content animations ─── */
 .hero-animated {
   animation-duration: 0.6s;
   animation-fill-mode: both;
 }
 
-@keyframes heroFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes heroFadeOut {
-  from { opacity: 1; }
-  to { opacity: 0; }
-}
-
-@keyframes heroSlideInUp {
-  from { opacity: 0; transform: translateY(30px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes heroSlideOutDown {
-  from { opacity: 1; transform: translateY(0); }
-  to { opacity: 0; transform: translateY(30px); }
-}
-
-@keyframes heroSlideInRight {
-  from { opacity: 0; transform: translateX(30px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-
-@keyframes heroSlideInLeft {
-  from { opacity: 0; transform: translateX(-30px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-
-@keyframes heroZoomIn {
-  from { opacity: 0; transform: scale(0.9); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-@keyframes heroZoomOut {
-  from { opacity: 1; transform: scale(1); }
-  to { opacity: 0; transform: scale(1.1); }
-}
+@keyframes heroFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes heroFadeOut { from { opacity: 1; } to { opacity: 0; } }
+@keyframes heroSlideInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes heroSlideOutDown { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(30px); } }
+@keyframes heroSlideInRight { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes heroSlideInLeft { from { opacity: 0; transform: translateX(-30px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes heroZoomIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+@keyframes heroZoomOut { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(1.1); } }
 
 .hero-fadeIn { animation-name: heroFadeIn; }
 .hero-fadeOut { animation-name: heroFadeOut; }
@@ -171,16 +949,23 @@
 .hero-zoomIn { animation-name: heroZoomIn; }
 .hero-zoomOut { animation-name: heroZoomOut; }
 
-/* Fullscreen video: contain instead of crop */
+/* Fullscreen video: contain instead of crop; respect notch insets. */
 :fullscreen .hero-slide-video {
   object-fit: contain !important;
   background: black;
 }
+.hero-slider:fullscreen .hero-media-controls {
+  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  padding-left: calc(0.75rem + env(safe-area-inset-left, 0px));
+  padding-right: calc(0.75rem + env(safe-area-inset-right, 0px));
+}
+.hero-slider:fullscreen .hero-pagination--horizontal {
+  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+}
 
 /* ─── Watch mode ───
    When idle on a video slide, fade chrome and slide controls out.
-   `--hero-fadeable` selectors share the transition; `.hero-watch-idle`
-   gates the visible state. */
+   `.hero-watch-idle` gates the visible state. */
 .hero-slider .hero-overlay-pattern,
 .hero-slider .hero-play-center,
 .hero-slider .hero-media-controls,
@@ -217,3 +1002,50 @@
 .hero-watch-idle *,
 .hero-fs-idle,
 .hero-fs-idle * { cursor: none; }
+
+/* ─── Touch ergonomics ───
+   Coarse pointers get bigger targets (WCAG 2.5.8): control buttons 2.5rem,
+   pagination dots on a 2rem hit area, wider nav slits, taller scrubber hit. */
+@media (pointer: coarse) {
+  .hero-slider {
+    --hero-ctrl-size: 2.5rem;
+    --hero-play-size: 3.5rem;
+    --hero-dot-size: 0.75rem;
+    --hero-dot-hit: 2rem;
+  }
+  .hero-pagination { gap: 0.375rem; }
+  .nav-slit:not(.nav-slit--vertical) .nav-slit-arrow { padding: 2.5rem 0.625rem; }
+  .nav-slit--vertical .nav-slit-arrow { padding: 0.625rem 2.5rem; }
+  .hero-range-input {
+    top: -0.5rem;
+    height: calc(100% + 16px);
+  }
+}
+
+/* No hover: the hover-expand volume slider can never open — show only the mute
+   toggle (hardware buttons own volume on phones anyway). All hover-reveal
+   behaviors are already scoped under `@media (hover: hover)` above. */
+@media (hover: none) {
+  .hero-volume-expand { display: none; }
+}
+
+/* ─── Reduced motion ─── */
+@media (prefers-reduced-motion: reduce) {
+  .hero-animated,
+  .hero-slider [class^='hero-fade'],
+  .hero-slider [class^='hero-slide-in'],
+  .hero-slider [class^='hero-zoom'],
+  .hero-slider [class*='animate__'] {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+  }
+  .hero-media-controls { animation: none; }
+  .nav-slit-arrow,
+  .nav-slit-preview,
+  .nav-slit-preview-title,
+  .hero-pagination .tooltip-content,
+  .hero-pagination .tooltip-text,
+  .hero-pagination .tooltip-inner {
+    transition-duration: 1ms !important;
+  }
+}

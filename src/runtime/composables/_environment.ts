@@ -1,7 +1,7 @@
 import type { ComputedRef, Ref } from 'vue'
 import { computed, ref } from 'vue'
 import { useEventListener, useMediaQuery, useMounted } from '@vueuse/core'
-import type { HeroEnvironment } from '#hero/types'
+import type { HeroEnvironment } from '../types'
 
 interface NetworkInformationLike extends EventTarget {
   saveData?: boolean

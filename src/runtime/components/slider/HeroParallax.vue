@@ -2,14 +2,15 @@
 import type { MaybeRefOrGetter } from 'vue'
 import { computed, toValue, watchEffect } from 'vue'
 import { useElementBounding, useElementVisibility, useMediaQuery, useWindowSize } from '@vueuse/core'
-import type { ParallaxConfig } from '#hero/types'
-import { resolveParallaxConfig } from '#hero/utils'
-import { useGSAP } from '#hero/composables/_gsap'
+import type { ParallaxConfig } from '../../types'
+import { resolveParallaxConfig } from '../../utils'
+import { useGSAP } from '../../composables/_gsap'
 
 /**
  * Logic-only parallax layer. Rendered by `<HeroSlider>` via `defineAsyncComponent`
- * and only when `features.parallax` is enabled, so GSAP lands in a separate async
- * chunk and never weighs down the base slider bundle.
+ * — mount-gated (client only) and only when `features.parallax` is enabled, so
+ * GSAP lands in a separate async chunk and never weighs down the base slider
+ * bundle or the server render.
  *
  * Renders nothing — it reaches into the host slider's `.hero-slide-bg` /
  * `.hero-slide-content` elements and animates them. Both effects are skipped when

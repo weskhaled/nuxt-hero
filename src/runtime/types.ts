@@ -55,8 +55,20 @@ export interface HeroLabels {
   pause?: string
   /** Mute toggle (video) */
   mute?: string
+  /** Volume slider (video) */
+  volume?: string
+  /** Seek scrubber (video) */
+  seek?: string
   /** Settings / playback-speed button (video) */
   settings?: string
+  /** Playback-speed menu heading. Default: 'Playback speed' */
+  speed?: string
+  /** The 1× playback-speed option. Default: 'Normal' */
+  speedNormal?: string
+  /** Pagination nav landmark. Default: 'Slide pagination' */
+  pagination?: string
+  /** Per-dot label — `{n}` is replaced with the 1-based slide number. Default: 'Go to slide {n}' */
+  goToSlide?: string
   /** Enter-fullscreen button (video) */
   fullscreenEnter?: string
   /** Exit-fullscreen button (video) */
@@ -391,4 +403,6 @@ export interface VideoMediaControls {
   muted: Ref<boolean>
   waiting: Ref<boolean>
   ended: Ref<boolean>
+  /** Playback rate (1 = normal). Drives the speed menu in the video controls. */
+  rate: Ref<number>
 }

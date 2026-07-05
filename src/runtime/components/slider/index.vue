@@ -2,28 +2,25 @@
 import { computed, defineAsyncComponent, shallowRef, useTemplateRef } from 'vue'
 
 import { Swiper, SwiperSlide } from 'swiper/vue'
-import { useMutationObserver } from '@vueuse/core'
-import { useRuntimeConfig } from '#imports'
-import { swiperModules } from '#hero/swiper-modules'
-import type { HeroSliderProps } from '#hero/types'
-import { isVideoUrl, patternCSS, patternSize, getHeroConfig } from '#hero/utils'
-import { useWatchMode } from '#hero/composables/_watchMode'
-import { useHeroSlider } from '#hero/composables/useHeroSlider'
-import { useHeroEnvironment } from '#hero/composables/_environment'
-import { setupMousewheelGestureLock } from '#hero/composables/_mousewheelLock'
+import { useMounted, useMutationObserver } from '@vueuse/core'
+import type { HeroSliderProps } from '../../types'
+import { useHeroConfig } from '../../config'
+import { isVideoUrl, patternCSS, patternSize } from '../../utils'
+import { useWatchMode } from '../../composables/_watchMode'
+import { useHeroSlider } from '../../composables/useHeroSlider'
+import { useHeroEnvironment } from '../../composables/_environment'
+import { setupMousewheelGestureLock } from '../../composables/_mousewheelLock'
+import HeroSlide from './HeroSlide.vue'
 
 // Parallax (GSAP + scroll listeners) lives in a separate async chunk so it only
 // downloads when `features.parallax` is enabled — keeps GSAP out of the base
 // slider bundle entirely.
-const HeroParallax = defineAsyncComponent(() => import('./HeroParallax.client.vue'))
+const HeroParallax = defineAsyncComponent(() => import('./HeroParallax.vue'))
 
 // Pagination + navigation are lazy-imported (local bindings) rather than resolved
-// by global name. The module only *registers* them when the matching feature is
-// enabled, but Vue hoists `resolveComponent(...)` to the top of every render — so
-// a slider with e.g. pagination on but navigation off would log "Failed to
-// resolve component: HeroNavigation" on every render even though the v-if never
-// renders it. A local binding skips name resolution; the chunk still only loads
-// when the control is actually shown.
+// by global name — a slider with one feature off would otherwise log "Failed to
+// resolve component" on every render. The chunk still only loads when the
+// control is actually shown.
 const HeroPagination = defineAsyncComponent(() => import('../navigation/HeroPagination.vue'))
 const HeroNavigation = defineAsyncComponent(() => import('../navigation/HeroNavigation.vue'))
 
@@ -39,8 +36,9 @@ const props = withDefaults(defineProps<HeroSliderProps>(), {
   dataSaver: 'auto',
 })
 
-const heroConfig = getHeroConfig(useRuntimeConfig())
+const heroConfig = useHeroConfig()
 const features = heroConfig.features ?? {}
+const isMounted = useMounted()
 
 // ─── Adaptive lite mode (mobile / PWA data + battery saving) ───
 // Resolve the `dataSaver` prop: 'auto' follows the client environment
@@ -61,7 +59,7 @@ const containerRef = useTemplateRef<HTMLElement>('containerRef')
 // is exposed (see defineExpose) so a template ref can still drive it.
 // `useHeroSlider` registers no lifecycle hooks, so calling it inside this setup
 // is safe; the controlled/uncontrolled choice is fixed for the component's life.
-if (import.meta.dev && props.slider && props.options) {
+if (import.meta.env?.DEV && props.slider && props.options) {
   // eslint-disable-next-line no-console
   console.warn('[nuxt-hero] <HeroSlider> received both `slider` and `options`; `options` is ignored in controlled mode (configure via useHeroSlider() instead).')
 }
@@ -106,6 +104,14 @@ const {
 // (the consumer's own ref → useHeroSlider) is unaffected.
 defineExpose({ slider })
 
+// Swiper modules: app-level (from the Nuxt module's feature flags or the Vue
+// plugin options) merged with any per-slider `swiperOptions.modules`.
+const swiperModules = computed(() => {
+  const fromConfig = (heroConfig.swiperModules ?? []) as unknown[]
+  const fromOptions = (mergedSwiperOptions.value.modules ?? []) as unknown[]
+  return [...new Set([...fromConfig, ...fromOptions])]
+})
+
 // ─── Idle coordination (watch mode + fullscreen) ───
 const { idle, isWatchIdle, isFullscreenIdle } = useWatchMode(
   activeSlideConfig,
@@ -117,7 +123,7 @@ const { idle, isWatchIdle, isFullscreenIdle } = useWatchMode(
 // Swiper only reads text direction once, at init. This keeps its slide direction
 // (drag, transitions, 3D effects) aligned with the element's *rendered* direction
 // — including runtime locale switches in a bilingual app (e.g. samsar AR↔EN).
-// Nav, pagination and the progress bar flip independently via CSS [dir=rtl] / rtl:.
+// Nav, pagination and the progress bar flip independently via CSS [dir=rtl].
 const swiperRef = shallowRef<{ rtl?: boolean; destroyed?: boolean; changeLanguageDirection?: (d: 'ltr' | 'rtl') => void } | null>(null)
 
 function syncDirection() {
@@ -134,11 +140,11 @@ function handleSwiper(s: any) {
   setupMousewheelGestureLock(s)
 }
 
-// Mousewheel one-slide-per-gesture lock lives in #hero/composables/_mousewheelLock
+// Mousewheel one-slide-per-gesture lock lives in composables/_mousewheelLock
 // (extracted so it's unit-testable — it has regressed twice).
 
 // Re-sync when the document direction flips at runtime (locale toggle).
-if (import.meta.client) {
+if (typeof document !== 'undefined') {
   useMutationObserver(document.documentElement, syncDirection, { attributes: true, attributeFilter: ['dir'] })
 }
 
@@ -184,20 +190,20 @@ const shouldShowAutoplayProgress = computed(() =>
   && activeSlideConfig.value.showProgress,
 )
 
-// Parallax is rendered as a lazy client component (see <HeroParallax> in the
-// template) — all scroll/GSAP work is scoped there and gated on visibility +
-// reduced-motion.
+// Parallax is rendered as a lazy, mount-gated component (see <HeroParallax> in
+// the template) — all scroll/GSAP work is scoped there and gated on visibility
+// + reduced-motion.
 </script>
 
 <template>
-  <component :is="as" ref="containerRef" class="hero-slider group/slider relative size-full"
+  <component :is="as" ref="containerRef" class="hero-slider"
     :class="[ui.root, { 'hero-watch-idle': isWatchIdle, 'hero-fs-idle': isFullscreenIdle }]"
     :role="isCarousel ? 'region' : undefined" :aria-roledescription="isCarousel ? 'carousel' : undefined"
     :aria-label="isCarousel ? carouselLabel : undefined"
     :data-idle="idle" :data-watch-mode="activeSlideConfig.watchMode" :data-video-active="isActiveSlideVideo">
-    <Swiper v-bind="mergedSwiperOptions" :parallax="true" :modules="swiperModules" class="size-full" :class="ui.swiper"
-      @swiper="handleSwiper" @slide-change="onSlideChange">
-      <SwiperSlide v-for="(slide, index) in slides" :key="index" class="size-full overflow-hidden" :class="ui.slide"
+    <Swiper v-bind="mergedSwiperOptions" :parallax="true" :modules="swiperModules" class="hero-swiper"
+      :class="ui.swiper" @swiper="handleSwiper" @slide-change="onSlideChange">
+      <SwiperSlide v-for="(slide, index) in slides" :key="index" class="hero-swiper-slide" :class="ui.slide"
         :aria-roledescription="isCarousel ? 'slide' : undefined" :inert="isSlideInert(index) || undefined">
         <HeroSlide :bg-src="slide.bgSrc" :bg-dark-src="slide.bgDarkSrc" :poster="slide.poster"
           :image-preset="imagePreset" :image-sizes="imageSizes" :eager="index === 0"
@@ -230,8 +236,7 @@ const shouldShowAutoplayProgress = computed(() =>
             <slot name="overlay"
               v-bind="{ patterns: overlayPatterns, index, isActive: index === activeIndex, patternCSS, patternSize }">
               <!-- Default overlay rendering -->
-              <div v-for="(pattern, i) in overlayPatterns" :key="i"
-                class="hero-overlay-pattern pointer-events-none absolute inset-0 z-2"
+              <div v-for="(pattern, i) in overlayPatterns" :key="i" class="hero-overlay-pattern"
                 :style="{
                   backgroundImage: patternCSS(pattern),
                   backgroundSize: patternSize(pattern),
@@ -244,17 +249,17 @@ const shouldShowAutoplayProgress = computed(() =>
     </Swiper>
 
     <!-- Parallax: lazy client-only logic layer (GSAP + scroll), feature-gated.
+         Mount-gated instead of <ClientOnly> so it works outside Nuxt.
          Skipped in lite mode to save CPU / battery on constrained clients. -->
-    <ClientOnly>
-      <HeroParallax v-if="features.parallax && !liteMode" :root="containerRef" :parallax="parallax" />
-    </ClientOnly>
+    <HeroParallax v-if="isMounted && features.parallax && !liteMode" :root="containerRef" :parallax="parallax" />
 
     <!-- UI controls layer -->
-    <div class="pointer-events-none absolute inset-0 z-50 overflow-hidden" :class="ui.controls">
+    <div class="hero-controls" :class="ui.controls">
       <slot v-if="shouldShowPagination" name="pagination"
         v-bind="{ activeIndex, snapIndex, totalSnaps, total: slides.length, progress: autoplayProgress, goTo, vertical: isVertical, autoplayEnabled }">
         <HeroPagination :slides="slides" :active-index="activeIndex" :snap-index="snapIndex" :total-snaps="totalSnaps"
-          :progress="autoplayEnabled ? autoplayProgress : 1" :vertical="isVertical" @slide-to="goTo" />
+          :progress="autoplayEnabled ? autoplayProgress : 1" :vertical="isVertical"
+          :label="labels?.pagination" :go-to-label="labels?.goToSlide" @slide-to="goTo" />
       </slot>
 
       <slot v-if="shouldShowNavigation" name="navigation"
@@ -263,18 +268,12 @@ const shouldShowAutoplayProgress = computed(() =>
           :prev-label="labels?.prev" :next-label="labels?.next" @prev="prev" @next="next" />
       </slot>
 
-      <!-- Autoplay progress bar: horizontal edge-to-edge at the bottom,
-           vertical on the side. Styling matches the video scrubber palette
-           (bg-white/20 track, bg-white fill). -->
-      <div v-if="shouldShowAutoplayProgress" class="hero-autoplay-progress pointer-events-none absolute z-4 bg-[var(--hero-progress-bg)] overflow-hidden" :class="[
-        isVertical
-          ? 'top-0 ltr:right-0 rtl:left-0 h-full w-1'
-          : 'bottom-0 left-0 w-full h-1',
-        ui.progress,
-      ]">
-        <div class="bg-[var(--hero-primary)] transition-all duration-50" :class="isVertical ? 'w-full' : 'h-full'" :style="isVertical
-          ? { height: `${autoplayProgress * 100}%` }
-          : { width: `${autoplayProgress * 100}%` }" />
+      <!-- Autoplay progress bar: horizontal edge-to-edge at the bottom, vertical
+           on the side. The fill scales via a CSS custom property + transform —
+           compositor-only updates, no per-frame layout. -->
+      <div v-if="shouldShowAutoplayProgress" class="hero-autoplay-progress"
+        :class="[isVertical ? 'hero-autoplay-progress--vertical' : 'hero-autoplay-progress--horizontal', ui.progress]">
+        <div class="hero-autoplay-progress-fill" :style="{ '--hero-autoplay-progress': autoplayProgress }" />
       </div>
     </div>
   </component>

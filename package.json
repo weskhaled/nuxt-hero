@@ -1,7 +1,7 @@
 {
   "name": "nuxt-hero",
-  "version": "0.6.2",
-  "description": "A full-featured hero slider Nuxt module with parallax, video backgrounds, overlay patterns, and customizable animations.",
+  "version": "0.7.0",
+  "description": "A full-featured hero slider for Nuxt AND plain Vue 3 — parallax, video backgrounds, overlay patterns, customizable animations. Zero-Tailwind plain-CSS styling, touch-friendly, RTL + a11y ready.",
   "license": "MIT",
   "author": "weskhaled",
   "repository": {
@@ -15,32 +15,42 @@
   "keywords": [
     "nuxt",
     "nuxt-module",
+    "vue",
+    "vue-plugin",
     "hero",
     "slider",
+    "carousel",
     "parallax",
     "video",
-    "swiper",
-    "gsap",
-    "tailwindcss"
+    "swiper"
   ],
   "type": "module",
   "exports": {
     ".": {
+      "types": "./dist/types.d.mts",
       "import": "./dist/module.mjs"
-    }
+    },
+    "./vue": {
+      "types": "./dist/vue/types/src/vue/index.d.ts",
+      "import": "./dist/vue/index.mjs"
+    },
+    "./hero.css": "./dist/runtime/assets/hero.css",
+    "./package.json": "./package.json"
   },
   "main": "./dist/module.mjs",
   "files": [
     "dist"
   ],
-  "sideEffects": false,
+  "sideEffects": [
+    "*.css"
+  ],
   "scripts": {
     "dev": "nuxi dev playground",
     "dev:fresh": "rm -rf node_modules/.vite playground/.nuxt && nuxi dev playground",
     "dev:build": "nuxi build playground",
-    "build": "nuxt-module-build build",
+    "build": "nuxt-module-build build && vite build -c vite.vue.config.ts",
     "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare",
-    "prepack": "nuxt-module-build build",
+    "prepack": "pnpm build",
     "typecheck": "nuxi typecheck playground",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -58,25 +68,14 @@
   },
   "peerDependencies": {
     "@nuxt/image": ">=2.0.0",
-    "@nuxtjs/color-mode": "^4.0.0",
-    "@tailwindcss/vite": "^4.2.2",
     "@vueuse/core": "^14.2.1",
-    "@vueuse/nuxt": ">=14.2.1",
-    "animate.css": "^4.1.1",
     "gsap": ">=3.12.0",
     "hls.js": "^1.5.0",
     "swiper": "^11.0.0 || ^12.0.0",
-    "tailwindcss": "^4.2.2",
     "vue": "^3.5.0"
   },
   "peerDependenciesMeta": {
     "@nuxt/image": {
-      "optional": true
-    },
-    "@tailwindcss/vite": {
-      "optional": true
-    },
-    "animate.css": {
       "optional": true
     },
     "gsap": {
@@ -94,16 +93,21 @@
     "@nuxt/test-utils": "^4.0.3",
     "@tailwindcss/vite": "^4.3.1",
     "@types/node": "^25.9.3",
+    "@vitejs/plugin-vue": "^6.0.7",
     "animate.css": "^4.1.1",
     "gsap": "^3.15.0",
+    "happy-dom": "^20.10.6",
     "hls.js": "^1.6.16",
     "nuxt": "^4.4.8",
     "oxlint": "^1.70.0",
     "swiper": "^12.2.0",
     "tailwindcss": "^4.3.1",
     "typescript": "^6.0.3",
+    "vite": "^7.3.5",
+    "vite-plugin-dts": "^4.5.4",
     "vitepress": "^1.6.4",
     "vitest": "^4.1.9",
+    "vue": "^3.5.38",
     "vue-tsc": "^3.3.5"
   }
 }

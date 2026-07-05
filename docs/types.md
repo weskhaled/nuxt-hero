@@ -197,7 +197,13 @@ interface HeroLabels {
   play?: string             // Play (default: 'Play video')
   pause?: string            // Pause (default: 'Pause video')
   mute?: string             // Mute toggle (default: 'Toggle mute')
+  volume?: string           // Volume slider (default: 'Volume')
+  seek?: string             // Seek scrubber (default: 'Seek')
   settings?: string         // Settings / speed (default: 'Settings')
+  speed?: string            // Speed-menu heading (default: 'Playback speed')
+  speedNormal?: string      // The 1× option (default: 'Normal')
+  pagination?: string       // Pagination nav landmark (default: 'Slide pagination')
+  goToSlide?: string        // Per-dot label, {n} = slide number (default: 'Go to slide {n}')
   fullscreenEnter?: string  // Enter fullscreen (default: 'Enter fullscreen')
   fullscreenExit?: string   // Exit fullscreen (default: 'Exit fullscreen')
 }
