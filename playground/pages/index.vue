@@ -190,7 +190,7 @@ function patchActiveConfig(patch: Record<string, unknown>) {
       :overlay-patterns="[
         { type: 'lines', opacity: 0.125, color: 'black' },
         { type: 'gradient', opacity: 0.125 },
-      ]" class="h-[60svh] min-h-420px sm:h-[calc(100svh-10rem)] overflow-hidden bg-black">
+      ]" class="h-[60svh] min-h-[420px] sm:h-[calc(100svh-10rem)] overflow-hidden bg-black">
       <template #slide="{ slide, isVideo, videoPlaying, videoToggle }">
         <div v-if="isVideo" class="flex size-full items-end sm:items-center">
           <div class="w-full max-w-3xl px-6 pb-24 sm:pb-16 sm:px-12 lg:px-20 text-white">
@@ -308,8 +308,8 @@ function patchActiveConfig(patch: Record<string, unknown>) {
           <div class="sb-row mt-2">
             <span class="sb-label">Progress · {{ progressPercent }}%</span>
             <div class="h-1.5 w-full overflow-hidden rounded-full dark:bg-white/10 bg-black/10">
-              <div class="h-full rounded-full transition-all duration-100 dark:bg-white/60 bg-black/40"
-                :style="{ width: `${progressPercent}%` }" />
+              <div class="h-full w-full origin-left rounded-full will-change-transform dark:bg-white/60 bg-black/40"
+                :style="{ transform: `scaleX(${slider.autoplayProgress.value})` }" />
             </div>
           </div>
         </section>

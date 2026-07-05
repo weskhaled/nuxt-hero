@@ -45,22 +45,36 @@
   --hero-dot-hit: 1rem;
 }
 
-/* ─── Root & structural layout ─── */
+/* ─── Root & structural layout ───
+   Size DEFAULTS live in `@layer utilities` + `:where()` (zero specificity) so
+   any consumer class wins — e.g. `<HeroSlider class="h-[60svh]">` or `ui.slide`
+   overrides. Two traps this dodges:
+   - This stylesheet loads after the app CSS in Nuxt, so an equal-specificity
+     unlayered default here would win on order and clobber consumer sizing.
+   - Tailwind v4 emits utilities inside `@layer utilities`, and UNLAYERED css
+     beats layered css regardless of specificity — so the default must sit in
+     that same layer (shared layer → plain specificity rules → `:where()` loses
+     to any consumer class). Apps without Tailwind are unaffected: their
+     unlayered rules beat the layer, and the defaults still apply otherwise. */
 .hero-slider {
   position: relative;
-  width: 100%;
-  height: 100%;
 }
+@layer utilities {
+  :where(.hero-slider) {
+    width: 100%;
+    height: 100%;
+  }
 
-.hero-swiper {
-  width: 100%;
-  height: 100%;
-}
+  :where(.hero-swiper) {
+    width: 100%;
+    height: 100%;
+  }
 
-.hero-swiper-slide {
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
+  :where(.hero-swiper-slide) {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
 }
 
 .hero-slide {
@@ -322,8 +336,15 @@
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scrollbar-width: none;
+  transition: bottom 0.3s ease;
 }
 .hero-pagination--horizontal::-webkit-scrollbar { display: none; }
+
+/* Lift the pill clear of the video media-controls bar when it's rendered —
+   otherwise the dots land on top of the time label / buttons. */
+.hero-slider:has(.hero-media-controls) .hero-pagination--horizontal {
+  bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+}
 
 /* Vertical: on the side — ltr:right, rtl:left — centered vertically. */
 .hero-pagination--vertical {
@@ -508,7 +529,9 @@
   box-shadow: 0 0 0 1px #fff;
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
-  transition: transform 0.3s ease;
+  /* Hover travel uses the individual `translate` property — it must be in the
+     transition list (`transform` alone does NOT animate it). */
+  transition: translate 0.3s ease, transform 0.3s ease;
 }
 :where(.dark) .nav-slit-arrow {
   color: #fff;
@@ -520,7 +543,7 @@
   position: absolute;
   background: #fff;
   box-shadow: 0 0 0 1px #fff;
-  transition: transform 0.3s ease 0.3s;
+  transition: translate 0.3s ease 0.3s, transform 0.3s ease 0.3s;
 }
 :where(.dark) .nav-slit-preview {
   background: #000;
