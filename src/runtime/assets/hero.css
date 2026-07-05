@@ -327,18 +327,14 @@
   backdrop-filter: blur(8px);
 }
 
-/* Horizontal (default): centered at the bottom. Scrolls when dots overflow. */
+/* Horizontal (default): centered at the bottom. */
 .hero-pagination--horizontal {
   bottom: max(1rem, env(safe-area-inset-bottom, 0px));
   left: 50%;
   transform: translateX(-50%);
   max-width: calc(100% - 5rem);
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scrollbar-width: none;
   transition: bottom 0.3s ease;
 }
-.hero-pagination--horizontal::-webkit-scrollbar { display: none; }
 
 /* Lift the pill clear of the video media-controls bar when it's rendered —
    otherwise the dots land on top of the time label / buttons. */
@@ -353,11 +349,21 @@
   transform: translateY(-50%);
   inset-inline-end: 1rem;
   max-height: calc(100% - 5rem);
-  overflow-y: auto;
-  overscroll-behavior-y: contain;
+}
+
+/* Overflow mode — applied by the component ONLY when the dots exceed the pill's
+   max size (`.is-scrollable`). Overflow must never be on by default: a scroll
+   container clips absolutely-positioned descendants, which would cut off the
+   thumbnail tooltips that render outside the pill. In scroll mode the tooltips
+   are hidden instead (half-clipped tooltips are worse than none). */
+.hero-pagination.is-scrollable {
+  overscroll-behavior: contain;
   scrollbar-width: none;
 }
-.hero-pagination--vertical::-webkit-scrollbar { display: none; }
+.hero-pagination--horizontal.is-scrollable { overflow-x: auto; }
+.hero-pagination--vertical.is-scrollable { overflow-y: auto; }
+.hero-pagination.is-scrollable::-webkit-scrollbar { display: none; }
+.hero-pagination.is-scrollable .tooltip-content { display: none; }
 
 .hero-page-btn {
   position: relative;
@@ -582,12 +588,9 @@
   box-shadow: 0 0 0 1px #000;
 }
 
-@media (hover: hover) {
-  .nav-slit-btn:hover .nav-slit-preview-title {
-    transform: rotateX(0deg) scaleY(1);
-    transition-delay: 0.6s;
-  }
-}
+/* (Title flap-open on hover lives AFTER the orientation sections below — the
+   per-orientation initial-state rules set `transform` at the same specificity,
+   so the hover rule must both out-rank and follow them.) */
 
 /* ─── Horizontal (default) ─── prev = inline-start, next = inline-end ─── */
 .nav-slit:not(.nav-slit--vertical) .nav-slit-prev {
@@ -674,6 +677,19 @@
 
 .nav-slit--vertical .nav-slit-prev .nav-slit-preview-title { bottom: 0; left: 0; width: 100%; transform-origin: bottom; transform: scaleY(0); }
 .nav-slit--vertical .nav-slit-next .nav-slit-preview-title { top: 0; left: 0; width: 100%; transform-origin: top; transform: scaleY(0); }
+
+/* ─── Title flap-open on hover (both orientations) ───
+   Must OUT-RANK the per-orientation initial-state rules above — they set
+   `transform` at (0,3,0), so this selector carries an extra `.nav-slit` to
+   reach (0,4,0). At equal specificity the later initial-state rules would win
+   and the title would never unfold (a long-standing latent bug in the old
+   scoped-CSS version, where both selectors tied). */
+@media (hover: hover) {
+  .nav-slit .nav-slit-btn:hover .nav-slit-preview-title {
+    transform: rotateX(0deg) scaleY(1);
+    transition-delay: 0.6s;
+  }
+}
 
 /* ─── Center play button (video) ───
    Visible whenever the video is paused — including on touch devices, where

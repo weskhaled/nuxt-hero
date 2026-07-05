@@ -48,7 +48,7 @@ const nextSlide = computed(() => {
         <HeroIcon :name="vertical ? 'chevron-up' : 'chevron-left'" />
       </span>
       <div v-if="prevSlide?.thumbSrc" class="nav-slit-preview">
-        <h3 class="nav-slit-preview-title">{{ prevSlide?.title }}</h3>
+        <h3 v-if="prevSlide?.title" class="nav-slit-preview-title">{{ prevSlide.title }}</h3>
         <img :src="prevSlide.thumbSrc" :alt="prevSlide?.title ?? ''" loading="lazy" />
       </div>
     </button>
@@ -60,7 +60,7 @@ const nextSlide = computed(() => {
         <HeroIcon :name="vertical ? 'chevron-down' : 'chevron-right'" />
       </span>
       <div v-if="nextSlide?.thumbSrc" class="nav-slit-preview">
-        <h3 class="nav-slit-preview-title">{{ nextSlide?.title }}</h3>
+        <h3 v-if="nextSlide?.title" class="nav-slit-preview-title">{{ nextSlide.title }}</h3>
         <img :src="nextSlide.thumbSrc" :alt="nextSlide?.title ?? ''" loading="lazy" />
       </div>
     </button>
