@@ -1,5 +1,78 @@
 # Examples
 
+All examples below run identically in **Nuxt** (components/composables are
+auto-imported) and **plain Vue** — for Vue, import from `nuxt-hero/vue`:
+
+```ts
+import { HeroSlider, useHeroSlider } from 'nuxt-hero/vue'
+```
+
+See [Plain Vue usage](/vue) for setup and the runnable
+[`examples/vue`](https://github.com/weskhaled/nuxt-hero/tree/main/examples/vue) app.
+
+## Plain Vue — plugin + drop-in
+
+```ts
+// main.ts
+import { createApp } from 'vue'
+import { HeroPlugin } from 'nuxt-hero/vue'
+import { A11y, EffectFade } from 'swiper/modules'
+
+import 'swiper/css'
+import 'swiper/css/effect-fade'
+import 'nuxt-hero/hero.css'
+
+createApp(App).use(HeroPlugin, { swiperModules: [A11y, EffectFade] }).mount('#app')
+```
+
+```vue
+<!-- App.vue -->
+<script setup lang="ts">
+import { ref } from 'vue'
+import type { HeroSlideData } from 'nuxt-hero/vue'
+
+const heroRef = ref()
+const slides: HeroSlideData[] = [
+  { bgSrc: '/hero-1.jpg', title: 'Welcome' },
+  { bgSrc: '/hero-2.jpg', title: 'Explore' },
+]
+</script>
+
+<template>
+  <HeroSlider ref="heroRef" :slides="slides"
+    :options="{ swiperOptions: { effect: 'fade', autoplay: { delay: 5000 } } }"
+    style="height: 100svh">
+    <template #slide="{ slide }">
+      <h1>{{ slide.title }}</h1>
+    </template>
+  </HeroSlider>
+
+  <!-- External controls via the exposed slider -->
+  <button @click="heroRef?.slider.next()">Next</button>
+</template>
+```
+
+## Plain Vue — à la carte (no plugin)
+
+```vue
+<script setup lang="ts">
+import { HeroSlider } from 'nuxt-hero/vue'
+import { EffectFade } from 'swiper/modules'
+import 'swiper/css'
+import 'swiper/css/effect-fade'
+import 'nuxt-hero/hero.css'
+
+const slides = [{ bgSrc: '/a.jpg', title: 'Standalone' }, { bgSrc: '/b.jpg' }]
+</script>
+
+<template>
+  <!-- Defaults apply; Swiper modules per instance -->
+  <HeroSlider :slides="slides"
+    :options="{ swiperOptions: { modules: [EffectFade], effect: 'fade' } }"
+    style="height: 80vh" />
+</template>
+```
+
 ## Basic Image Slider
 
 ```vue

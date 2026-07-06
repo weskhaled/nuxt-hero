@@ -48,6 +48,27 @@ describe('createHeroConfig', () => {
     expect(cfg.darkMode).toBe('media')
     expect(cfg.swiperModules).toEqual([fakeModule])
   })
+
+  it('keeps optional-dep hooks null by default (gsap/hls stay out of the graph)', () => {
+    const cfg = createHeroConfig()
+    expect(cfg.parallaxComponent).toBeNull()
+    expect(cfg.hlsLoader).toBeNull()
+  })
+
+  it('wraps a parallax loader function into a lazy component and passes hlsLoader through', () => {
+    const loader = () => Promise.resolve({ default: defineComponent({ render: () => h('span') }) })
+    const hls = () => Promise.resolve({})
+    const cfg = createHeroConfig({ parallaxComponent: loader, hlsLoader: hls })
+    // defineAsyncComponent returns a component options object, not the loader
+    expect(typeof cfg.parallaxComponent).toBe('object')
+    expect(cfg.hlsLoader).toBe(hls)
+  })
+
+  it('accepts a real component for parallaxComponent without wrapping', () => {
+    const comp = defineComponent({ render: () => h('span') })
+    const cfg = createHeroConfig({ parallaxComponent: comp })
+    expect(cfg.parallaxComponent).toBe(comp)
+  })
 })
 
 describe('HeroPlugin', () => {

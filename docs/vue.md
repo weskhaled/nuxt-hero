@@ -5,14 +5,23 @@ entry. The runtime is framework-agnostic (plain `provide/inject`, no Nuxt
 imports); the Nuxt module and the Vue plugin are two thin shells around the same
 components.
 
+::: tip Runnable example
+A complete minimal app lives at
+[`examples/vue`](https://github.com/weskhaled/nuxt-hero/tree/main/examples/vue)
+— Vite + Vue only, no Tailwind, no gsap, no hls.js. It doubles as the CI smoke
+test proving the package builds without any optional dependency.
+:::
+
 ## Install
 
 ```bash
 pnpm add nuxt-hero swiper @vueuse/core
 ```
 
-Optional, per feature: `gsap` (scroll parallax) · `hls.js` (HLS video) ·
-`animate.css` (extra animation classes).
+Optional, per feature: `gsap` (scroll parallax) · `hls.js` (HLS on non-Safari
+browsers) · `animate.css` (extra animation classes). **None of them is ever
+touched by your bundler unless you opt in** (see below) — skipping them can't
+break your build.
 
 ## Styles
 
@@ -58,6 +67,28 @@ createApp(App)
   })
   .mount('#app')
 ```
+
+## Optional features (gsap / hls.js)
+
+The optional dependencies are **injected, never imported** — `nuxt-hero/vue`
+contains no reachable `import 'gsap'` or `import('hls.js')`, so a build without
+them can't fail. Opt in through the plugin:
+
+```ts
+app.use(HeroPlugin, {
+  // Scroll parallax (background drift + content fade on page scroll).
+  // Requires:  pnpm add gsap
+  parallaxComponent: () => import('nuxt-hero/vue/parallax'),
+
+  // HLS (.m3u8) playback on browsers without native HLS (Chrome, Firefox).
+  // Safari/iOS play HLS natively without this. Requires:  pnpm add hls.js
+  features: { hls: true },
+  hlsLoader: () => import('hls.js'),
+})
+```
+
+Both stay lazy: the parallax chunk (and gsap) downloads only when a parallax
+slider actually renders; hls.js only when an `.m3u8` source plays.
 
 ```vue
 <template>
@@ -126,6 +157,9 @@ const slider = useHeroSlider(containerRef, slides, { swiperOptions: { autoplay: 
 | `isVideoUrl`, `isHlsUrl`, `formatTime`, `resolveParallaxConfig` | utils | |
 | all public types | types | `HeroSlideData` is the slide **type** (`HeroSlide` names the component here) |
 
+The parallax layer is a **separate entry** — `nuxt-hero/vue/parallax` exports
+`HeroParallax` (and is the only entry that references gsap).
+
 ## Differences vs the Nuxt module
 
 | | Nuxt module | Vue plugin |
@@ -134,6 +168,8 @@ const slider = useHeroSlider(containerRef, slides, { swiperOptions: { autoplay: 
 | Swiper/effect CSS | injected automatically | you import (`swiper/css`, `swiper/css/effect-*`) |
 | `hero.css` | injected automatically | you import `nuxt-hero/hero.css` |
 | Slide images | `<NuxtImg>` when `@nuxt/image` is installed | native `<img>` (or pass `imageComponent`) |
+| Scroll parallax | auto-wired when `features.parallax` | `parallaxComponent: () => import('nuxt-hero/vue/parallax')` |
+| HLS (`.m3u8`) | auto-wired when `features.hls` | `hlsLoader: () => import('hls.js')` (Safari plays natively without it) |
 | Components | auto-registered + lazy chunks per feature | global via plugin, or direct imports |
 | SSR | works out of the box | works with standard Vue SSR (`renderToString`) |
 

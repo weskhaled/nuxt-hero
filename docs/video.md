@@ -107,7 +107,19 @@ const slides = [
 ]
 ```
 
-HLS.js is lazy-loaded only when an `.m3u8` source is encountered.
+hls.js is loaded lazily, and only when an `.m3u8` source is encountered — and
+it's **injected, never imported**: with `hls: false` (the default) hls.js is
+completely absent from the build graph, so not installing it can never break
+your build. Safari / iOS play HLS natively without hls.js either way.
+
+In plain Vue, pass the loader to the plugin instead of the feature flag alone:
+
+```ts
+app.use(HeroPlugin, {
+  features: { hls: true },
+  hlsLoader: () => import('hls.js'),
+})
+```
 
 ## Dark Mode Video
 

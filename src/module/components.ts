@@ -23,4 +23,6 @@ export function registerComponents(runtimeDir: string, prefix: string, features:
 export function registerComposables(runtimeDir: string): void {
   addImports({ name: 'useHeroSlider', from: join(runtimeDir, 'composables/useHeroSlider') })
   addImports({ name: 'useHeroEnvironment', from: join(runtimeDir, 'composables/_environment') })
+  addImports({ name: 'useHeroDark', from: join(runtimeDir, 'composables/_dark') })
+  addImports({ name: 'useHeroConfig', from: join(runtimeDir, 'config') })
 }

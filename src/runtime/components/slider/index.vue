@@ -12,11 +12,6 @@ import { useHeroEnvironment } from '../../composables/_environment'
 import { setupMousewheelGestureLock } from '../../composables/_mousewheelLock'
 import HeroSlide from './HeroSlide.vue'
 
-// Parallax (GSAP + scroll listeners) lives in a separate async chunk so it only
-// downloads when `features.parallax` is enabled — keeps GSAP out of the base
-// slider bundle entirely.
-const HeroParallax = defineAsyncComponent(() => import('./HeroParallax.vue'))
-
 // Pagination + navigation are lazy-imported (local bindings) rather than resolved
 // by global name — a slider with one feature off would otherwise log "Failed to
 // resolve component" on every render. The chunk still only loads when the
@@ -39,6 +34,13 @@ const props = withDefaults(defineProps<HeroSliderProps>(), {
 const heroConfig = useHeroConfig()
 const features = heroConfig.features ?? {}
 const isMounted = useMounted()
+
+// Parallax (GSAP + scroll listeners) is INJECTED, not imported: a statically
+// reachable `import 'gsap'` — even behind a dynamic chunk — breaks builds for
+// consumers who skipped the optional dependency. The Nuxt module provides a
+// lazy component when `features.parallax` is on; Vue users opt in via
+// `parallaxComponent: () => import('nuxt-hero/vue/parallax')`.
+const parallaxComponent = heroConfig.parallaxComponent ?? null
 
 // ─── Adaptive lite mode (mobile / PWA data + battery saving) ───
 // Resolve the `dataSaver` prop: 'auto' follows the client environment
@@ -248,10 +250,11 @@ const shouldShowAutoplayProgress = computed(() =>
       </SwiperSlide>
     </Swiper>
 
-    <!-- Parallax: lazy client-only logic layer (GSAP + scroll), feature-gated.
-         Mount-gated instead of <ClientOnly> so it works outside Nuxt.
-         Skipped in lite mode to save CPU / battery on constrained clients. -->
-    <HeroParallax v-if="isMounted && features.parallax && !liteMode" :root="containerRef" :parallax="parallax" />
+    <!-- Parallax: injected lazy client-only logic layer (GSAP + scroll),
+         feature-gated. Mount-gated instead of <ClientOnly> so it works outside
+         Nuxt. Skipped in lite mode to save CPU / battery on constrained clients. -->
+    <component :is="parallaxComponent" v-if="parallaxComponent && isMounted && features.parallax && !liteMode"
+      :root="containerRef" :parallax="parallax" />
 
     <!-- UI controls layer -->
     <div class="hero-controls" :class="ui.controls">

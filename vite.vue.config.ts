@@ -26,9 +26,14 @@ export default defineConfig({
     outDir: 'dist/vue',
     emptyOutDir: true,
     lib: {
-      entry: 'src/vue/index.ts',
+      // Two entries: `parallax` is the ONLY graph that imports gsap, so
+      // consumers who skip the optional dep never resolve it at build time.
+      entry: {
+        index: 'src/vue/index.ts',
+        parallax: 'src/vue/parallax.ts',
+      },
       formats: ['es'],
-      fileName: () => 'index.mjs',
+      fileName: (_format, entryName) => `${entryName}.mjs`,
     },
     rollupOptions: {
       external: [

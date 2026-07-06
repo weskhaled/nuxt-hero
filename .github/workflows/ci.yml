@@ -44,6 +44,12 @@ jobs:
       - name: Build
         run: pnpm build
 
+      # Consumer-grade smoke test: a plain Vite+Vue app building against the
+      # freshly built dist — with NO gsap / hls.js / Tailwind installed. Fails
+      # if an optional dependency leaks back into the reachable module graph.
+      - name: Build plain-Vue example (no optional deps)
+        run: pnpm --filter nuxt-hero-example-vue build
+
       - name: Typecheck (playground)
         run: pnpm typecheck
 

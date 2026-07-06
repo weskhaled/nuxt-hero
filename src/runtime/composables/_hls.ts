@@ -8,6 +8,13 @@ export interface UseHlsOptions {
    * @default true
    */
   autoLoad?: boolean
+  /**
+   * Loader for the optional `hls.js` dependency (e.g. `() => import('hls.js')`).
+   * Injected instead of imported here so consumers who never installed hls.js
+   * don't fail at build time on an unresolvable module. Without it, only
+   * native HLS (Safari / iOS) plays `.m3u8` sources.
+   */
+  loader?: (() => Promise<unknown>) | null
 }
 
 export interface UseHlsReturn {
@@ -42,7 +49,7 @@ export function useHls(
   src: MaybeRef<string>,
   options: UseHlsOptions = {},
 ): UseHlsReturn {
-  const { autoLoad = true } = options
+  const { autoLoad = true, loader = null } = options
 
   const loading = ref(false)
   const error = ref<string | null>(null)
@@ -69,10 +76,21 @@ export function useHls(
     error.value = null
 
     try {
-      // Dynamic import — hls.js is only loaded when needed
+      // hls.js arrives through the injected loader — never imported here, so
+      // the optional dep stays out of the consumer's build graph entirely.
       if (!HlsClass) {
-        const mod = await import('hls.js')
-        HlsClass = mod.default || mod
+        if (!loader) {
+          // No loader configured and no native support: surface a clear error
+          // instead of a silent black video. (Native-HLS browsers returned
+          // earlier and play the source without hls.js.)
+          error.value = '[nuxt-hero] `.m3u8` source needs hls.js on this browser — install `hls.js` and enable the hls feature / pass `hlsLoader: () => import("hls.js")`.'
+          console.warn(error.value)
+          el.src = url
+          loading.value = false
+          return
+        }
+        const mod = await loader() as { default?: typeof HlsType } | typeof HlsType
+        HlsClass = ((mod as { default?: typeof HlsType }).default ?? mod) as typeof HlsType
       }
 
       if (!HlsClass.isSupported()) {

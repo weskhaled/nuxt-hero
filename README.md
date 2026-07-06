@@ -42,9 +42,13 @@ pnpm add @nuxt/image gsap hls.js animate.css
 ```
 
 - `@nuxt/image` — optimized backgrounds (auto-detected; `imagePreset` / `imageSizes` activate)
-- `gsap` — only for scroll `parallax`
-- `hls.js` — `.m3u8` video on non-Safari browsers
+- `gsap` — only for scroll `parallax` (`features.parallax: true`)
+- `hls.js` — `.m3u8` video on non-Safari browsers (`features.hls: true`)
 - `animate.css` — extra animation classes for `enterAnimation` / `leaveAnimation`
+
+Optional deps are **injected, never imported**: with their feature flag off,
+gsap / hls.js are completely absent from the build graph — skipping them can't
+break your build.
 
 ## Installation (plain Vue 3)
 
@@ -91,6 +95,19 @@ const slides = [{ bgSrc: '/photo.jpg', title: 'Hello' }]
 
 Per-instance Swiper modules also work without the plugin:
 `:options="{ swiperOptions: { modules: [EffectFade], effect: 'fade' } }"`.
+
+Optional features opt in through the plugin (each needs its optional peer):
+
+```ts
+app.use(HeroPlugin, {
+  parallaxComponent: () => import('nuxt-hero/vue/parallax'), // needs gsap
+  features: { hls: true },
+  hlsLoader: () => import('hls.js'),                         // needs hls.js
+})
+```
+
+A complete runnable app lives in [`examples/vue`](./examples/vue) — Vite + Vue
+only, no Tailwind/gsap/hls.js (it's also the CI smoke test for that claim).
 
 ## Usage
 

@@ -1,5 +1,9 @@
 # Components
 
+All components are auto-registered in Nuxt, and available in plain Vue via
+`import { HeroSlider, ... } from 'nuxt-hero/vue'` (or globally through
+`app.use(HeroPlugin)`) — see [Plain Vue usage](/vue).
+
 ## HeroSlider
 
 The main slider component. Wraps Swiper and manages backgrounds, overlays, animations, video, and parallax.
@@ -101,12 +105,15 @@ Replace the built-in video controls.
 
 ```vue
 <template #video-controls="{ playing, currentTime, duration, buffered,
-  volume, muted, waiting, hls }">
+  volume, muted, waiting, rate, hls }">
   <div class="absolute bottom-4 left-4">
     <span>{{ formatTime(currentTime) }} / {{ formatTime(duration) }}</span>
   </div>
 </template>
 ```
+
+`rate` is the playback-speed ref (drives the built-in speed menu); `hls`
+exposes `{ loading, error, qualities, setQuality }` for `.m3u8` sources.
 
 ## HeroSlide
 

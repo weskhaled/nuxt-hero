@@ -31,6 +31,24 @@ export interface HeroRuntimeConfig {
    */
   swiperModules?: unknown[]
   /**
+   * The scroll-parallax layer component — injected rather than imported so
+   * `gsap` never enters the consumer's module graph unless parallax is
+   * actually enabled (a statically reachable `import 'gsap'` breaks builds
+   * for consumers who skipped the optional dependency). The Nuxt module
+   * provides it (lazily) when `features.parallax` is on; Vue users pass
+   * `parallaxComponent: () => import('nuxt-hero/vue/parallax')`.
+   */
+  parallaxComponent?: Component | null
+  /**
+   * Loader for the optional `hls.js` dependency — injected for the same
+   * reason as `parallaxComponent`: a reachable `import('hls.js')` fails the
+   * build for consumers who never installed it. The Nuxt module generates
+   * `() => import('hls.js')` when `features.hls` is on; Vue users pass the
+   * same. Without a loader, `.m3u8` sources still play where the browser
+   * supports HLS natively (Safari / iOS).
+   */
+  hlsLoader?: (() => Promise<unknown>) | null
+  /**
    * How dark mode is detected for the `bgDarkSrc` image/video swap:
    * - `'class'` (default): a `dark` class on `<html>` (Tailwind / Nuxt UI /
    *   `@nuxtjs/color-mode` with `classSuffix: ''` convention).
@@ -57,6 +75,8 @@ export const HERO_CONFIG_DEFAULTS: HeroRuntimeConfig = {
   defaultVolume: 0,
   imageComponent: null,
   swiperModules: [],
+  parallaxComponent: null,
+  hlsLoader: null,
   darkMode: 'class',
 }
 

@@ -65,10 +65,12 @@ const mediaControls = useMediaControls(videoRef, {
   src: mediaSrc as any,
 })
 
-// HLS setup: always create when hls feature is enabled, useHls handles src reactivity
+// HLS setup: always create when hls feature is enabled, useHls handles src
+// reactivity. hls.js itself arrives via the injected config loader — never
+// imported from runtime code (optional dep must stay out of the build graph).
 const hlsSrc = computed(() => hlsEnabled && isBgHls.value ? props.src : '')
 const hlsState = hlsEnabled
-  ? useHls(videoRef, hlsSrc)
+  ? useHls(videoRef, hlsSrc, { loader: heroConfig.hlsLoader ?? null })
   : null
 
 // Set default volume from module config

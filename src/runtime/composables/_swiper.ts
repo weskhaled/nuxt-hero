@@ -27,6 +27,13 @@ export function createSwiperState(
   function onSwiper(swiper: Swiper) {
     swiperInstance.value = swiper
     updateSnapInfo(swiper)
+    // Swiper re-measures on container/window resize and manual `.update()` —
+    // snapGrid length can change after init (a slider mounted at 0 width, e.g.
+    // in a hidden tab or collapsed container, reports a single snap until it
+    // gets real dimensions). Without re-syncing, pagination stays hidden until
+    // the next slide change. Optional-chained: unit-test stubs have no `.on`.
+    swiper.on?.('resize', () => updateSnapInfo(swiper))
+    swiper.on?.('update', () => updateSnapInfo(swiper))
   }
 
   function onSlideChange() {

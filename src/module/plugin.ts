@@ -39,6 +39,17 @@ export function setupConfigPlugin(
       `import { HERO_CONFIG_KEY } from '${runtimeDir}/config'`,
       modules.length ? `import { ${modules.join(', ')} } from 'swiper/modules'` : '',
       hasImage ? `import { NuxtImg } from '#components'` : `const NuxtImg = null`,
+      // Optional-dep imports are only GENERATED when their feature is enabled —
+      // this keeps `gsap` (imported by HeroParallax) and `hls.js` completely
+      // out of the build graph otherwise, so consumers who skipped the optional
+      // peers still build. defineAsyncComponent keeps parallax a lazy chunk;
+      // the hls loader is only called when an `.m3u8` source actually plays.
+      config.features.parallax
+        ? `import { defineAsyncComponent } from 'vue'\nconst HeroParallax = defineAsyncComponent(() => import('${runtimeDir}/components/slider/HeroParallax.vue'))`
+        : `const HeroParallax = null`,
+      config.features.hls
+        ? `const hlsLoader = () => import('hls.js')`
+        : `const hlsLoader = null`,
       ``,
       `export default defineNuxtPlugin((nuxtApp) => {`,
       `  nuxtApp.vueApp.provide(HERO_CONFIG_KEY, {`,
@@ -47,6 +58,8 @@ export function setupConfigPlugin(
       `    darkMode: ${JSON.stringify(config.darkMode)},`,
       `    swiperModules: [${modules.join(', ')}],`,
       `    imageComponent: NuxtImg,`,
+      `    parallaxComponent: HeroParallax,`,
+      `    hlsLoader,`,
       `  })`,
       `})`,
       ``,

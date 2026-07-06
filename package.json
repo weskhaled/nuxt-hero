@@ -34,6 +34,10 @@
       "types": "./dist/vue/types/src/vue/index.d.ts",
       "import": "./dist/vue/index.mjs"
     },
+    "./vue/parallax": {
+      "types": "./dist/vue/types/src/vue/parallax.d.ts",
+      "import": "./dist/vue/parallax.mjs"
+    },
     "./hero.css": "./dist/runtime/assets/hero.css",
     "./package.json": "./package.json"
   },
@@ -48,6 +52,8 @@
     "dev": "nuxi dev playground",
     "dev:fresh": "rm -rf node_modules/.vite playground/.nuxt && nuxi dev playground",
     "dev:build": "nuxi build playground",
+    "example:vue": "pnpm --filter nuxt-hero-example-vue dev",
+    "example:vue:build": "pnpm --filter nuxt-hero-example-vue build",
     "build": "nuxt-module-build build && vite build -c vite.vue.config.ts",
     "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare",
     "prepack": "pnpm build",

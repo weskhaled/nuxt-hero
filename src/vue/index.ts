@@ -25,8 +25,8 @@
  *    Components fall back to sane defaults when the plugin isn't installed;
  *    pass Swiper modules per-instance via `options.swiperOptions.modules`.
  */
-import type { App, Plugin } from 'vue'
-import { markRaw } from 'vue'
+import type { App, Component, Plugin } from 'vue'
+import { defineAsyncComponent, markRaw } from 'vue'
 import type { HeroRuntimeConfig } from '../runtime/config'
 import { HERO_CONFIG_DEFAULTS, HERO_CONFIG_KEY, resolveFeatures } from '../runtime/config'
 import HeroSlider from '../runtime/components/slider/index.vue'
@@ -40,7 +40,7 @@ import HeroIcon from '../runtime/components/HeroIcon.vue'
 
 // ─── Options ───
 
-export interface HeroPluginOptions extends Partial<Omit<HeroRuntimeConfig, 'features'>> {
+export interface HeroPluginOptions extends Partial<Omit<HeroRuntimeConfig, 'features' | 'parallaxComponent'>> {
   /** Feature flags — default: everything except `hls` enabled. */
   features?: HeroRuntimeConfig['features']
   /**
@@ -53,18 +53,33 @@ export interface HeroPluginOptions extends Partial<Omit<HeroRuntimeConfig, 'feat
    * provide the config (import components yourself for tree-shaking).
    */
   registerComponents?: boolean
+  /**
+   * Enable the scroll-parallax layer (requires the optional `gsap` peer).
+   * Pass a lazy loader so gsap stays a separate on-demand chunk:
+   * ```ts
+   * parallaxComponent: () => import('nuxt-hero/vue/parallax')
+   * ```
+   * Off by default — without it, `<HeroSlider>` never references gsap.
+   */
+  parallaxComponent?: Component | (() => Promise<Component | { default: Component }>)
 }
 
 /** Resolve plugin options into the runtime config components inject. */
 export function createHeroConfig(options: HeroPluginOptions = {}): HeroRuntimeConfig {
   const features = resolveFeatures({ ...HERO_CONFIG_DEFAULTS.features, ...options.features })
+  // A bare loader function becomes a lazy async component; components are
+  // markRaw'd — a component definition must never be made reactive.
+  const parallax = typeof options.parallaxComponent === 'function' && !('render' in options.parallaxComponent) && !('setup' in options.parallaxComponent)
+    ? defineAsyncComponent(options.parallaxComponent as () => Promise<Component>)
+    : options.parallaxComponent as Component | undefined
   return {
     features,
     defaultVolume: options.defaultVolume ?? HERO_CONFIG_DEFAULTS.defaultVolume,
     darkMode: options.darkMode ?? HERO_CONFIG_DEFAULTS.darkMode,
     swiperModules: options.swiperModules ?? [],
-    // markRaw: a component definition must never be made reactive.
     imageComponent: options.imageComponent ? markRaw(options.imageComponent) : null,
+    parallaxComponent: parallax ? markRaw(parallax) : null,
+    hlsLoader: options.hlsLoader ?? null,
   }
 }
 

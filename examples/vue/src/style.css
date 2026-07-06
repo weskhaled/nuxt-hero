@@ -1,0 +1,94 @@
+/* Page styles for the demo — intentionally plain CSS (the whole point). */
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  background: #0a0a0a;
+  color: #fff;
+}
+
+.demo-hero {
+  height: 100svh;
+  min-height: 480px;
+}
+
+/* Slide slot content */
+.slide-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  height: 100%;
+  max-width: 42rem;
+  padding: 0 1.5rem 6.5rem;
+}
+@media (min-width: 640px) {
+  .slide-content { padding: 0 4rem 7rem; }
+}
+
+.eyebrow {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgb(255 255 255 / 0.75);
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  background: rgb(255 255 255 / 0.12);
+  backdrop-filter: blur(8px);
+}
+
+.slide-content h1 {
+  margin: 0;
+  font-size: clamp(2rem, 6vw, 4rem);
+  line-height: 1.05;
+  font-weight: 700;
+  text-shadow: 0 2px 24px rgb(0 0 0 / 0.4);
+}
+
+.slide-content p {
+  margin: 0;
+  max-width: 32rem;
+  color: rgb(255 255 255 / 0.85);
+  text-shadow: 0 1px 12px rgb(0 0 0 / 0.4);
+}
+
+.cta {
+  margin-top: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: #fff;
+  color: #000;
+  font-weight: 600;
+  cursor: pointer;
+}
+.cta:hover { background: rgb(255 255 255 / 0.9); }
+
+/* Below-the-fold section */
+.below {
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 3rem 1.5rem 5rem;
+}
+.below h2 { margin: 0 0 0.5rem; }
+.below p { color: rgb(255 255 255 / 0.7); }
+.below .row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0; }
+.below button {
+  padding: 0.5rem 0.875rem;
+  border: 1px solid rgb(255 255 255 / 0.2);
+  border-radius: 0.5rem;
+  background: rgb(255 255 255 / 0.08);
+  color: #fff;
+  cursor: pointer;
+}
+.below button:hover { background: rgb(255 255 255 / 0.16); }
+.below .hint { font-size: 0.875rem; }
+.below code {
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  background: rgb(255 255 255 / 0.1);
+  font-size: 0.8125em;
+}
