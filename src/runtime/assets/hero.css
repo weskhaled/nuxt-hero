@@ -92,7 +92,8 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  will-change: transform;
+  /* No `will-change` here: HeroParallax sets it only while it drives the bg —
+     unconditionally it'd give every slide its own compositor layer. */
 }
 
 .hero-slide-img,
@@ -160,9 +161,10 @@
   outline: none;
 }
 .hero-slider :is(button, input):focus-visible {
+  /* The outline follows each control's own border-radius (round buttons stay
+     round) — never force a radius here. */
   outline: 2px solid var(--hero-primary);
   outline-offset: 2px;
-  border-radius: 0.25rem;
 }
 
 /* ─── Radial progress (shared: HeroPagination + HeroVideoControls) ─── */
@@ -327,13 +329,19 @@
   backdrop-filter: blur(8px);
 }
 
+/* Centering uses the individual `translate` property, NOT `transform`: the
+   pill also carries Swiper's `.swiper-pagination` class, whose stylesheet sets
+   `transform: translate3d(0,0,0)` at equal specificity and loads after this
+   file — it would silently wipe a `transform` centering offset. */
+
 /* Horizontal (default): centered at the bottom. */
 .hero-pagination--horizontal {
   bottom: max(1rem, env(safe-area-inset-bottom, 0px));
   left: 50%;
-  transform: translateX(-50%);
+  translate: -50% 0;
   max-width: calc(100% - 5rem);
-  transition: bottom 0.3s ease;
+  /* (`bottom` transition for the lift below lives in the watch-mode rule —
+     a `transition` here would be overridden by it.) */
 }
 
 /* Lift the pill clear of the video media-controls bar when it's rendered —
@@ -346,7 +354,7 @@
 .hero-pagination--vertical {
   flex-direction: column;
   top: 50%;
-  transform: translateY(-50%);
+  translate: 0 -50%;
   inset-inline-end: 1rem;
   max-height: calc(100% - 5rem);
 }
@@ -998,7 +1006,9 @@
   padding-left: calc(0.75rem + env(safe-area-inset-left, 0px));
   padding-right: calc(0.75rem + env(safe-area-inset-right, 0px));
 }
-.hero-slider:fullscreen .hero-pagination--horizontal {
+/* `:not(:has(...))` — at equal specificity this rule would otherwise beat the
+   media-controls lift and drop the pill onto the scrubber in fullscreen. */
+.hero-slider:fullscreen:not(:has(.hero-media-controls)) .hero-pagination--horizontal {
   bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
 }
 
@@ -1011,7 +1021,8 @@
 .hero-slider .hero-pagination,
 .hero-slider .hero-nav,
 .hero-slider .hero-autoplay-progress {
-  transition: opacity 0.6s ease, transform 0.4s ease;
+  /* `bottom` animates the pagination lift clear of the media controls. */
+  transition: opacity 0.6s ease, transform 0.4s ease, bottom 0.3s ease;
 }
 /* Content (title, description, etc) fades separately for a more dramatic effect. */
 .hero-slider .hero-slide-content {

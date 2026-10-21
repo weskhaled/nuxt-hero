@@ -2,8 +2,14 @@ import type { SwiperOptions } from 'swiper/types'
 import type { useMediaControls } from '@vueuse/core'
 import type { ComputedRef, MaybeRefOrGetter, Ref } from 'vue'
 
-/** Extracted from VueUse's useMediaControls second parameter */
-export type MediaControlsOptions = NonNullable<Parameters<typeof useMediaControls>[1]>
+type UseMediaControlsOptions = NonNullable<Parameters<typeof useMediaControls>[1]>
+/**
+ * Extracted from VueUse's useMediaControls second parameter. An interface (not
+ * a bare alias) so declaration emit can name it — VueUse doesn't export its own
+ * `UseMediaControlsOptions`, and the alias would otherwise inline to it (TS4023)
+ * and drop the .d.ts of every component whose props use it.
+ */
+export interface MediaControlsOptions extends UseMediaControlsOptions {}
 
 // ─── Feature Config ───
 

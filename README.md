@@ -25,6 +25,8 @@ A full-featured hero slider for **Nuxt** and **plain Vue 3** — parallax, video
 pnpm add nuxt-hero swiper @vueuse/core
 ```
 
+Supports `swiper` 11 / 12 / 14 and `@vueuse/core` 14 / 15 (both entry points).
+
 Add the module to your `nuxt.config.ts`:
 
 ```ts

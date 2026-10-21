@@ -28,7 +28,9 @@ interface VideoControlsProps {
 
 const props = defineProps<VideoControlsProps>()
 
-const { isFullscreen } = useFullscreen()
+// Target the slider container — the element we actually fullscreen. With no
+// target, useFullscreen watches <html> and `isFullscreen` never flips.
+const { isFullscreen, toggle: toggleFullscreen } = useFullscreen(computed(() => props.getContainerEl?.()))
 
 /** Resolved aria-labels with English fallbacks. */
 const L = computed(() => ({
@@ -47,16 +49,6 @@ const L = computed(() => ({
 // Fullscreen is per-element and not universally available (iOS Safari only
 // fullscreens <video> natively) — hide the button when the API is absent.
 const fullscreenSupported = typeof document !== 'undefined' && !!document.fullscreenEnabled
-
-function toggleFullscreen() {
-  const el = props.getContainerEl?.()
-  if (!el) return
-  if (document.fullscreenElement) {
-    document.exitFullscreen()
-  } else {
-    el.requestFullscreen?.()
-  }
-}
 
 const formattedTime = computed(
   () => `${formatTime(Number(props.currentTime.value))} / ${formatTime(Number(props.duration.value))}`,

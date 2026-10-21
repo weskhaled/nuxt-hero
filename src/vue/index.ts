@@ -93,12 +93,15 @@ export const HeroPlugin: Plugin<[HeroPluginOptions?]> = {
       const prefix = options.prefix ?? 'Hero'
       app.component(`${prefix}Slider`, HeroSlider)
       app.component(`${prefix}Slide`, HeroSlide)
-      app.component(`${prefix}Pagination`, HeroPagination)
-      app.component(`${prefix}Navigation`, HeroNavigation)
-      app.component(`${prefix}VideoControls`, HeroVideoControls)
-      app.component(`${prefix}VideoScrubber`, HeroVideoScrubber)
-      app.component(`${prefix}SlideVideo`, HeroSlideVideo)
       app.component(`${prefix}Icon`, HeroIcon)
+      // Lazy layers register as async components — like the Nuxt module, their
+      // code only loads once rendered (registering the static imports would
+      // bundle them eagerly). Import them à la carte for synchronous use.
+      app.component(`${prefix}Pagination`, defineAsyncComponent(() => import('../runtime/components/navigation/HeroPagination.vue')))
+      app.component(`${prefix}Navigation`, defineAsyncComponent(() => import('../runtime/components/navigation/HeroNavigation.vue')))
+      app.component(`${prefix}VideoControls`, defineAsyncComponent(() => import('../runtime/components/video/HeroVideoControls.vue')))
+      app.component(`${prefix}VideoScrubber`, defineAsyncComponent(() => import('../runtime/components/video/HeroVideoScrubber.vue')))
+      app.component(`${prefix}SlideVideo`, defineAsyncComponent(() => import('../runtime/components/video/HeroSlideVideo.vue')))
     }
   },
 }

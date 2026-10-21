@@ -170,9 +170,16 @@ The parallax layer is a **separate entry** — `nuxt-hero/vue/parallax` exports
 | Slide images | `<NuxtImg>` when `@nuxt/image` is installed | native `<img>` (or pass `imageComponent`) |
 | Scroll parallax | auto-wired when `features.parallax` | `parallaxComponent: () => import('nuxt-hero/vue/parallax')` |
 | HLS (`.m3u8`) | auto-wired when `features.hls` | `hlsLoader: () => import('hls.js')` (Safari plays natively without it) |
-| Components | auto-registered + lazy chunks per feature | global via plugin, or direct imports |
+| Components | auto-registered + lazy chunks per feature | global via plugin (pagination / navigation / video as async components), or direct imports |
 | SSR | works out of the box | works with standard Vue SSR (`renderToString`) |
 
 Lazy loading still applies in both: GSAP loads only when parallax actually
 renders, the video stack only on video slides, `hls.js` only for `.m3u8`
 sources.
+
+The plugin registers the pagination, navigation and video components as async
+components, so their chunks load on first render; import them from
+`nuxt-hero/vue` directly if you need them synchronously. In your app's build,
+Rollup (Vite ≤ 7) and esbuild split those layers into on-demand chunks. Vite 8
+(Rolldown) currently keeps them in the main chunk, because `nuxt-hero/vue` also
+re-exports them statically.

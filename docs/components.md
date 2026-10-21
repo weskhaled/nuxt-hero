@@ -49,17 +49,21 @@ Main content slot for each slide.
 | `isActive` | `boolean` | Whether this slide is active |
 | `animationClass` | `string` | Resolved CSS animation class |
 | `isVideo` | `boolean` | Whether the slide has a video background |
-| `videoPlaying` | `boolean` | Video playback state |
-| `videoDuration` | `number` | Video duration in seconds |
-| `videoCurrentTime` | `number` | Current playback position |
-| `videoWaiting` | `boolean` | Video is buffering |
-| `videoEnded` | `boolean` | Video has ended |
+| `videoPlaying` | `boolean` | Video playback state ¹ |
+| `videoDuration` | `number` | Video duration in seconds ¹ |
+| `videoCurrentTime` | `number` | Current playback position ¹ |
+| `videoWaiting` | `boolean` | Video is buffering ¹ |
+| `videoEnded` | `boolean` | Video has ended ¹ |
 | `videoMuted` | `boolean` | Video mute state |
 | `videoVolume` | `number` | Video volume (0–1) |
 | `videoToggle` | `() => void` | Play/pause toggle |
 | `videoSeek` | `(time: number) => void` | Seek to time |
 | `videoSetVolume` | `(v: number) => void` | Set volume |
 | `videoToggleMute` | `() => void` | Toggle mute |
+
+¹ Playback state belongs to the **active** slide's video, so it's live only on
+the active slide; other slides receive idle values (`false` / `0`). This keeps a
+playing video from re-rendering every slide on each `timeupdate`.
 
 #### `#pagination`
 

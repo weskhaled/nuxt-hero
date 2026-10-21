@@ -63,6 +63,7 @@ watchEffect(() => {
   const offset = (progress - 0.5) * 2 * maxTravel
 
   for (const bg of bgs) {
+    bg.style.willChange = 'transform'
     bg.style.height = `calc(100% + ${maxTravel * 2}px)`
     bg.style.top = `${-maxTravel}px`
     bg.style.transform = `translate3d(0, ${offset}px, 0)`

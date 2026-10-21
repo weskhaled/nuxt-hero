@@ -22,7 +22,9 @@ const value = defineModel<number>({ required: false, default: 0 })
 const root = useTemplateRef<HTMLElement>('root')
 const scrubbing = ref(false)
 const hovered = useElementHover(root)
-const { elementX, elementWidth } = useMouseInElement(root)
+// Only track while the pointer is over the track — the defaults follow the
+// mouse (and window scroll) page-wide and re-render the scrubber on every move.
+const { elementX, elementWidth } = useMouseInElement(root, { handleOutside: false, windowScroll: false })
 
 const active = computed(() => hovered.value || scrubbing.value)
 defineExpose({ active })
@@ -39,7 +41,8 @@ const bufferedPercent = computed(() =>
 
 /** Value under the cursor — used by the slot for preview tooltips. */
 const pendingValue = computed(() => {
-  const ratio = Math.max(0, Math.min(1, elementX.value / elementWidth.value))
+  // Width is 0 until the pointer first enters — avoid a NaN tooltip.
+  const ratio = elementWidth.value > 0 ? Math.max(0, Math.min(1, elementX.value / elementWidth.value)) : 0
   return props.min + ratio * span.value
 })
 const pendingPercent = computed(() =>

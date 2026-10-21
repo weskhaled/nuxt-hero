@@ -1,7 +1,8 @@
 # pnpm 11 reads overrides / build-script approvals from here (the package.json
 # `pnpm` field is no longer honoured). `vite` is pinned to a single major so
-# vitepress's vite@5 doesn't coexist with Nuxt's vite@7 (dedup avoids the
-# @tailwindcss/vite plugin type clash).
+# vitepress's vite@5 doesn't coexist with Nuxt's vite@8 (dedup avoids the
+# @tailwindcss/vite plugin type clash). Keep this major in step with the one
+# `@nuxt/vite-builder` depends on, or Nuxt gets forced onto an older vite.
 #
 # `packages` MUST be present and non-empty: stricter pnpm builds (e.g. the one
 # inside StackBlitz's WebContainer) reject a workspace file without it
@@ -13,7 +14,7 @@ packages:
   - playground
   - examples/*
 overrides:
-  vite: ^7.0.0
+  vite: ^8.0.0
 # Build-script approvals. pnpm 11 expects `allowBuilds` (a name→bool map) here,
 # written/refreshed by `pnpm approve-builds`. (`onlyBuiltDependencies` is NOT
 # read in this layout — pnpm silently re-prompts and rewrites `allowBuilds`.)

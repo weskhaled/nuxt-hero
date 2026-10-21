@@ -42,6 +42,10 @@ npm install swiper @vueuse/core
 
 :::
 
+Supported versions: `swiper` 11, 12 or 14 (Swiper 14 targets Chrome/Edge 110+,
+Safari 16.4+, Firefox 110+ — stay on 12 for older browsers) and `@vueuse/core`
+14 or 15.
+
 Styles are plain CSS injected by the module — **no Tailwind, `@nuxtjs/color-mode`
 or icon package is required**.
 

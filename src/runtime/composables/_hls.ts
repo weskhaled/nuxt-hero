@@ -57,8 +57,13 @@ export function useHls(
 
   let hls: HlsType | null = null
   let HlsClass: typeof HlsType | null = null
+  // Bumped on every init/destroy. An init still awaiting the hls.js download
+  // bails if it's no longer the latest — otherwise a src change (e.g. dark-mode
+  // toggle) mid-download creates a second Hls instance and leaks the first.
+  let generation = 0
 
   async function init() {
+    const run = ++generation
     const el = toValue(videoEl)
     const url = toValue(src)
 
@@ -91,6 +96,7 @@ export function useHls(
         }
         const mod = await loader() as { default?: typeof HlsType } | typeof HlsType
         HlsClass = ((mod as { default?: typeof HlsType }).default ?? mod) as typeof HlsType
+        if (run !== generation) return
       }
 
       if (!HlsClass.isSupported()) {
@@ -148,6 +154,7 @@ export function useHls(
       hls.destroy()
       hls = null
     }
+    loading.value = false
     qualities.value = []
   }
 
@@ -163,13 +170,14 @@ export function useHls(
   }
 
   function destroy() {
+    generation++
     cleanup()
   }
 
   // Re-init when src or element changes
   watch([() => toValue(videoEl), () => toValue(src)], () => init(), { immediate: true })
 
-  tryOnScopeDispose(cleanup)
+  tryOnScopeDispose(destroy)
 
   return { loading, error, qualities, setQuality, destroy }
 }

@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed, defineAsyncComponent, shallowRef, useTemplateRef } from 'vue'
+import { computed, defineAsyncComponent, defineComponent, shallowRef, useTemplateRef } from 'vue'
 
 import { Swiper, SwiperSlide } from 'swiper/vue'
 import { useMounted, useMutationObserver } from '@vueuse/core'
@@ -172,6 +172,40 @@ function isVideo(index: number): boolean {
   return isVideoUrl(slide.bgSrc) || (!!slide.bgDarkSrc && isVideoUrl(slide.bgDarkSrc))
 }
 
+// ─── Render isolation for high-frequency state ───
+// Playback state describes the ACTIVE slide's video. Only the active slide's
+// `#slide` props read it, so a playing video's `timeupdate` (~4 Hz) re-renders
+// that one slide instead of every slide (each slide's slot render would
+// otherwise track it). Inactive slides get idle values.
+const IDLE_PLAYBACK = Object.freeze({
+  videoPlaying: false,
+  videoDuration: 0,
+  videoCurrentTime: 0,
+  videoWaiting: false,
+  videoEnded: false,
+})
+function slidePlayback(index: number) {
+  if (index !== activeIndex.value) return IDLE_PLAYBACK
+  return {
+    videoPlaying: videoPlaying.value,
+    videoDuration: videoDuration.value,
+    videoCurrentTime: videoCurrentTime.value,
+    videoWaiting: videoWaiting.value,
+    videoEnded: videoEnded.value,
+  }
+}
+
+// Autoplay progress changes every animation frame. This renderless scope reads
+// it in ITS OWN render, so only the pagination + progress bar re-render per
+// frame — reading it in this component's template would re-render the whole
+// slider (and, without consumer slots, Swiper and every slide) at 60 fps.
+const AutoplayProgressScope = defineComponent({
+  name: 'HeroAutoplayProgressScope',
+  setup(_, { slots }) {
+    return () => slots.default?.({ progress: autoplayProgress.value })
+  },
+})
+
 /** Whether pagination dots should be visible */
 const shouldShowPagination = computed(() =>
   features.pagination && totalSnaps.value > 1 && activeSlideConfig.value.showPagination,
@@ -222,11 +256,7 @@ const shouldShowAutoplayProgress = computed(() =>
             isActive: index === activeIndex,
             animationClass: animationClass(index),
             isVideo: isVideo(index),
-            videoPlaying,
-            videoDuration,
-            videoCurrentTime,
-            videoWaiting,
-            videoEnded,
+            ...slidePlayback(index),
             videoMuted,
             videoVolume,
             videoToggle, videoSeek, videoSetVolume, videoToggleMute,
@@ -258,26 +288,28 @@ const shouldShowAutoplayProgress = computed(() =>
 
     <!-- UI controls layer -->
     <div class="hero-controls" :class="ui.controls">
-      <slot v-if="shouldShowPagination" name="pagination"
-        v-bind="{ activeIndex, snapIndex, totalSnaps, total: slides.length, progress: autoplayProgress, goTo, vertical: isVertical, autoplayEnabled }">
-        <HeroPagination :slides="slides" :active-index="activeIndex" :snap-index="snapIndex" :total-snaps="totalSnaps"
-          :progress="autoplayEnabled ? autoplayProgress : 1" :vertical="isVertical"
-          :label="labels?.pagination" :go-to-label="labels?.goToSlide" @slide-to="goTo" />
-      </slot>
+      <AutoplayProgressScope v-slot="{ progress }">
+        <slot v-if="shouldShowPagination" name="pagination"
+          v-bind="{ activeIndex, snapIndex, totalSnaps, total: slides.length, progress, goTo, vertical: isVertical, autoplayEnabled }">
+          <HeroPagination :slides="slides" :active-index="activeIndex" :snap-index="snapIndex" :total-snaps="totalSnaps"
+            :progress="autoplayEnabled ? progress : 1" :vertical="isVertical"
+            :label="labels?.pagination" :go-to-label="labels?.goToSlide" @slide-to="goTo" />
+        </slot>
+
+        <!-- Autoplay progress bar: horizontal edge-to-edge at the bottom, vertical
+             on the side. The fill scales via a CSS custom property + transform —
+             compositor-only updates, no per-frame layout. -->
+        <div v-if="shouldShowAutoplayProgress" class="hero-autoplay-progress"
+          :class="[isVertical ? 'hero-autoplay-progress--vertical' : 'hero-autoplay-progress--horizontal', ui.progress]">
+          <div class="hero-autoplay-progress-fill" :style="{ '--hero-autoplay-progress': progress }" />
+        </div>
+      </AutoplayProgressScope>
 
       <slot v-if="shouldShowNavigation" name="navigation"
         v-bind="{ prev, next, activeIndex, slides, vertical: isVertical }">
         <HeroNavigation :slides="slides" :active-index="activeIndex" :vertical="isVertical"
           :prev-label="labels?.prev" :next-label="labels?.next" @prev="prev" @next="next" />
       </slot>
-
-      <!-- Autoplay progress bar: horizontal edge-to-edge at the bottom, vertical
-           on the side. The fill scales via a CSS custom property + transform —
-           compositor-only updates, no per-frame layout. -->
-      <div v-if="shouldShowAutoplayProgress" class="hero-autoplay-progress"
-        :class="[isVertical ? 'hero-autoplay-progress--vertical' : 'hero-autoplay-progress--horizontal', ui.progress]">
-        <div class="hero-autoplay-progress-fill" :style="{ '--hero-autoplay-progress': autoplayProgress }" />
-      </div>
     </div>
   </component>
 </template>

@@ -89,6 +89,14 @@ describe('HeroPlugin', () => {
     expect(app.component('HeroPagination')).toBeTruthy()
   })
 
+  it('registers the lazy layers as async components (on-demand chunks)', () => {
+    const app = createApp(defineComponent({ render: () => h('div') }))
+    app.use(HeroPlugin)
+    for (const name of ['HeroPagination', 'HeroNavigation', 'HeroVideoControls', 'HeroVideoScrubber', 'HeroSlideVideo'])
+      expect((app.component(name) as { __asyncLoader?: unknown }).__asyncLoader, name).toBeTypeOf('function')
+    expect((app.component('HeroSlider') as { __asyncLoader?: unknown }).__asyncLoader).toBeUndefined()
+  })
+
   it('honours a custom prefix and registerComponents: false', () => {
     const app = createApp(defineComponent({ render: () => h('div') }))
     app.use(HeroPlugin, { prefix: 'My' })

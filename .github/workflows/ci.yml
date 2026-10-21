@@ -44,6 +44,19 @@ jobs:
       - name: Build
         run: pnpm build
 
+      # Every path in package.json `exports` must exist in the built dist — a
+      # build-tool upgrade once silently moved the plain-Vue .d.ts files.
+      - name: Verify package exports resolve
+        run: |
+          node -e '
+            const { existsSync } = require("node:fs")
+            const paths = Object.values(require("./package.json").exports)
+              .flatMap(v => typeof v === "string" ? [v] : Object.values(v))
+            const missing = paths.filter(p => !existsSync(p))
+            if (missing.length) { console.error("Missing export targets:", missing); process.exit(1) }
+            console.log(`All ${paths.length} export targets exist.`)
+          '
+
       # Consumer-grade smoke test: a plain Vite+Vue app building against the
       # freshly built dist — with NO gsap / hls.js / Tailwind installed. Fails
       # if an optional dependency leaks back into the reachable module graph.
