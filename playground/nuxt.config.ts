@@ -9,6 +9,9 @@ export default defineNuxtConfig({
   // toggles dark via the `.dark` class — the hero module needs neither.
   colorMode: {
     classSuffix: '',
+    // Swap theme classes with transitions suppressed, so every element (incl.
+    // the fixed nav) switches in the same frame — see toggle() in app.vue.
+    disableTransition: true,
   },
   hero: {
     features: {

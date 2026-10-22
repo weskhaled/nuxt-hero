@@ -63,7 +63,7 @@ const animateCssSlider = useHeroSlider(animateCssContainerRef, animateCssSlides,
           :overlay-patterns="[]"
         >
           <template #slide="{ slide }">
-            <div class="flex size-full items-end justify-center pb-12">
+            <div class="flex size-full items-end justify-center pb-16">
               <h3 class="text-2xl font-bold text-white drop-shadow-lg">{{ slide.title }}</h3>
             </div>
           </template>
@@ -80,7 +80,7 @@ const animateCssSlider = useHeroSlider(animateCssContainerRef, animateCssSlides,
           :overlay-patterns="[{ type: 'gradient', opacity: 0.1 }]"
         >
           <template #slide="{ slide }">
-            <div class="flex size-full items-end justify-center pb-12">
+            <div class="flex size-full items-end justify-center pb-16">
               <h3 class="text-2xl font-bold text-white drop-shadow-lg">{{ slide.title }}</h3>
             </div>
           </template>

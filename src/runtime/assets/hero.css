@@ -345,9 +345,21 @@
 }
 
 /* Lift the pill clear of the video media-controls bar when it's rendered —
-   otherwise the dots land on top of the time label / buttons. */
-.hero-slider:has(.hero-media-controls) .hero-pagination--horizontal {
+   otherwise the dots land on top of the time label / buttons. Single-slide
+   only: with several slides per view each video card has its own small bar,
+   and lifting would push the pill over the cards' content instead. */
+.hero-slider:not([data-multi-slide]):has(.hero-media-controls) .hero-pagination--horizontal {
   bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* While the scrubber's time tooltip is up, fade the pill out of its way. The
+   pill lives in the slider-level controls layer, above the slide's media
+   controls, so it would otherwise cover the tooltip (no z-index can lift the
+   tooltip out of the slide). Quick to hide; returns at the normal pace. */
+.hero-slider:has(.hero-media-controls .hero-range-tooltip-slot.is-visible) .hero-pagination {
+  opacity: 0;
+  pointer-events: none;
+  transition-duration: 0.15s;
 }
 
 /* Vertical: on the side — ltr:right, rtl:left — centered vertically. */

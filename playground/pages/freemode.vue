@@ -74,24 +74,20 @@ const slider = useHeroSlider(containerRef, slides, {
     <div class="h-20" />
     <div class="px-4">
       <h2 class="text-2xl font-bold mb-4">Free Mode — 4 Slides Per View</h2>
-      <p class="text-base-content/60 mb-6">Drag freely through slides with momentum. Includes a video slide.</p>
+      <p class="text-black/60 dark:text-white/60 mb-6">Drag freely through slides with momentum. Includes a video slide.</p>
     </div>
-    <HeroSlider ref="containerRef" :slider="slider" :slides="slides" :showProgress="false"
+    <HeroSlider ref="containerRef" :slider="slider" :slides="slides"
       :parallax="{ bg: true, content: false, speed: 0.75, minOpacity: 1 }" :overlay-patterns="[]"
-      :ui="{ root: 'pb-9', slide: 'rounded-sm overflow-hidden' }" class="h-120">
-      <template #slide="{ slide, isActive }">
-        <div class="flex size-full items-end p-4 pb-14">
+      :ui="{ root: 'pb-10', slide: 'rounded-sm overflow-hidden' }" class="h-120">
+      <template #slide="{ slide, isVideo }">
+        <!-- Video cards keep the title clear of the media-controls bar. -->
+        <div class="flex size-full items-end p-4" :class="isVideo ? 'pb-20' : 'pb-14'">
           <div class="rounded-lg bg-black/50 px-4 py-2 backdrop-blur-sm">
             <h3 class="text-lg font-semibold text-white">{{ slide.title }}</h3>
           </div>
         </div>
       </template>
     </HeroSlider>
-    <div class="h-screen flex items-center justify-center text-base-content/30">scroll area</div>
+    <div class="h-screen flex items-center justify-center text-black/30 dark:text-white/30">scroll area</div>
   </div>
 </template>
-<style>
-.swiper-wrapper {
-  @apply w-fit;
-}
-</style>

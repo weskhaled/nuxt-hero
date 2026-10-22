@@ -45,8 +45,9 @@ const slider = useHeroSlider(containerRef, slides, {
       <HeroSlider ref="containerRef" :slider="slider" :slides="slides" :parallax="false" class="size-96! m-auto"
         :overlay-patterns="[{ type: 'lines', opacity: 0.06, color: 'white' }]"
         :ui="{ slide: 'rounded-sm bg-black', container: 'p-6', root: 'm-auto rounded-lg' }">
-        <template #slide="{ slide }">
-          <div class="flex size-full items-end p-6">
+        <template #slide="{ slide, isVideo }">
+          <!-- Title clears the pagination pill (and, on video slides, the media-controls bar). -->
+          <div class="flex size-full items-end p-6" :class="isVideo ? 'pb-24' : 'pb-14'">
             <h2 class="text-3xl font-bold text-white drop-shadow-lg">{{ slide.title }}</h2>
           </div>
         </template>

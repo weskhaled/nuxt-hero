@@ -4,3 +4,18 @@
 
 /* Dark variant follows the `.dark` class toggled by @nuxtjs/color-mode. */
 @custom-variant dark (&:where(.dark, .dark *));
+
+/* Theme the page canvas on <html>, not on an app wrapper: the root background
+   is what shows in overscroll, behind scrollbars and before hydration, and
+   `color-scheme` makes native UI (scrollbars, form controls) match. The `.dark`
+   class is set by color-mode's inline head script before first paint. */
+@layer base {
+  html {
+    color-scheme: light;
+    @apply bg-gray-50 text-black;
+  }
+  html.dark {
+    color-scheme: dark;
+    @apply bg-neutral-950 text-white;
+  }
+}

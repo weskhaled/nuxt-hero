@@ -44,7 +44,7 @@ const slider = useHeroSlider(containerRef, slides, {
 <template>
   <div>
     <div class="h-14" />
-    <div class="flex h-[calc(100vh-3.5rem)] items-center justify-center bg-base-200">
+    <div class="flex h-[calc(100vh-3.5rem)] items-center justify-center bg-gray-100 dark:bg-neutral-900">
       <HeroSlider ref="containerRef" :slider="slider" :slides="slides" :parallax="false"
         :ui="{ slide: 'rounded-sm overflow-hidden bg-black', root: 'rounded-sm' }"
         :overlay-patterns="[{ type: 'dots', opacity: 0.08, color: 'black' }]" class="h-96 w-72 rounded-2xl shadow-2xl">

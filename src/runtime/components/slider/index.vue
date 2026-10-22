@@ -236,7 +236,8 @@ const shouldShowAutoplayProgress = computed(() =>
     :class="[ui.root, { 'hero-watch-idle': isWatchIdle, 'hero-fs-idle': isFullscreenIdle }]"
     :role="isCarousel ? 'region' : undefined" :aria-roledescription="isCarousel ? 'carousel' : undefined"
     :aria-label="isCarousel ? carouselLabel : undefined"
-    :data-idle="idle" :data-watch-mode="activeSlideConfig.watchMode" :data-video-active="isActiveSlideVideo">
+    :data-idle="idle" :data-watch-mode="activeSlideConfig.watchMode" :data-video-active="isActiveSlideVideo"
+    :data-multi-slide="isMultiSlide || undefined">
     <Swiper v-bind="mergedSwiperOptions" :parallax="true" :modules="swiperModules" class="hero-swiper"
       :class="ui.swiper" @swiper="handleSwiper" @slide-change="onSlideChange">
       <SwiperSlide v-for="(slide, index) in slides" :key="index" class="hero-swiper-slide" :class="ui.slide"

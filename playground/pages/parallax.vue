@@ -42,8 +42,8 @@ const slider = useHeroSlider(containerRef, slides, {
         :parallax="{ bg: true, content: true, speed: 0.55, minOpacity: 0.15 }"
         :overlay-patterns="[{ type: 'gradient', opacity: 0.15 }]">
         <template #slide="{ slide }">
-          <div class="flex flex-col size-full items-center justify-center">
-            <h1 data-swiper-parallax="-300" class="text-5xl font-bold text-white drop-shadow-lg">{{ slide.title }}</h1>
+          <div class="flex flex-col size-full items-center justify-center px-14 text-center">
+            <h1 data-swiper-parallax="-300" class="text-4xl sm:text-5xl font-bold text-white drop-shadow-lg">{{ slide.title }}</h1>
             <p data-swiper-parallax="300" class="text-xl font-light text-white drop-shadow-lg">
               This is a simple parallax effect example.
             </p>

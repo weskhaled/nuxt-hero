@@ -48,9 +48,9 @@ const heroRef = useTemplateRef<{ slider: import('#hero/types').UseHeroSliderRetu
       :parallax="{ bg: true, content: true, speed: 0.5, minOpacity: 0 }"
       :overlay-patterns="[{ type: 'gradient', opacity: 0.15 }]" class="h-[calc(100vh-3.5rem)]">
       <template #slide="{ slide }">
-        <div class="flex size-full items-center justify-center">
+        <div class="flex size-full items-center justify-center px-14">
           <div class="text-center text-white">
-            <h1 class="text-6xl font-bold drop-shadow-lg">{{ slide.title }}</h1>
+            <h1 class="text-4xl sm:text-6xl font-bold drop-shadow-lg">{{ slide.title }}</h1>
             <p class="mt-4 text-lg opacity-80">No <code>useHeroSlider()</code> — just props</p>
           </div>
         </div>
@@ -69,6 +69,6 @@ const heroRef = useTemplateRef<{ slider: import('#hero/types').UseHeroSliderRetu
       </button>
     </div>
 
-    <div class="h-120 flex items-center justify-center text-base-content/30">scroll area</div>
+    <div class="h-120 flex items-center justify-center text-black/30 dark:text-white/30">scroll area</div>
   </div>
 </template>
