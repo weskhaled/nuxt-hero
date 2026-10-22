@@ -1,5 +1,5 @@
 import type { MaybeRefOrGetter } from 'vue'
-import { computed, toValue } from 'vue'
+import { computed, readonly, ref, toValue } from 'vue'
 import { useElementHover, useElementVisibility } from '@vueuse/core'
 import type { HeroSlide, UseHeroSliderOptions, UseHeroSliderReturn } from '../types'
 import { createSwiperState } from './_swiper'
@@ -176,6 +176,15 @@ export function useHeroSlider(
     autoplay.onSlideChange()
   }
 
+  // Replay: hold the active slide in its hidden ('idle') state for two frames —
+  // a CSS animation only restarts if the browser renders the change in between.
+  const animationReplaying = ref(false)
+  function replayAnimation() {
+    if (typeof window === 'undefined' || animationReplaying.value) return
+    animationReplaying.value = true
+    requestAnimationFrame(() => requestAnimationFrame(() => { animationReplaying.value = false }))
+  }
+
   return {
     // Navigation
     next: swiper.next,
@@ -191,6 +200,12 @@ export function useHeroSlider(
     isActiveSlideVideo: slideState.isActiveSlideVideo,
     isMultiSlide,
     animationClass: (index: number) => isMultiSlide.value ? '' : slideState.animationClass(index),
+    previousIndex: readonly(swiper.previousIndex),
+    direction: readonly(swiper.direction),
+    animateOptions: computed(() => toValue(options.animate) ?? {}),
+    replayAnimation,
+    animationReplaying: readonly(animationReplaying),
+    isVisible: readonly(isVisible),
 
     // Autoplay
     autoplayEnabled: autoplay.autoplayEnabled,

@@ -984,7 +984,10 @@
   transform-origin: center top;
 }
 
-/* ─── Built-in content animations ─── */
+/* ─── Class-based content animations ───
+   One class string animates the whole content block (`enterAnimation` /
+   `slide.animation.enter`, or animate.css classes). For per-element,
+   staggered motion see the choreography section below. */
 .hero-animated {
   animation-duration: 0.6s;
   animation-fill-mode: both;
@@ -1007,6 +1010,92 @@
 .hero-slideInLeft { animation-name: heroSlideInLeft; }
 .hero-zoomIn { animation-name: heroZoomIn; }
 .hero-zoomOut { animation-name: heroZoomOut; }
+
+/* ─── Content choreography (data-hero-animate) ───
+   Mark elements inside a slide with a preset: `<h1 data-hero-animate="clip-up">`.
+   The slide's content wrapper carries `data-hero-anim` (set by the slider and
+   part of the SSR render): 'in' plays the staggered enter, 'out' a quick exit
+   against the travel direction, 'idle' keeps the elements hidden. Toggle
+   `data-hero-anim` on any container to reuse the presets outside a slider.
+
+   Tunable through custom properties — slider `animate` option, per-slide
+   `animation`, or inline on a single element:
+     --hero-anim-duration · -stagger · -delay · -easing · -distance ·
+     -leave-duration, and --hero-anim-index to pick an element's stagger slot.
+   Siblings stagger in document order automatically. Presets animate
+   `transform`, so inline elements need `display: inline-block`. */
+[data-hero-animate] {
+  --_sib: 0;
+  --_d: var(--hero-anim-distance, 1.5rem);
+  /* Travel vector: `--hero-dir` is +1 (next) / -1 (prev) from the slider root;
+     the axis is x (flipped under RTL) or y for vertical sliders. */
+  --_tx: calc(var(--hero-dir, 1) * var(--hero-ax, 1) * var(--_d));
+  --_ty: calc(var(--hero-dir, 1) * var(--hero-ay, 0) * var(--_d));
+}
+[dir='rtl'] .hero-slider,
+.hero-slider[dir='rtl'] { --hero-ax: -1; }
+[data-hero-animate='flip-up'] { transform-origin: 50% 100%; }
+
+[data-hero-animate]:nth-child(2 of [data-hero-animate]) { --_sib: 1; }
+[data-hero-animate]:nth-child(3 of [data-hero-animate]) { --_sib: 2; }
+[data-hero-animate]:nth-child(4 of [data-hero-animate]) { --_sib: 3; }
+[data-hero-animate]:nth-child(5 of [data-hero-animate]) { --_sib: 4; }
+[data-hero-animate]:nth-child(6 of [data-hero-animate]) { --_sib: 5; }
+[data-hero-animate]:nth-child(7 of [data-hero-animate]) { --_sib: 6; }
+[data-hero-animate]:nth-child(8 of [data-hero-animate]) { --_sib: 7; }
+[data-hero-animate]:nth-child(9 of [data-hero-animate]) { --_sib: 8; }
+[data-hero-animate]:nth-child(10 of [data-hero-animate]) { --_sib: 9; }
+[data-hero-animate]:nth-child(11 of [data-hero-animate]) { --_sib: 10; }
+[data-hero-animate]:nth-child(12 of [data-hero-animate]) { --_sib: 11; }
+
+[data-hero-anim='in'] [data-hero-animate] {
+  animation-duration: var(--hero-anim-duration, 700ms);
+  animation-timing-function: var(--hero-anim-easing, cubic-bezier(0.22, 1, 0.36, 1));
+  animation-delay: calc(var(--hero-anim-delay, 0ms) + var(--hero-anim-index, var(--_sib)) * var(--hero-anim-stagger, 90ms));
+  /* Hold the hidden start through the stagger delay, then hand back to the
+     element's own styles (no lingering clip-path cutting off text shadows). */
+  animation-fill-mode: backwards;
+}
+[data-hero-anim='in'] [data-hero-animate='fade'] { animation-name: heroInFade; }
+[data-hero-anim='in'] [data-hero-animate='fade-up'] { animation-name: heroInFadeUp; }
+[data-hero-anim='in'] [data-hero-animate='fade-down'] { animation-name: heroInFadeDown; }
+[data-hero-anim='in'] [data-hero-animate='fade-left'] { animation-name: heroInFadeLeft; }
+[data-hero-anim='in'] [data-hero-animate='fade-right'] { animation-name: heroInFadeRight; }
+[data-hero-anim='in'] [data-hero-animate='slide'] { animation-name: heroInSlide; }
+[data-hero-anim='in'] [data-hero-animate='zoom-in'] { animation-name: heroInZoomIn; }
+[data-hero-anim='in'] [data-hero-animate='zoom-out'] { animation-name: heroInZoomOut; }
+[data-hero-anim='in'] [data-hero-animate='blur-in'] { animation-name: heroInBlurIn; }
+[data-hero-anim='in'] [data-hero-animate='clip-up'] { animation-name: heroInClipUp; }
+[data-hero-anim='in'] [data-hero-animate='clip-left'] { animation-name: heroInClipLeft; }
+[data-hero-anim='in'] [data-hero-animate='clip-right'] { animation-name: heroInClipRight; }
+[data-hero-anim='in'] [data-hero-animate='flip-up'] { animation-name: heroInFlipUp; }
+[data-hero-anim='in'] [data-hero-animate='rotate-in'] { animation-name: heroInRotateIn; }
+
+[data-hero-anim='out'] [data-hero-animate] {
+  animation: heroOut var(--hero-anim-leave-duration, 300ms) cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+[data-hero-anim='idle'] [data-hero-animate] { opacity: 0; }
+
+/* Movement presets name the direction of travel: `fade-up` rises into place,
+   `fade-left` moves leftwards (enters from the right). */
+@keyframes heroInFade { from { opacity: 0; } }
+@keyframes heroInFadeUp { from { opacity: 0; transform: translate3d(0, var(--_d), 0); } }
+@keyframes heroInFadeDown { from { opacity: 0; transform: translate3d(0, calc(-1 * var(--_d)), 0); } }
+@keyframes heroInFadeLeft { from { opacity: 0; transform: translate3d(var(--_d), 0, 0); } }
+@keyframes heroInFadeRight { from { opacity: 0; transform: translate3d(calc(-1 * var(--_d)), 0, 0); } }
+@keyframes heroInSlide { from { opacity: 0; transform: translate3d(calc(2 * var(--_tx)), calc(2 * var(--_ty)), 0); } }
+@keyframes heroInZoomIn { from { opacity: 0; transform: scale(0.85); } }
+@keyframes heroInZoomOut { from { opacity: 0; transform: scale(1.15); } }
+@keyframes heroInBlurIn { from { opacity: 0; filter: blur(12px); transform: scale(1.04); } }
+@keyframes heroInClipUp {
+  from { clip-path: inset(100% 0 0 0); transform: translate3d(0, calc(var(--_d) / 2), 0); }
+  to { clip-path: inset(0); }
+}
+@keyframes heroInClipLeft { from { clip-path: inset(0 0 0 100%); } to { clip-path: inset(0); } }
+@keyframes heroInClipRight { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0); } }
+@keyframes heroInFlipUp { from { opacity: 0; transform: perspective(600px) rotateX(-70deg); } }
+@keyframes heroInRotateIn { from { opacity: 0; transform: translate3d(0, var(--_d), 0) rotate(-6deg); } }
+@keyframes heroOut { to { opacity: 0; transform: translate3d(calc(-1 * var(--_tx)), calc(-1 * var(--_ty)), 0); } }
 
 /* Fullscreen video: contain instead of crop; respect notch insets. */
 :fullscreen .hero-slide-video {
@@ -1101,6 +1190,8 @@
     animation-duration: 1ms !important;
     animation-iteration-count: 1 !important;
   }
+  /* Choreographed content just appears (and 'idle' still hides it). */
+  [data-hero-anim] [data-hero-animate] { animation: none !important; }
   .hero-media-controls { animation: none; }
   .nav-slit-arrow,
   .nav-slit-preview,

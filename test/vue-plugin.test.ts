@@ -133,6 +133,36 @@ describe('SSR (plain Vue, no Nuxt)', () => {
   })
 })
 
+describe('SSR content choreography', () => {
+  const slides = [
+    { bgSrc: 'https://example.com/a.jpg', title: 'Alpha' },
+    { bgSrc: 'https://example.com/b.jpg', title: 'Beta' },
+  ]
+  async function render(animate?: Record<string, unknown>) {
+    const app = createSSRApp({
+      render: () => h(HeroSlider, { slides, options: { animate } }, {
+        slide: ({ slide }: { slide: { title?: string } }) => h('h2', { 'data-hero-animate': 'fade-up' }, slide.title),
+      }),
+    })
+    app.use(HeroPlugin)
+    return renderToString(app)
+  }
+  const states = (html: string) => [...html.matchAll(/data-hero-anim="(\w+)"/g)].map(m => m[1])
+
+  it('renders the first slide entering and the rest hidden, so the intro plays from CSS', async () => {
+    const html = await render({ duration: 500 })
+    expect(states(html)).toEqual(['in', 'idle'])
+    expect(html).toContain('--hero-anim-duration:500ms')
+    expect(html).toContain('--hero-dir:1')
+    expect(html).toContain('data-direction="next"')
+  })
+
+  it("initial: false shows the first slide statically; 'visible' holds it hidden", async () => {
+    expect(states(await render({ initial: false }))).toEqual(['idle'])
+    expect(states(await render({ initial: 'visible' }))).toEqual(['idle', 'idle'])
+  })
+})
+
 describe('useHeroConfig', () => {
   it('falls back to defaults without a provider', () => {
     const cfg = mountWith(() => useHeroConfig()) as HeroRuntimeConfig

@@ -9,6 +9,20 @@ const makeSlides = (count = 3): HeroSlide[] =>
   }))
 
 describe('createSwiperState', () => {
+  it('tracks the direction of each slide change', () => {
+    const { direction, previousIndex, onSwiper, onSlideChange } = createSwiperState(() => makeSlides())
+    const mock = { activeIndex: 2, snapIndex: 2, snapGrid: [0, 1, 2], slideNext: vi.fn(), slidePrev: vi.fn(), slideTo: vi.fn() }
+    onSwiper(mock)
+    expect(direction.value).toBe('next')
+    onSlideChange()
+    expect(direction.value).toBe('next')
+    expect(previousIndex.value).toBe(0)
+    // Rewinding to the first slide moves backwards, like Swiper animates it.
+    mock.activeIndex = 0
+    onSlideChange()
+    expect(direction.value).toBe('prev')
+  })
+
   it('initializes with activeIndex 0', () => {
     const { activeIndex } = createSwiperState(() => makeSlides())
     expect(activeIndex.value).toBe(0)

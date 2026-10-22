@@ -8,6 +8,13 @@ import type {
   SlideConfig,
   ResolvedSlideConfig,
   SlideAnimation,
+  HeroAnimatePreset,
+  HeroAnimateOptions,
+  HeroAnimateTiming,
+  HeroAnimationHook,
+  HeroAnimationContext,
+  HeroAnimationHandle,
+  HeroSlideDirection,
   HeroSliderProps,
   HeroSliderUI,
   HeroFeatures,
@@ -71,13 +78,56 @@ interface SlideConfig {
 
 ## SlideAnimation
 
+Per-slide animation — class-based `enter` / `leave`, choreography timing
+overrides, and JS hooks. See [Animations](./animations).
+
 ```ts
-interface SlideAnimation {
-  /** CSS class for content entering (e.g., 'hero-animated hero-fadeInUp') */
+interface SlideAnimation extends HeroAnimateTiming {
+  /** CSS class for the content block entering (e.g. 'hero-animated hero-slideInUp') */
   enter?: string
-  /** CSS class for content leaving (e.g., 'hero-animated hero-fadeOutDown') */
+  /** CSS class for the content block leaving (e.g. 'hero-animated hero-slideOutDown') */
   leave?: string
+  /** Per-slide hooks (override `animate.onEnter` / `onLeave`) */
+  onEnter?: HeroAnimationHook
+  onLeave?: HeroAnimationHook
 }
+```
+
+## HeroAnimateOptions
+
+```ts
+interface HeroAnimateTiming {
+  duration?: number      // ms, default 700        (--hero-anim-duration)
+  stagger?: number       // ms, default 90         (--hero-anim-stagger)
+  delay?: number         // ms, default 0          (--hero-anim-delay)
+  easing?: string        // default cubic-bezier(0.22, 1, 0.36, 1)
+  distance?: string      // CSS length, default '1.5rem'
+  leaveDuration?: number // ms, default 300
+}
+
+interface HeroAnimateOptions extends HeroAnimateTiming {
+  /** First slide's entrance: on load (true), static (false), or when scrolled into view ('visible') */
+  initial?: boolean | 'visible'
+  onEnter?: HeroAnimationHook
+  onLeave?: HeroAnimationHook
+}
+
+type HeroAnimatePreset =
+  | 'fade' | 'fade-up' | 'fade-down' | 'fade-left' | 'fade-right' | 'slide'
+  | 'zoom-in' | 'zoom-out' | 'blur-in' | 'clip-up' | 'clip-left' | 'clip-right'
+  | 'flip-up' | 'rotate-in'
+
+type HeroAnimationHook = (el: HTMLElement, ctx: HeroAnimationContext) => HeroAnimationHandle | void
+
+interface HeroAnimationContext {
+  index: number
+  direction: 'next' | 'prev'   // HeroSlideDirection
+  initial: boolean
+  reducedMotion: boolean
+}
+
+/** Stopped automatically on the next slide change */
+type HeroAnimationHandle = { cancel: () => void } | { kill: () => void } | (() => void)
 ```
 
 ## OverlayPattern

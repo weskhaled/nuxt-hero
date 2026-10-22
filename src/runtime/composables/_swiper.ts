@@ -1,7 +1,7 @@
 import type { MaybeRefOrGetter } from 'vue'
 import { ref, shallowRef, toValue } from 'vue'
 import type { Swiper } from 'swiper'
-import type { HeroSlide } from '../types'
+import type { HeroSlide, HeroSlideDirection } from '../types'
 
 /**
  * Creates the Swiper instance state — tracks active/snap indices,
@@ -16,6 +16,9 @@ export function createSwiperState(
   const swiperInstance = shallowRef<Swiper>()
   const activeIndex = ref(0)
   const previousIndex = ref(-1)
+  // Index-based, so it matches how Swiper itself moves — rewinding from the
+  // last slide to the first animates backwards and reads as 'prev'.
+  const direction = ref<HeroSlideDirection>('next')
   const snapIndex = ref(0)
   const totalSnaps = ref(1)
 
@@ -40,6 +43,7 @@ export function createSwiperState(
     if (!swiperInstance.value) return
     previousIndex.value = activeIndex.value
     activeIndex.value = swiperInstance.value.activeIndex
+    direction.value = activeIndex.value < previousIndex.value ? 'prev' : 'next'
     updateSnapInfo(swiperInstance.value)
   }
 
@@ -66,6 +70,7 @@ export function createSwiperState(
     swiperInstance,
     activeIndex,
     previousIndex,
+    direction,
     snapIndex,
     totalSnaps,
     onSwiper,

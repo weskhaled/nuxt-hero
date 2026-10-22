@@ -83,11 +83,84 @@ export interface HeroLabels {
 
 // ─── Animation ───
 
-export interface SlideAnimation {
-  /** animate.css class for content entering. e.g. 'animate__fadeInUp' */
+/**
+ * Built-in content presets — put one on any element inside a slide:
+ * `<h1 data-hero-animate="clip-up">`. Movement presets name the direction of
+ * travel (`fade-up` rises into place); `slide` follows the navigation direction.
+ */
+export type HeroAnimatePreset =
+  | 'fade' | 'fade-up' | 'fade-down' | 'fade-left' | 'fade-right' | 'slide'
+  | 'zoom-in' | 'zoom-out' | 'blur-in'
+  | 'clip-up' | 'clip-left' | 'clip-right'
+  | 'flip-up' | 'rotate-in'
+
+/** Navigation direction of the latest slide change. */
+export type HeroSlideDirection = 'next' | 'prev'
+
+/**
+ * Timing for `data-hero-animate` elements. Every value maps to a CSS custom
+ * property (in brackets), so it can also be set in CSS — down to a single
+ * element: `style="--hero-anim-delay: 300ms"`.
+ */
+export interface HeroAnimateTiming {
+  /** Enter duration per element in ms (`--hero-anim-duration`). Default: 700 */
+  duration?: number
+  /** Delay between consecutive elements in ms (`--hero-anim-stagger`). Default: 90 */
+  stagger?: number
+  /** Delay before the first element in ms (`--hero-anim-delay`). Default: 0 */
+  delay?: number
+  /** CSS easing (`--hero-anim-easing`). Default: `cubic-bezier(0.22, 1, 0.36, 1)` */
+  easing?: string
+  /** Travel distance of the movement presets, any CSS length (`--hero-anim-distance`). Default: `1.5rem` */
+  distance?: string
+  /** Leave duration in ms (`--hero-anim-leave-duration`). Default: 300 */
+  leaveDuration?: number
+}
+
+export interface HeroAnimationContext {
+  /** Index of the slide entering / leaving */
+  index: number
+  /** Direction of the slide change */
+  direction: HeroSlideDirection
+  /** True for the first slide's entrance when the slider mounts */
+  initial: boolean
+  /** The user prefers reduced motion — skip or shorten the animation */
+  reducedMotion: boolean
+}
+
+/**
+ * Anything a hook can hand back to be stopped when the slide changes again:
+ * a Web Animations `Animation` (`cancel`), a GSAP tween/timeline (`kill`), or
+ * a cleanup function.
+ */
+export type HeroAnimationHandle = { cancel: () => void } | { kill: () => void } | (() => void)
+
+/** Custom animation hook — receives the slide's content element. */
+export type HeroAnimationHook = (el: HTMLElement, ctx: HeroAnimationContext) => HeroAnimationHandle | void
+
+export interface HeroAnimateOptions extends HeroAnimateTiming {
+  /**
+   * The first slide's entrance: `true` plays it on load (from CSS, before
+   * hydration), `false` shows the content statically, `'visible'` waits until
+   * the slider scrolls into view (content stays hidden until JS runs — use it
+   * for sliders below the fold). Default: true
+   */
+  initial?: boolean | 'visible'
+  /** Runs when a slide becomes active (JS animation engines: WAAPI, GSAP, …) */
+  onEnter?: HeroAnimationHook
+  /** Runs when a slide stops being active */
+  onLeave?: HeroAnimationHook
+}
+
+export interface SlideAnimation extends HeroAnimateTiming {
+  /** Class for the content block entering, e.g. 'hero-animated hero-fadeIn' or animate.css classes */
   enter?: string
-  /** animate.css class for content leaving. e.g. 'animate__fadeOutDown' */
+  /** Class for the content block leaving, e.g. 'animate__animated animate__fadeOutDown' */
   leave?: string
+  /** Per-slide enter hook (overrides `animate.onEnter`) */
+  onEnter?: HeroAnimationHook
+  /** Per-slide leave hook (overrides `animate.onLeave`) */
+  onLeave?: HeroAnimationHook
 }
 
 // ─── Slide Config ───
@@ -320,6 +393,12 @@ export interface UseHeroSliderOptions {
   swiperOptions?: SwiperOptions
   enterAnimation?: string
   leaveAnimation?: string
+  /**
+   * Content choreography for `data-hero-animate` elements: timing defaults and
+   * JS hooks. Accepts a ref / getter / reactive object for live tuning.
+   * Per-slide `slide.animation` values override these.
+   */
+  animate?: MaybeRefOrGetter<HeroAnimateOptions | undefined>
   /** Show pagination dots. Default: true. Can be overridden per-slide via slide.config */
   showPagination?: boolean
   /** Show navigation arrows. Default: true. Can be overridden per-slide via slide.config */
@@ -352,6 +431,18 @@ export interface UseHeroSliderReturn {
   /** True when slidesPerView > 1 (or 'auto') — disables content animations */
   isMultiSlide: ComputedRef<boolean>
   animationClass: (index: number) => string
+  /** Index of the previously active slide (-1 before the first change) */
+  previousIndex: Readonly<Ref<number>>
+  /** Direction of the latest slide change — drives direction-aware animations */
+  direction: Readonly<Ref<HeroSlideDirection>>
+  /** Resolved `animate` options (reactive) */
+  animateOptions: ComputedRef<HeroAnimateOptions>
+  /** Restart the active slide's content animation (presets + `onEnter` hook) */
+  replayAnimation: () => void
+  /** True for the two frames a replay holds the active slide in its hidden state */
+  animationReplaying: Readonly<Ref<boolean>>
+  /** Whether the slider is within the viewport */
+  isVisible: Readonly<Ref<boolean>>
 
   // ─── Autoplay ───
   autoplayEnabled: boolean

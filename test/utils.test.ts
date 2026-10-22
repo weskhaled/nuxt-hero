@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { DEFAULT_PARALLAX, formatTime, isHlsUrl, isVideoUrl, patternCSS, patternSize, resolveParallaxConfig } from '../src/runtime/utils'
+import { describe, expect, it, vi } from 'vitest'
+import { DEFAULT_PARALLAX, animateVars, formatTime, isHlsUrl, isVideoUrl, patternCSS, patternSize, resolveParallaxConfig, stopAnimationHandle } from '../src/runtime/utils'
 
 describe('isVideoUrl', () => {
   it('detects mp4 URLs', () => {
@@ -120,6 +120,46 @@ describe('formatTime', () => {
 
   it('floors fractional seconds', () => {
     expect(formatTime(62.7)).toBe('01:02')
+  })
+})
+
+describe('animateVars', () => {
+  it('returns no variables for missing options', () => {
+    expect(animateVars(undefined)).toEqual({})
+    expect(animateVars({})).toEqual({})
+  })
+
+  it('maps every timing option to its CSS custom property', () => {
+    expect(animateVars({ duration: 500, stagger: 60, delay: 0, easing: 'linear', distance: '2rem', leaveDuration: 200 })).toEqual({
+      '--hero-anim-duration': '500ms',
+      '--hero-anim-stagger': '60ms',
+      '--hero-anim-delay': '0ms',
+      '--hero-anim-easing': 'linear',
+      '--hero-anim-distance': '2rem',
+      '--hero-anim-leave-duration': '200ms',
+    })
+  })
+
+  it('omits unset keys so CSS defaults still apply', () => {
+    expect(animateVars({ stagger: 120 })).toEqual({ '--hero-anim-stagger': '120ms' })
+  })
+})
+
+describe('stopAnimationHandle', () => {
+  it('cancels Web Animations, kills GSAP tweens, and calls cleanup functions', () => {
+    const animation = { cancel: vi.fn() }
+    const tween = { kill: vi.fn() }
+    const cleanup = vi.fn()
+    stopAnimationHandle(animation)
+    stopAnimationHandle(tween)
+    stopAnimationHandle(cleanup)
+    expect(animation.cancel).toHaveBeenCalledOnce()
+    expect(tween.kill).toHaveBeenCalledOnce()
+    expect(cleanup).toHaveBeenCalledOnce()
+  })
+
+  it('ignores hooks that returned nothing', () => {
+    expect(() => stopAnimationHandle(undefined)).not.toThrow()
   })
 })
 

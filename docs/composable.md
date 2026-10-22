@@ -32,6 +32,7 @@ interface UseHeroSliderOptions {
   swiperOptions?: SwiperOptions
   enterAnimation?: string        // Default: ''
   leaveAnimation?: string        // Default: ''
+  animate?: MaybeRefOrGetter<HeroAnimateOptions> // data-hero-animate timing + JS hooks
   showPagination?: boolean       // Default: true
   showNavigation?: boolean       // Default: true
   showProgress?: boolean         // Default: true
@@ -123,6 +124,10 @@ The composable returns a flat object with all slider state and controls:
 | `isActiveSlideVideo` | `ComputedRef<boolean>` | Whether active slide has video bg |
 | `isMultiSlide` | `ComputedRef<boolean>` | True when `slidesPerView > 1` — disables content animations |
 | `animationClass(index)` | `(index: number) => string` | Get CSS animation class for a slide |
+| `previousIndex` | `Readonly<Ref<number>>` | Previously active slide (`-1` before the first change) |
+| `direction` | `Readonly<Ref<'next' \| 'prev'>>` | Direction of the latest slide change |
+| `animateOptions` | `ComputedRef<HeroAnimateOptions>` | Resolved `animate` options |
+| `replayAnimation()` | `() => void` | Restart the active slide's content animation (presets + `onEnter`) — see [Animations](./animations#first-slide-replay) |
 
 ### Autoplay
 
@@ -162,6 +167,7 @@ The composable returns a flat object with all slider state and controls:
 | Property | Type | Description |
 |----------|------|-------------|
 | `isHovered` | `Ref<boolean>` | Whether the container is being hovered |
+| `isVisible` | `Readonly<Ref<boolean>>` | Whether the slider is within the viewport |
 | `containerEl` | `ComputedRef<HTMLElement \| null>` | Resolved container DOM element |
 | `mergedSwiperOptions` | `ComputedRef<Record<string, unknown>>` | Final Swiper config (for component binding) |
 

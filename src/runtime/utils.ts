@@ -1,4 +1,4 @@
-import type { OverlayPattern, ParallaxConfig } from './types'
+import type { HeroAnimationHandle, HeroAnimateTiming, OverlayPattern, ParallaxConfig } from './types'
 
 const VIDEO_EXTENSIONS = /\.(mp4|webm|mov|ogg|m3u8)(\?|$)/i
 const HLS_EXTENSIONS = /\.(m3u8)(\?|$)/i
@@ -64,4 +64,29 @@ export function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60)
   const s = Math.floor(seconds % 60)
   return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+}
+
+/**
+ * Map animate timing options to the CSS custom properties hero.css reads for
+ * `data-hero-animate` elements. Unset keys are omitted, so CSS defaults (or a
+ * value set higher up the tree) still apply.
+ */
+export function animateVars(timing: HeroAnimateTiming | undefined): Record<string, string> {
+  const vars: Record<string, string> = {}
+  if (!timing) return vars
+  if (timing.duration != null) vars['--hero-anim-duration'] = `${timing.duration}ms`
+  if (timing.stagger != null) vars['--hero-anim-stagger'] = `${timing.stagger}ms`
+  if (timing.delay != null) vars['--hero-anim-delay'] = `${timing.delay}ms`
+  if (timing.easing) vars['--hero-anim-easing'] = timing.easing
+  if (timing.distance) vars['--hero-anim-distance'] = timing.distance
+  if (timing.leaveDuration != null) vars['--hero-anim-leave-duration'] = `${timing.leaveDuration}ms`
+  return vars
+}
+
+/** Stop whatever an animation hook returned (WAAPI `cancel`, GSAP `kill`, or a cleanup fn). */
+export function stopAnimationHandle(handle: HeroAnimationHandle | void): void {
+  if (!handle) return
+  if (typeof handle === 'function') handle()
+  else if ('cancel' in handle) handle.cancel()
+  else if ('kill' in handle) handle.kill()
 }

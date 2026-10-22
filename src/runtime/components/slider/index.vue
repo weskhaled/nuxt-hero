@@ -1,11 +1,11 @@
 <script lang="ts" setup>
-import { computed, defineAsyncComponent, defineComponent, shallowRef, useTemplateRef } from 'vue'
+import { computed, defineAsyncComponent, defineComponent, shallowRef, useTemplateRef, watch } from 'vue'
 
 import { Swiper, SwiperSlide } from 'swiper/vue'
 import { useMounted, useMutationObserver } from '@vueuse/core'
 import type { HeroSliderProps } from '../../types'
 import { useHeroConfig } from '../../config'
-import { isVideoUrl, patternCSS, patternSize } from '../../utils'
+import { animateVars, isVideoUrl, patternCSS, patternSize } from '../../utils'
 import { useWatchMode } from '../../composables/_watchMode'
 import { useHeroSlider } from '../../composables/useHeroSlider'
 import { useHeroEnvironment } from '../../composables/_environment'
@@ -98,6 +98,11 @@ const {
   mergedSwiperOptions,
   isMultiSlide,
   isActiveSlideVideo,
+  previousIndex,
+  direction,
+  animateOptions,
+  animationReplaying,
+  isVisible,
 } = slider
 
 // Expose the resolved slider so an uncontrolled consumer can still reach the
@@ -152,6 +157,41 @@ if (typeof document !== 'undefined') {
 
 /** Whether the slider runs in vertical direction */
 const isVertical = computed(() => mergedSwiperOptions.value.direction === 'vertical')
+
+// ─── Content choreography (data-hero-animate) ───
+// Each slide's content carries the state hero.css keys its presets off: 'in'
+// (active — staggered enter), 'out' (just left — quick exit), 'idle' (hidden).
+// Unset in multi-slide mode, where every visible card shows its content
+// statically. The state is part of the SSR render, so the first slide's intro
+// plays from CSS alone — no flash, no JS needed.
+const hasChanged = shallowRef(false)
+watch(activeIndex, () => { hasChanged.value = true }, { once: true })
+// `initial: 'visible'` — latched: the intro plays the first time the slider is
+// seen and doesn't re-hide when it scrolls away. (false on the server and the
+// first client render, so hydration agrees.)
+const seen = shallowRef(false)
+watch(isVisible, (v) => { if (v) seen.value = true }, { immediate: true })
+
+function slideAnimState(index: number): 'in' | 'out' | 'idle' | undefined {
+  if (isMultiSlide.value) return undefined
+  if (index === activeIndex.value) {
+    if (animationReplaying.value) return 'idle'
+    if (hasChanged.value) return 'in'
+    const initial = animateOptions.value.initial ?? true
+    if (initial === 'visible') return seen.value ? 'in' : 'idle'
+    return initial ? 'in' : undefined
+  }
+  return index === previousIndex.value ? 'out' : 'idle'
+}
+
+// Root CSS variables: timing defaults from `animate`, plus the travel direction
+// and axis the direction-aware presets (`slide`, the exit) read. RTL flips the
+// horizontal axis in hero.css.
+const animRootStyle = computed(() => ({
+  ...animateVars(animateOptions.value),
+  '--hero-dir': direction.value === 'prev' ? '-1' : '1',
+  ...(isVertical.value ? { '--hero-ax': '0', '--hero-ay': '1' } : {}),
+}))
 
 // ─── Carousel ARIA (WAI-ARIA APG) ───
 // Layer the APG carousel pattern on top of Swiper's A11y module: the root becomes
@@ -237,7 +277,7 @@ const shouldShowAutoplayProgress = computed(() =>
     :role="isCarousel ? 'region' : undefined" :aria-roledescription="isCarousel ? 'carousel' : undefined"
     :aria-label="isCarousel ? carouselLabel : undefined"
     :data-idle="idle" :data-watch-mode="activeSlideConfig.watchMode" :data-video-active="isActiveSlideVideo"
-    :data-multi-slide="isMultiSlide || undefined">
+    :data-multi-slide="isMultiSlide || undefined" :data-direction="direction" :style="animRootStyle">
     <Swiper v-bind="mergedSwiperOptions" :parallax="true" :modules="swiperModules" class="hero-swiper"
       :class="ui.swiper" @swiper="handleSwiper" @slide-change="onSlideChange">
       <SwiperSlide v-for="(slide, index) in slides" :key="index" class="hero-swiper-slide" :class="ui.slide"
@@ -245,7 +285,11 @@ const shouldShowAutoplayProgress = computed(() =>
         <HeroSlide :bg-src="slide.bgSrc" :bg-dark-src="slide.bgDarkSrc" :poster="slide.poster"
           :image-preset="imagePreset" :image-sizes="imageSizes" :eager="index === 0"
           :is-active="index === activeIndex || isMultiSlide"
-          :animation-class="animationClass(index)" :slide-index="index" :on-video-ready="registerSlideVideo"
+          :animation-class="animationClass(index)" :anim-state="slideAnimState(index)"
+          :anim-vars="animateVars(slide.animation)" :direction="direction"
+          :on-enter="slide.animation?.onEnter ?? animateOptions.onEnter"
+          :on-leave="slide.animation?.onLeave ?? animateOptions.onLeave"
+          :slide-index="index" :on-video-ready="registerSlideVideo"
           :on-video-removed="unregisterSlideVideo" :media-controls-options="slide.config?.mediaControlsOptions"
           :show-video-controls="(index === activeIndex || isMultiSlide) ? (slide.config?.showVideoControls ?? activeSlideConfig.showVideoControls) : false"
           :video-loop="slide.config?.videoLoop ?? false" :auto-play="!isMultiSlide" :data-saver="liteMode"

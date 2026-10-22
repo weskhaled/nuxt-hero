@@ -16,7 +16,8 @@ A full-featured hero slider for **Nuxt** and **plain Vue 3** — parallax, video
 - Themeable chrome via `--hero-*` CSS variables (accent adopts your `--ui-primary`)
 - Full RTL support (slide direction syncs at init + on runtime locale switch)
 - Mobile / PWA "lite mode": no video autoplay/preload + no parallax on Save-Data / slow connections
-- Built-in + animate.css animations, thumbnail navigation previews
+- Element-by-element content choreography (`data-hero-animate`: 14 CSS presets, auto-stagger, direction-aware, zero deps) + JS hooks for GSAP / Web Animations; animate.css classes still work
+- Thumbnail navigation previews
 - Vertical and horizontal layouts
 
 ## Installation (Nuxt)
@@ -226,7 +227,7 @@ const slider = useHeroSlider(containerRef, slides, {
 | `thumbSrc` | `string` | no | Thumbnail for navigation preview |
 | `title` | `string` | no | Slide title |
 | `poster` | `string` | no | Poster frame for video backgrounds |
-| `animation` | `{ enter?, leave? }` | no | Per-slide animation override |
+| `animation` | `SlideAnimation` | no | Per-slide classes (`enter` / `leave`), choreography timing and `onEnter` / `onLeave` hooks |
 | `config` | `SlideConfig` | no | Per-slide display & media config |
 
 ### `SlideConfig`
@@ -282,9 +283,27 @@ Class overrides for internal elements (Nuxt UI-style):
 | `overlay` | `{ patterns, index, isActive, patternCSS, patternSize }` | Custom overlay rendering |
 | `video-controls` | `{ playing, currentTime, duration, buffered, volume, muted, waiting, hls }` | Custom video controls |
 
-## Built-in Animations
+## Animations
 
-Use with the `hero-animated` base class:
+Choreograph content element by element — pure CSS presets, staggered in
+order, direction-aware, SSR-rendered:
+
+```vue
+<template #slide="{ slide }">
+  <span data-hero-animate="fade-down">{{ slide.eyebrow }}</span>
+  <h1 data-hero-animate="clip-up">{{ slide.title }}</h1>
+  <p data-hero-animate="blur-in">{{ slide.description }}</p>
+</template>
+```
+
+Presets: `fade`, `fade-up/down/left/right`, `slide`, `zoom-in/out`, `blur-in`,
+`clip-up/left/right`, `flip-up`, `rotate-in`. Tune timing with the `animate`
+option (`duration`, `stagger`, `delay`, `easing`, `distance`, `initial`), and
+plug in GSAP or the Web Animations API with `onEnter` / `onLeave` hooks — see
+[docs/animations.md](docs/animations.md).
+
+The class-based API animates the whole block with one class, using the
+`hero-animated` base class:
 
 - `hero-fadeIn` / `hero-fadeOut`
 - `hero-slideInUp` / `hero-slideOutDown`
@@ -332,6 +351,7 @@ Core slider composable — creates and manages all slider state. Must be called 
 | `swiperOptions` | `SwiperOptions` | `{}` | Swiper configuration (autoplay.delay, speed, effect, direction, etc.) |
 | `enterAnimation` | `string` | `''` | Default enter animation class |
 | `leaveAnimation` | `string` | `''` | Default leave animation class |
+| `animate` | `HeroAnimateOptions` | `{}` | `data-hero-animate` timing (`duration`, `stagger`, `delay`, `easing`, `distance`, `leaveDuration`), `initial`, and `onEnter` / `onLeave` hooks |
 | `showPagination` | `boolean` | `true` | Show pagination dots |
 | `showNavigation` | `boolean` | `true` | Show navigation arrows |
 | `showProgress` | `boolean` | `true` | Show progress bar |

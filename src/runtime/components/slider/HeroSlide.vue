@@ -1,10 +1,10 @@
 <script lang="ts" setup>
-import { computed, defineAsyncComponent, ref, useTemplateRef, watch } from 'vue'
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, useTemplateRef, watch } from 'vue'
 import { useMounted } from '@vueuse/core'
-import type { HeroLabels, MediaControlsOptions, VideoMediaControls } from '../../types'
+import type { HeroAnimationHandle, HeroAnimationHook, HeroLabels, HeroSlideDirection, MediaControlsOptions, VideoMediaControls } from '../../types'
 import { useHeroConfig } from '../../config'
 import { useHeroDark } from '../../composables/_dark'
-import { isVideoUrl } from '../../utils'
+import { isVideoUrl, stopAnimationHandle } from '../../utils'
 // Type-only import (erased at build) just for the template-ref instance type.
 import type HeroSlideVideoComponent from '../video/HeroSlideVideo.vue'
 
@@ -27,6 +27,14 @@ export interface SlideProps {
   eager?: boolean
   isActive?: boolean
   animationClass?: string
+  /** Choreography state for `data-hero-animate` content (unset = static, always visible) */
+  animState?: 'in' | 'out' | 'idle'
+  /** Per-slide timing overrides as CSS custom properties (see `animateVars`) */
+  animVars?: Record<string, string>
+  /** Direction of the latest slide change, passed to the hooks */
+  direction?: HeroSlideDirection
+  onEnter?: HeroAnimationHook
+  onLeave?: HeroAnimationHook
   slideIndex?: number
   onVideoReady?: (index: number, controls: VideoMediaControls) => void
   onVideoRemoved?: (index: number) => void
@@ -53,6 +61,11 @@ const props = withDefaults(defineProps<SlideProps>(), {
   eager: false,
   isActive: false,
   animationClass: '',
+  animState: undefined,
+  animVars: undefined,
+  direction: 'next',
+  onEnter: undefined,
+  onLeave: undefined,
   slideIndex: 0,
   onVideoReady: undefined,
   onVideoRemoved: undefined,
@@ -125,6 +138,35 @@ function onAnimationEnd() {
   if (!props.isActive) contentVisible.value = false
 }
 
+// ─── Choreography hooks ───
+// `data-hero-animate` presets are pure CSS (driven by `data-hero-anim`); JS
+// engines (Web Animations, GSAP, …) plug in through onEnter / onLeave. Whatever
+// a hook returns is stopped on the next state change or unmount, so animations
+// never pile up when slides change quickly.
+const contentInnerEl = useTemplateRef<HTMLElement>('contentInnerEl')
+let hookHandle: HeroAnimationHandle | void
+
+function runHook(state: SlideProps['animState'], initial: boolean) {
+  stopAnimationHandle(hookHandle)
+  hookHandle = undefined
+  const hook = state === 'in' ? props.onEnter : state === 'out' ? props.onLeave : undefined
+  const el = contentInnerEl.value
+  if (!hook || !el) return
+  hookHandle = hook(el, {
+    index: props.slideIndex,
+    direction: props.direction,
+    initial,
+    reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+  })
+}
+
+// 'post' — hooks see the DOM with the new state already applied.
+watch(() => props.animState, state => runHook(state, false), { flush: 'post' })
+onMounted(() => {
+  if (props.animState === 'in') runHook('in', true)
+})
+onBeforeUnmount(() => stopAnimationHandle(hookHandle))
+
 /** Whether video controls should render (video active + controls enabled + media ready) */
 const shouldShowVideoControls = computed(() =>
   isBgVideo.value && props.showVideoControls && !!videoComponentRef.value?.mediaControls,
@@ -167,8 +209,10 @@ const hlsSlotData = computed(() => {
 
     <!-- Content container (parallax targets .hero-slide-content) -->
     <div class="hero-slide-content">
-      <div v-show="contentVisible" :class="contentAnimClass" class="hero-slide-content-inner"
-        @animationend="onAnimationEnd">
+      <!-- `.self`: `data-hero-animate` children fire bubbling animationend
+           events — only the block's own (class-based) animation may hide it. -->
+      <div ref="contentInnerEl" v-show="contentVisible" :class="contentAnimClass" class="hero-slide-content-inner"
+        :data-hero-anim="animState" :style="animVars" @animationend.self="onAnimationEnd">
         <slot />
       </div>
     </div>
