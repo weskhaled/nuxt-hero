@@ -2,7 +2,7 @@
 import { computed, ref, useTemplateRef } from 'vue'
 import type { Ref } from 'vue'
 import { onClickOutside, useFullscreen } from '@vueuse/core'
-import type { HeroLabels } from '../../types'
+import type { HeroLabels, HeroVideoControlsConfig } from '../../types'
 import { formatTime } from '../../utils'
 import HeroVideoScrubber from './HeroVideoScrubber.vue'
 import HeroIcon from '../HeroIcon.vue'
@@ -24,9 +24,25 @@ interface VideoControlsProps {
   onScrubEnd?: () => void
   /** Localizable aria-labels (any omitted key falls back to English) */
   labels?: HeroLabels
+  /** Which parts render — each defaults to true */
+  parts?: HeroVideoControlsConfig
+  /** Class for the bottom bar (.hero-media-controls) */
+  barClass?: string
+  /** Class for the centered play button */
+  playButtonClass?: string
 }
 
 const props = defineProps<VideoControlsProps>()
+
+/** Parts, each on unless explicitly `false`. */
+const show = computed(() => ({
+  playButton: props.parts?.playButton !== false,
+  scrubber: props.parts?.scrubber !== false,
+  volume: props.parts?.volume !== false,
+  time: props.parts?.time !== false,
+  settings: props.parts?.settings !== false,
+  fullscreen: props.parts?.fullscreen !== false,
+}))
 
 // Target the slider container — the element we actually fullscreen. With no
 // target, useFullscreen watches <html> and `isFullscreen` never flips.
@@ -44,6 +60,7 @@ const L = computed(() => ({
   speedNormal: props.labels?.speedNormal ?? 'Normal',
   fullscreenEnter: props.labels?.fullscreenEnter ?? 'Enter fullscreen',
   fullscreenExit: props.labels?.fullscreenExit ?? 'Exit fullscreen',
+  progress: props.labels?.videoProgress ?? 'Video progress',
 }))
 
 // Fullscreen is per-element and not universally available (iOS Safari only
@@ -110,7 +127,10 @@ const settingsOpen = ref(false)
 const settingsWrapEl = useTemplateRef<HTMLElement>('settingsWrapEl')
 onClickOutside(settingsWrapEl, () => { settingsOpen.value = false })
 
-const playbackRates = [0.5, 0.75, 1, 1.25, 1.5, 2]
+const playbackRates = computed(() => {
+  const settings = props.parts?.settings
+  return typeof settings === 'object' && settings.rates?.length ? settings.rates : [0.5, 0.75, 1, 1.25, 1.5, 2]
+})
 const playbackRate = computed(() => props.rate?.value ?? 1)
 
 function setPlaybackRate(r: number) {
@@ -122,25 +142,27 @@ function setPlaybackRate(r: number) {
 <template>
   <!-- Center play button. `.is-paused` keeps it visible while paused — including
        on touch devices where there's no hover to reveal it (tap-to-play). -->
-  <div aria-live="polite" class="hero-play-center">
-    <button type="button" class="hero-ctrl-btn hero-play-center-btn" :class="{ 'is-paused': !playing.value }"
-      :disabled="waiting.value" :aria-label="playing.value ? L.pause : L.play" @click="toggle">
-      <span v-if="waiting.value" class="hero-spinner hero-spinner--lg" />
-      <HeroIcon v-else-if="playing.value" name="pause" class="hero-play-center-icon" />
-      <HeroIcon v-else name="play" class="hero-play-center-icon" />
+  <div v-if="show.playButton" aria-live="polite" class="hero-play-center">
+    <slot name="play-button" v-bind="{ playing: playing.value, waiting: waiting.value, progress, toggle }">
+      <button type="button" class="hero-ctrl-btn hero-play-center-btn" :class="[playButtonClass, { 'is-paused': !playing.value }]"
+        :disabled="waiting.value" :aria-label="playing.value ? L.pause : L.play" @click="toggle">
+        <span v-if="waiting.value" class="hero-spinner hero-spinner--lg" />
+        <HeroIcon v-else-if="playing.value" name="pause" class="hero-play-center-icon" />
+        <HeroIcon v-else name="play" class="hero-play-center-icon" />
 
-      <div class="hero-play-center-ring">
-        <div class="hero-radial-progress"
-          :style="{ '--hero-progress-value': Math.round(progress), '--hero-progress-size': '100%', '--hero-progress-thickness': '0.25rem' }"
-          role="progressbar" :aria-valuenow="Math.round(progress)" aria-valuemin="0" aria-valuemax="100" />
-      </div>
-    </button>
+        <span class="hero-play-center-ring">
+          <span class="hero-radial-progress"
+            :style="{ '--hero-progress-value': Math.round(progress), '--hero-progress-size': '100%', '--hero-progress-thickness': '0.25rem' }"
+            role="progressbar" :aria-label="L.progress" :aria-valuenow="Math.round(progress)" aria-valuemin="0" aria-valuemax="100" />
+        </span>
+      </button>
+    </slot>
   </div>
 
   <!-- Bottom bar -->
-  <div class="hero-media-controls">
+  <div class="hero-media-controls" :class="barClass">
     <!-- Scrubber: full-width time track, native input-driven -->
-    <HeroVideoScrubber :model-value="currentTime.value" :max="duration.value" :secondary="bufferedEnd"
+    <HeroVideoScrubber v-if="show.scrubber" :model-value="currentTime.value" :max="duration.value" :secondary="bufferedEnd"
       :label="L.seek" @update:model-value="onScrubUpdate" @scrubber-mousedown="onScrubStart?.()"
       @scrubber-mouseup="onScrubEnd?.()">
       <template #default="{ pendingValue, position }">
@@ -163,7 +185,7 @@ function setPlaybackRate(r: number) {
           </Transition>
         </button>
 
-        <div class="hero-volume-group">
+        <div v-if="show.volume" class="hero-volume-group">
           <button type="button" class="hero-ctrl-btn" :aria-label="L.mute" :aria-pressed="muted.value"
             @click="toggleMute">
             <Transition name="hero-vol-icon" mode="out-in">
@@ -182,13 +204,13 @@ function setPlaybackRate(r: number) {
           </div>
         </div>
 
-        <span class="hero-time-label">{{ formattedTime }}</span>
+        <span v-if="show.time" class="hero-time-label">{{ formattedTime }}</span>
       </div>
 
       <!-- End: settings, fullscreen -->
       <div class="hero-controls-group">
         <!-- Settings (playback speed) -->
-        <div ref="settingsWrapEl" class="hero-settings-wrap" @keydown.escape="settingsOpen = false">
+        <div v-if="show.settings" ref="settingsWrapEl" class="hero-settings-wrap" @keydown.escape="settingsOpen = false">
           <button type="button" class="hero-ctrl-btn hero-ctrl-btn--filled" :aria-label="L.settings"
             aria-haspopup="menu" :aria-expanded="settingsOpen" @click="settingsOpen = !settingsOpen">
             <HeroIcon name="settings" class="hero-settings-icon" :class="{ 'is-open': settingsOpen }" />
@@ -206,7 +228,7 @@ function setPlaybackRate(r: number) {
         </div>
 
         <!-- Fullscreen -->
-        <button v-if="fullscreenSupported" type="button" class="hero-ctrl-btn hero-ctrl-btn--filled"
+        <button v-if="show.fullscreen && fullscreenSupported" type="button" class="hero-ctrl-btn hero-ctrl-btn--filled"
           :aria-label="isFullscreen ? L.fullscreenExit : L.fullscreenEnter" @click="toggleFullscreen">
           <Transition name="hero-vol-icon" mode="out-in">
             <HeroIcon v-if="isFullscreen" key="minimize" name="minimize" />

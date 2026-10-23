@@ -1,4 +1,4 @@
-import type { HeroAnimationHandle, HeroAnimateTiming, OverlayPattern, ParallaxConfig } from './types'
+import type { HeroAnimationHandle, HeroAnimateTiming, HeroSlide, OverlayPattern, ParallaxConfig } from './types'
 
 const VIDEO_EXTENSIONS = /\.(mp4|webm|mov|ogg|m3u8)(\?|$)/i
 const HLS_EXTENSIONS = /\.(m3u8)(\?|$)/i
@@ -13,6 +13,16 @@ export function isHlsUrl(url: string): boolean {
   return HLS_EXTENSIONS.test(url)
 }
 
+/**
+ * Whether a slide has a video background — its explicit `bgType`, else either
+ * source's extension (light or dark), so the answer doesn't flip with the theme.
+ */
+export function isVideoSlide(slide: Pick<HeroSlide, 'bgSrc' | 'bgDarkSrc' | 'bgType'> | undefined): boolean {
+  if (!slide) return false
+  if (slide.bgType) return slide.bgType !== 'image'
+  return isVideoUrl(slide.bgSrc) || (!!slide.bgDarkSrc && isVideoUrl(slide.bgDarkSrc))
+}
+
 /** Generate CSS background-image for a pattern */
 export function patternCSS(pattern: OverlayPattern): string {
   const color = pattern.color ?? 'black'
@@ -23,7 +33,11 @@ export function patternCSS(pattern: OverlayPattern): string {
     case 'dots':
       return `radial-gradient(circle, ${color} 1px, transparent 1px)`
     case 'gradient':
-      return `radial-gradient(circle at 55% 60%, #00aaff, #002aff, rgba(144,143,255,1))`
+      // Without a color: the original blue glow. With one: a vignette in that
+      // color (clear center → color at the edges).
+      return pattern.color
+        ? `radial-gradient(circle at 55% 60%, transparent, ${pattern.color})`
+        : `radial-gradient(circle at 55% 60%, #00aaff, #002aff, rgba(144,143,255,1))`
     case 'custom':
       return pattern.css ?? ''
   }

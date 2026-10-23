@@ -9,6 +9,8 @@ import { useHls } from '../../composables/_hls'
 export interface SlideVideoProps {
   /** Video source URL */
   src: string
+  /** Treat the source as an HLS stream regardless of its extension */
+  hls?: boolean
   /** Poster frame */
   poster?: string
   /** Whether this slide is currently active */
@@ -55,7 +57,7 @@ const defaultVolume = heroConfig.defaultVolume ?? 0
 const hlsEnabled = heroConfig.features?.hls ?? false
 
 const videoRef = useTemplateRef<HTMLVideoElement>('videoRef')
-const isBgHls = computed(() => isHlsUrl(props.src))
+const isBgHls = computed(() => props.hls || isHlsUrl(props.src))
 
 // Reactive src for useMediaControls — only set when NOT HLS (HLS manages src itself)
 const mediaSrc = computed(() => isBgHls.value ? undefined : props.src)

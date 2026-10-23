@@ -11,9 +11,10 @@ const makeSlides = (count = 3): HeroSlide[] =>
 describe('createSwiperState', () => {
   it('tracks the direction of each slide change', () => {
     const { direction, previousIndex, onSwiper, onSlideChange } = createSwiperState(() => makeSlides())
-    const mock = { activeIndex: 2, snapIndex: 2, snapGrid: [0, 1, 2], slideNext: vi.fn(), slidePrev: vi.fn(), slideTo: vi.fn() }
+    const mock = { activeIndex: 0, snapIndex: 0, snapGrid: [0, 1, 2], slideNext: vi.fn(), slidePrev: vi.fn(), slideTo: vi.fn() }
     onSwiper(mock)
     expect(direction.value).toBe('next')
+    mock.activeIndex = 2
     onSlideChange()
     expect(direction.value).toBe('next')
     expect(previousIndex.value).toBe(0)
@@ -26,6 +27,20 @@ describe('createSwiperState', () => {
   it('initializes with activeIndex 0', () => {
     const { activeIndex } = createSwiperState(() => makeSlides())
     expect(activeIndex.value).toBe(0)
+  })
+
+  it('syncs activeIndex from Swiper on init (honours initialSlide)', () => {
+    const { activeIndex, onSwiper } = createSwiperState(() => makeSlides())
+    onSwiper({ activeIndex: 2, snapIndex: 2, snapGrid: [0, 1, 2], slideNext: vi.fn(), slidePrev: vi.fn(), slideTo: vi.fn() })
+    expect(activeIndex.value).toBe(2)
+  })
+
+  it('goToSnap maps a dot to its slide with slidesPerGroup', () => {
+    const { onSwiper, goToSnap } = createSwiperState(() => makeSlides(6))
+    const slideTo = vi.fn()
+    onSwiper({ activeIndex: 0, snapIndex: 0, snapGrid: [0, 1, 2], params: { slidesPerGroup: 2 }, slideNext: vi.fn(), slidePrev: vi.fn(), slideTo })
+    goToSnap(2)
+    expect(slideTo).toHaveBeenCalledWith(4)
   })
 
   it('initializes snapIndex 0 and totalSnaps 1', () => {

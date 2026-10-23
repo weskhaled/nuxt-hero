@@ -23,8 +23,10 @@
    adopts the host's theme primary automatically — Nuxt UI's `--ui-primary`
    already shifts shade per color-scheme, so active states match the app brand
    AND adapt to light/dark for free. Every value is overridable by the consumer
-   (e.g. `.hero-slider { --hero-primary: var(--ui-color-primary-400) }`). */
-:root {
+   (e.g. `.hero-slider { --hero-primary: var(--ui-color-primary-400) }`).
+   `:where()` keeps these defaults at zero specificity, so a consumer's own
+   `:root { --hero-… }` wins no matter which stylesheet loads first. */
+:where(:root) {
   /* Accent — active pagination ring, autoplay progress, video scrubber fill, focus rings. */
   --hero-primary: var(--ui-primary, #ffffff);
   /* Neutral foreground over media — icons, inactive dots, time labels. */
@@ -43,6 +45,26 @@
   --hero-play-size: 3rem;
   --hero-dot-size: 0.625rem;
   --hero-dot-hit: 1rem;
+  /* Pagination pill: distance from the slider edge, and the lift that clears
+     the video controls bar on video slides. */
+  --hero-pagination-offset: 1rem;
+  --hero-pagination-lift: 4.75rem;
+  /* Autoplay progress bar thickness. */
+  --hero-autoplay-bar-size: 0.25rem;
+  /* Filled control buttons (video controls bar, volume group). */
+  --hero-ctrl-bg: rgb(255 255 255 / 0.25);
+  --hero-ctrl-bg-hover: rgb(255 255 255 / 0.35);
+  /* Navigation arrows (light defaults; dark below) and the width of the
+     thumbnail strip an arrow reveals on hover. */
+  --hero-nav-color: #000;
+  --hero-nav-bg: rgb(255 255 255 / 0.4);
+  --hero-nav-ring: #fff;
+  --hero-nav-preview-width: 9rem;
+}
+:where(.dark) {
+  --hero-nav-color: #fff;
+  --hero-nav-bg: rgb(0 0 0 / 0.4);
+  --hero-nav-ring: #000;
 }
 
 /* ─── Root & structural layout ───
@@ -292,11 +314,11 @@
   transition: background-color 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
 }
 .hero-ctrl-btn--filled {
-  background: rgb(255 255 255 / 0.25);
+  background: var(--hero-ctrl-bg);
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
 }
-.hero-ctrl-btn--filled:hover { background: rgb(255 255 255 / 0.35); }
+.hero-ctrl-btn--filled:hover { background: var(--hero-ctrl-bg-hover); }
 
 /* ─── Spinner (shared) ─── */
 @keyframes heroSpin {
@@ -329,14 +351,14 @@
   backdrop-filter: blur(8px);
 }
 
-/* Centering uses the individual `translate` property, NOT `transform`: the
-   pill also carries Swiper's `.swiper-pagination` class, whose stylesheet sets
-   `transform: translate3d(0,0,0)` at equal specificity and loads after this
-   file — it would silently wipe a `transform` centering offset. */
+/* Centering uses the individual `translate` property, NOT `transform`, so any
+   other rule (or consumer class) that sets `transform` on the pill can't wipe
+   the offset. (It once carried Swiper's `.swiper-pagination` class, whose
+   `transform: translate3d(0,0,0)` did exactly that.) */
 
 /* Horizontal (default): centered at the bottom. */
 .hero-pagination--horizontal {
-  bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+  bottom: max(var(--hero-pagination-offset), env(safe-area-inset-bottom, 0px));
   left: 50%;
   translate: -50% 0;
   max-width: calc(100% - 5rem);
@@ -348,8 +370,8 @@
    otherwise the dots land on top of the time label / buttons. Single-slide
    only: with several slides per view each video card has its own small bar,
    and lifting would push the pill over the cards' content instead. */
-.hero-slider:not([data-multi-slide]):has(.hero-media-controls) .hero-pagination--horizontal {
-  bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+.hero-slider:not([data-multi-slide]):has(.hero-media-controls, [data-hero-video-controls]) .hero-pagination--horizontal {
+  bottom: calc(var(--hero-pagination-lift) + env(safe-area-inset-bottom, 0px));
 }
 
 /* While the scrubber's time tooltip is up, fade the pill out of its way. The
@@ -367,7 +389,7 @@
   flex-direction: column;
   top: 50%;
   translate: 0 -50%;
-  inset-inline-end: 1rem;
+  inset-inline-end: var(--hero-pagination-offset);
   max-height: calc(100% - 5rem);
 }
 
@@ -416,6 +438,11 @@
 .hero-radial-progress--track {
   position: absolute;
   opacity: 0.25;
+}
+/* Active-dot ring size — tokens, so the dots can be resized from CSS. */
+.hero-page-btn .hero-radial-progress {
+  --hero-progress-size: var(--hero-dot-ring-size, 0.75rem);
+  --hero-progress-thickness: var(--hero-dot-ring-thickness, 0.15rem);
 }
 
 /* ─── Pagination thumbnail tooltip ─── */
@@ -471,6 +498,7 @@
 }
 
 .hero-pagination .tooltip-text {
+  display: block;
   overflow: hidden;
   border-color: inherit;
   transform: scaleX(0) scaleY(1);
@@ -480,6 +508,7 @@
 .hero-pagination--vertical .tooltip-text { border-right: 2px solid; border-color: inherit; transform-origin: right; }
 
 .hero-pagination .tooltip-inner {
+  display: block;
   overflow: hidden;
   border-radius: 0.25rem;
   background: #000;
@@ -550,19 +579,14 @@
   position: relative;
   display: block;
   font-size: 1rem;
-  color: #000;
-  background: rgb(255 255 255 / 0.4);
-  box-shadow: 0 0 0 1px #fff;
+  color: var(--hero-nav-color);
+  background: var(--hero-nav-bg);
+  box-shadow: 0 0 0 1px var(--hero-nav-ring);
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
   /* Hover travel uses the individual `translate` property — it must be in the
      transition list (`transform` alone does NOT animate it). */
   transition: translate 0.3s ease, transform 0.3s ease;
-}
-:where(.dark) .nav-slit-arrow {
-  color: #fff;
-  background: rgb(0 0 0 / 0.4);
-  box-shadow: 0 0 0 1px #000;
 }
 
 .nav-slit-preview {
@@ -585,6 +609,10 @@
 
 .nav-slit-preview-title {
   position: absolute;
+  /* Explicit edge: it's an inline <span> (phrasing content inside the button),
+     and an inline box's static position follows the button's inherited
+     `text-align: center` — the bar would start mid-preview. */
+  left: 0;
   margin: 0;
   padding: 0.125rem 0.5rem;
   overflow: hidden;
@@ -650,7 +678,7 @@
 .nav-slit:not(.nav-slit--vertical) .nav-slit-preview {
   top: 0;
   height: 100%;
-  width: 9rem;
+  width: var(--hero-nav-preview-width);
 }
 .nav-slit:not(.nav-slit--vertical) .nav-slit-prev .nav-slit-preview { inset-inline-start: 0; translate: -100% 0; }
 .nav-slit:not(.nav-slit--vertical) .nav-slit-next .nav-slit-preview { inset-inline-end: 0; translate: 100% 0; }
@@ -709,6 +737,32 @@
     transform: rotateX(0deg) scaleY(1);
     transition-delay: 0.6s;
   }
+}
+
+/* ─── Per-slide video controls layer ───
+   Holds the default controls or a `#video-controls` slot: above the slide
+   content (z 5), click-through except for the controls themselves. */
+.hero-slide-controls {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+}
+
+/* ─── Autoplay toggle (`showAutoplayToggle`) ───
+   Bottom inline-start corner, lifted with the pagination when a video
+   controls bar is showing. */
+.hero-autoplay-toggle {
+  pointer-events: auto;
+  position: absolute;
+  z-index: 10;
+  bottom: max(var(--hero-pagination-offset), env(safe-area-inset-bottom, 0px));
+  inset-inline-start: var(--hero-pagination-offset);
+  width: var(--hero-ctrl-size);
+  height: var(--hero-ctrl-size);
+}
+.hero-slider:not([data-multi-slide]):has(.hero-media-controls, [data-hero-video-controls]) .hero-autoplay-toggle {
+  bottom: calc(var(--hero-pagination-lift) + env(safe-area-inset-bottom, 0px));
 }
 
 /* ─── Center play button (video) ───
@@ -821,13 +875,13 @@
   display: flex;
   align-items: center;
   border-radius: 9999px;
-  background: rgb(255 255 255 / 0.25);
+  background: var(--hero-ctrl-bg);
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
   overflow: hidden;
   transition: background-color 0.3s ease;
 }
-.hero-volume-group:hover { background: rgb(255 255 255 / 0.35); }
+.hero-volume-group:hover { background: var(--hero-ctrl-bg-hover); }
 
 .hero-volume-expand {
   display: flex;
@@ -957,13 +1011,13 @@
   bottom: 0;
   left: 0;
   width: 100%;
-  height: 0.25rem;
+  height: var(--hero-autoplay-bar-size);
 }
 .hero-autoplay-progress--vertical {
   top: 0;
   inset-inline-end: 0;
   height: 100%;
-  width: 0.25rem;
+  width: var(--hero-autoplay-bar-size);
 }
 
 .hero-autoplay-progress-fill {
@@ -1109,8 +1163,8 @@
 }
 /* `:not(:has(...))` — at equal specificity this rule would otherwise beat the
    media-controls lift and drop the pill onto the scrubber in fullscreen. */
-.hero-slider:fullscreen:not(:has(.hero-media-controls)) .hero-pagination--horizontal {
-  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+.hero-slider:fullscreen:not(:has(.hero-media-controls, [data-hero-video-controls])) .hero-pagination--horizontal {
+  bottom: calc(var(--hero-pagination-offset) + env(safe-area-inset-bottom, 0px));
 }
 
 /* ─── Watch mode ───
@@ -1141,8 +1195,11 @@
   pointer-events: none;
 }
 
-/* Idle: media controls slide down out of view */
-.hero-watch-idle .hero-media-controls {
+/* Idle: media controls slide down out of view. A custom `#video-controls` bar
+   opts in with the `data-hero-video-controls` attribute (it also lifts the
+   pagination clear of itself, like the default bar). */
+.hero-watch-idle .hero-media-controls,
+.hero-watch-idle [data-hero-video-controls] {
   opacity: 0 !important;
   transform: translateY(100%) !important;
   pointer-events: none;
@@ -1158,7 +1215,9 @@
    Coarse pointers get bigger targets (WCAG 2.5.8): control buttons 2.5rem,
    pagination dots on a 2rem hit area, wider nav slits, taller scrubber hit. */
 @media (pointer: coarse) {
-  .hero-slider {
+  /* On `:where(:root)` (zero specificity) — a consumer's own `:root` or
+     `.hero-slider` values for these tokens still win on touch devices. */
+  :where(:root) {
     --hero-ctrl-size: 2.5rem;
     --hero-play-size: 3.5rem;
     --hero-dot-size: 0.75rem;

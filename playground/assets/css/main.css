@@ -19,3 +19,29 @@
     @apply bg-neutral-950 text-white;
   }
 }
+
+/* Shared control kit for the demo pages (DemoPage / DemoSection / DemoCode
+   and every page's controls) — one source instead of per-page copies. */
+@layer components {
+  .demo-card { @apply rounded-xl p-4 ring-1 bg-black/[0.02] ring-black/5 dark:bg-white/5 dark:ring-white/10; }
+  .demo-card-title { @apply mb-3 text-xs font-semibold uppercase tracking-wider text-black/70 dark:text-white/70; }
+  .demo-label { @apply mb-1 block text-[11px] font-medium text-black/60 dark:text-white/50; }
+  .demo-field {
+    @apply w-full rounded-lg px-2.5 py-1.5 text-xs ring-1;
+    @apply bg-white ring-black/10 dark:bg-neutral-900 dark:ring-white/15;
+  }
+  .demo-btn {
+    @apply inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors;
+    @apply bg-black/5 text-black hover:bg-black/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/20;
+  }
+  .demo-btn--tiny { @apply px-2 py-1 text-[11px]; }
+  .demo-btn--accent { @apply bg-black text-white hover:bg-black/80 dark:bg-white dark:text-black dark:hover:bg-white/85; }
+  .demo-btn[aria-pressed='true'] { @apply bg-black text-white dark:bg-white dark:text-black; }
+  .demo-chip { @apply rounded-full px-2.5 py-1 font-mono text-[11px] bg-black/5 dark:bg-white/10; }
+  .demo-code { @apply rounded px-1 py-0.5 font-mono text-[0.85em] bg-black/5 dark:bg-white/10; }
+  .demo-code-block {
+    @apply overflow-x-auto rounded-lg p-3 pr-16 font-mono text-[11px] leading-relaxed;
+    @apply bg-black/[0.04] text-black/80 dark:bg-black/40 dark:text-white/80;
+  }
+  .demo-check { @apply flex items-center gap-2 text-xs; }
+}

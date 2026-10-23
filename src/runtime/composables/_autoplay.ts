@@ -1,5 +1,5 @@
-import type { ComputedRef, Ref } from 'vue'
-import { computed, ref, watch } from 'vue'
+import type { ComputedRef, MaybeRefOrGetter, Ref } from 'vue'
+import { computed, ref, toValue, watch } from 'vue'
 import { useDocumentVisibility, useMediaQuery, useRafFn } from '@vueuse/core'
 import type { UseHeroSliderOptions } from '../types'
 
@@ -10,7 +10,9 @@ import type { UseHeroSliderOptions } from '../types'
  *
  * - paused via the public API (`autoplayPause`)
  * - the active slide opts into video-wait (`pauseUntilVideoEnds`)
- * - the slider is hovered
+ * - the slider is hovered (`autoplay.pauseOnMouseEnter`, default true)
+ * - keyboard focus is inside the slider (WCAG 2.2.2 — assistive-tech users
+ *   aren't moved on mid-read)
  * - the slider is scrolled offscreen (`isVisible`)
  * - the browser tab is hidden (`useDocumentVisibility`)
  * - the user prefers reduced motion (`prefers-reduced-motion`)
@@ -23,25 +25,38 @@ import type { UseHeroSliderOptions } from '../types'
  * @param isHovered - Whether the user is hovering over the slider
  * @param options - Swiper options containing autoplay delay config
  * @param isVisible - Whether the slider is currently within the viewport (defaults to always-visible)
+ * @param extra - Optional signals: `isKeyboardFocused`, and `isAtEnd` for `stopOnLastSlide`
  * @returns Autoplay state refs and control functions
+ *
+ * Honours Swiper's `autoplay.pauseOnMouseEnter` (default true),
+ * `disableOnInteraction` (default **false** — Swiper's own default is true;
+ * kept false so existing sliders don't stop after a swipe) and
+ * `stopOnLastSlide` (default false).
  */
 export function createAutoplayState(
   advanceSlide: () => void,
   shouldPauseForVideo: ComputedRef<boolean>,
   isHovered: Ref<boolean>,
-  options: Pick<UseHeroSliderOptions, 'swiperOptions'>,
+  options: MaybeRefOrGetter<Pick<UseHeroSliderOptions, 'swiperOptions'>>,
   isVisible?: Ref<boolean>,
+  extra: { isKeyboardFocused?: Ref<boolean>, isAtEnd?: () => boolean } = {},
 ) {
-  const swiperOptions = options.swiperOptions ?? {}
-
-  const autoplayEnabled = swiperOptions.autoplay !== false
-  const initialDelay =
-    swiperOptions.autoplay && typeof swiperOptions.autoplay === 'object'
-      ? (swiperOptions.autoplay.delay ?? 5000)
-      : 5000
+  // Options may be reactive: on/off is fixed at creation (`autoplayEnabled` is
+  // a plain boolean in the public API); delay and flags follow changes.
+  const autoplayCfg = () => {
+    const autoplay = toValue(options).swiperOptions?.autoplay
+    return typeof autoplay === 'object' ? autoplay : {}
+  }
+  const autoplayEnabled = toValue(options).swiperOptions?.autoplay !== false
+  const initialDelay = autoplayCfg().delay ?? 5000
+  const keyboardFocused = extra.isKeyboardFocused ?? ref(false)
 
   const elapsed = ref(0)
   const autoplayDelay = ref(initialDelay)
+  // Follow a changed `autoplay.delay` (reactive options).
+  watch(() => autoplayCfg().delay, (delay) => {
+    if (delay != null) autoplayDelay.value = delay
+  })
   const autoplayPaused = ref(!autoplayEnabled)
 
   const autoplayProgress = computed(() => Math.min(elapsed.value / autoplayDelay.value, 1))
@@ -58,6 +73,12 @@ export function createAutoplayState(
     ({ delta }) => {
       elapsed.value += delta
       if (elapsed.value >= autoplayDelay.value) {
+        if (autoplayCfg().stopOnLastSlide && extra.isAtEnd?.()) {
+          // Hold a full bar on the last slide instead of rewinding.
+          elapsed.value = autoplayDelay.value
+          autoplayPaused.value = true
+          return
+        }
         advanceSlide()
         elapsed.value = 0
       }
@@ -70,7 +91,8 @@ export function createAutoplayState(
     autoplayEnabled
     && !autoplayPaused.value
     && !shouldPauseForVideo.value
-    && !isHovered.value
+    && !((autoplayCfg().pauseOnMouseEnter ?? true) && isHovered.value)
+    && !keyboardFocused.value
     && visible.value
     && documentVisibility.value !== 'hidden'
     && !prefersReducedMotion.value,
@@ -110,6 +132,11 @@ export function createAutoplayState(
     elapsed.value = 0
   }
 
+  /** A user-driven navigation (drag, arrows, dots, keys, wheel) */
+  function onUserInteraction() {
+    if (autoplayCfg().disableOnInteraction) autoplayPaused.value = true
+  }
+
   return {
     autoplayEnabled,
     autoplayProgress,
@@ -121,5 +148,8 @@ export function createAutoplayState(
     autoplayReset,
     autoplaySetDelay,
     onSlideChange,
+    onUserInteraction,
+    /** Whether the timer is ticking right now (no pause signal holds it) */
+    autoplayRunning: canRun,
   }
 }

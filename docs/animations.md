@@ -184,6 +184,11 @@ useHeroSlider(container, slides, {
 })
 ```
 
+With `<HeroSlider>` alone (drop-in mode), use the props:
+`<HeroSlider enter-animation="hero-animated hero-fadeIn" leave-animation="hero-animated hero-fadeOut">`.
+An `enterAnimation` / `leaveAnimation` in `:options` takes precedence, and the
+props are ignored in controlled mode (`:slider`).
+
 ### animate.css
 
 Install the optional `animate.css` peer dependency for 80+ more animations and
@@ -223,7 +228,9 @@ useHeroSlider(container, slides, {
 
 Available effects: `fade`, `cube`, `coverflow`, `creative`, `cards`, `flip`.
 
-Each effect must be enabled in the module's feature flags:
+Each effect must be enabled. In Nuxt, use the module's feature flags. In plain
+Vue, register the effect module (e.g. `EffectFade`) and import its CSS
+(`swiper/css/effect-fade`):
 
 ```ts
 // nuxt.config.ts

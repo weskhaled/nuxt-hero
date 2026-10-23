@@ -29,6 +29,8 @@ export function createSwiperState(
 
   function onSwiper(swiper: Swiper) {
     swiperInstance.value = swiper
+    // Honour `initialSlide` — Swiper may not start at 0.
+    activeIndex.value = swiper.activeIndex ?? 0
     updateSnapInfo(swiper)
     // Swiper re-measures on container/window resize and manual `.update()` —
     // snapGrid length can change after init (a slider mounted at 0 width, e.g.
@@ -66,6 +68,17 @@ export function createSwiperState(
     swiperInstance.value?.slideTo(index)
   }
 
+  /**
+   * Go to a snap point (a pagination dot). Snaps step by `slidesPerGroup`, so
+   * passing a snap index to `goTo` lands on the wrong slide when groups > 1.
+   */
+  function goToSnap(snap: number) {
+    const s = swiperInstance.value
+    if (!s) return
+    const group = Number(s.params?.slidesPerGroup) || 1
+    s.slideTo(Math.min(snap * group, toValue(slides).length - 1))
+  }
+
   return {
     swiperInstance,
     activeIndex,
@@ -79,5 +92,6 @@ export function createSwiperState(
     next,
     prev,
     goTo,
+    goToSnap,
   }
 }

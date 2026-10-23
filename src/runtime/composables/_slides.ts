@@ -1,7 +1,7 @@
 import type { MaybeRefOrGetter, Ref } from 'vue'
 import { computed, toValue } from 'vue'
-import type { HeroSlide, ResolvedSlideConfig, SlideAnimation } from '../types'
-import { isVideoUrl } from '../utils'
+import type { HeroSlide, HeroVideoControlsConfig, ResolvedSlideConfig, SlideAnimation } from '../types'
+import { isVideoSlide } from '../utils'
 
 /**
  * Creates reactive slide state — active slide, per-slide config resolution,
@@ -20,46 +20,50 @@ export function createSlideState(
   slides: MaybeRefOrGetter<HeroSlide[]>,
   activeIndex: Ref<number>,
   previousIndex: Ref<number>,
-  displayDefaults: {
+  displayDefaults: MaybeRefOrGetter<{
     showPagination?: boolean
     showNavigation?: boolean
     showProgress?: boolean
     showVideoControls?: boolean
+    showAutoplayToggle?: boolean
+    videoControls?: HeroVideoControlsConfig
     watchMode?: boolean
     watchIdleMs?: number
-  },
+  }>,
   videoEnabled = true,
-  enterAnimation = '',
-  leaveAnimation = '',
+  enterAnimation: MaybeRefOrGetter<string> = '',
+  leaveAnimation: MaybeRefOrGetter<string> = '',
 ) {
   const activeSlide = computed<HeroSlide>(() => toValue(slides)[activeIndex.value] ?? { bgSrc: '' })
 
-  const isActiveSlideVideo = computed(() => {
-    if (!videoEnabled) return false
-    const slide = activeSlide.value
-    return slide ? isVideoUrl(slide.bgSrc) : false
-  })
+  const isActiveSlideVideo = computed(() => videoEnabled && isVideoSlide(activeSlide.value))
 
-  const activeSlideConfig = computed<ResolvedSlideConfig>(() => {
-    const cfg = activeSlide.value?.config ?? {}
+  /** Any slide's config: its own `config` over the slider-level defaults. */
+  function getSlideConfig(index: number): ResolvedSlideConfig {
+    const cfg = toValue(slides)[index]?.config ?? {}
+    const defaults = toValue(displayDefaults)
     return {
-      showPagination: cfg.showPagination ?? displayDefaults.showPagination ?? true,
-      showNavigation: cfg.showNavigation ?? displayDefaults.showNavigation ?? true,
-      showProgress: cfg.showProgress ?? displayDefaults.showProgress ?? true,
-      showVideoControls: cfg.showVideoControls ?? displayDefaults.showVideoControls ?? true,
+      showPagination: cfg.showPagination ?? defaults.showPagination ?? true,
+      showNavigation: cfg.showNavigation ?? defaults.showNavigation ?? true,
+      showProgress: cfg.showProgress ?? defaults.showProgress ?? true,
+      showVideoControls: cfg.showVideoControls ?? defaults.showVideoControls ?? true,
+      showAutoplayToggle: cfg.showAutoplayToggle ?? defaults.showAutoplayToggle ?? false,
+      videoControls: { ...defaults.videoControls, ...cfg.videoControls },
       videoLoop: cfg.videoLoop ?? false,
       pauseUntilVideoEnds: cfg.pauseUntilVideoEnds ?? false,
       mediaControlsOptions: cfg.mediaControlsOptions,
-      watchMode: cfg.watchMode ?? displayDefaults.watchMode ?? false,
-      watchIdleMs: cfg.watchIdleMs ?? displayDefaults.watchIdleMs ?? 10000,
+      watchMode: cfg.watchMode ?? defaults.watchMode ?? false,
+      watchIdleMs: cfg.watchIdleMs ?? defaults.watchIdleMs ?? 10000,
     }
-  })
+  }
+
+  const activeSlideConfig = computed<ResolvedSlideConfig>(() => getSlideConfig(activeIndex.value))
 
   function resolveAnimation(index: number): SlideAnimation {
     const slide = toValue(slides)[index]
     return {
-      enter: slide?.animation?.enter || enterAnimation || undefined,
-      leave: slide?.animation?.leave || leaveAnimation || undefined,
+      enter: slide?.animation?.enter || toValue(enterAnimation) || undefined,
+      leave: slide?.animation?.leave || toValue(leaveAnimation) || undefined,
     }
   }
 
@@ -74,6 +78,7 @@ export function createSlideState(
     activeSlide,
     isActiveSlideVideo,
     activeSlideConfig,
+    getSlideConfig,
     animationClass,
   }
 }

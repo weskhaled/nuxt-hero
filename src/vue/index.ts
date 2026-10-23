@@ -41,7 +41,12 @@ import HeroIcon from '../runtime/components/HeroIcon.vue'
 // ─── Options ───
 
 export interface HeroPluginOptions extends Partial<Omit<HeroRuntimeConfig, 'features' | 'parallaxComponent'>> {
-  /** Feature flags — default: everything except `hls` enabled. */
+  /**
+   * Feature flags — default: navigation, pagination, video, parallax and a11y
+   * on (`hls` off). Parallax also needs `parallaxComponent`. Swiper modules
+   * come only from `swiperModules` here — `keyboard`, `mousewheel`, `effects`
+   * etc. are Nuxt-module flags.
+   */
   features?: HeroRuntimeConfig['features']
   /**
    * Component name prefix for global registration. Default: `'Hero'`
@@ -144,6 +149,8 @@ export type {
   HeroAnimationContext,
   HeroAnimationHandle,
   HeroSlideDirection,
+  HeroSlideChange,
+  HeroVideoControlsConfig,
   HeroSliderProps,
   HeroSliderUI,
   HeroLabels,

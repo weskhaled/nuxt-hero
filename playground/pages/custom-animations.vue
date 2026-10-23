@@ -172,15 +172,9 @@ const animateCss = useHeroSlider(animateCssRef, animateCssSlides, { swiperOption
 </script>
 
 <template>
-  <div class="mx-auto max-w-6xl space-y-16 px-4 pb-24 pt-20">
-    <header class="max-w-2xl">
-      <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">Animations</h1>
-      <p class="mt-3 text-black/60 dark:text-white/60">
-        Choreograph slide content element by element with <code class="code">data-hero-animate</code>:
-        14 CSS presets, automatic stagger, direction awareness — no dependencies. Plug in any JS engine
-        through hooks when you need more.
-      </p>
-    </header>
+  <DemoPage title="Animations"
+    description="Choreograph slide content element by element with data-hero-animate: 14 CSS presets, automatic stagger, direction awareness — no dependencies. Plug in any JS engine through hooks when you need more."
+    :features="['data-hero-animate', 'animate option', 'onEnter / onLeave', 'replayAnimation()', 'enter / leave classes']">
 
     <!-- ─── 1. Choreography ─── -->
     <section class="space-y-4">
@@ -214,38 +208,38 @@ const animateCss = useHeroSlider(animateCssRef, animateCssSlides, { swiperOption
       </HeroSlider>
 
       <div class="grid gap-4 lg:grid-cols-3">
-        <div class="card">
-          <h3 class="card-title">Elements</h3>
+        <div class="demo-card">
+          <h3 class="demo-card-title">Elements</h3>
           <label v-for="f in ROLE_FIELDS" :key="f.key" class="mb-3 block">
-            <span class="field-label">{{ f.label }}</span>
-            <select v-model="roles[f.key]" class="field" @change="choreo.replayAnimation()">
+            <span class="demo-label">{{ f.label }}</span>
+            <select v-model="roles[f.key]" class="demo-field" @change="choreo.replayAnimation()">
               <option v-for="p in PRESETS" :key="p.value" :value="p.value">{{ p.value }} — {{ p.hint }}</option>
             </select>
           </label>
         </div>
 
-        <div class="card">
-          <h3 class="card-title">Timing</h3>
+        <div class="demo-card">
+          <h3 class="demo-card-title">Timing</h3>
           <label v-for="f in TIMING_FIELDS" :key="f.key" class="mb-2.5 block">
-            <span class="field-label flex justify-between"><span>{{ f.label }}</span><span class="tabular-nums">{{ timing[f.key] }}{{ f.unit }}</span></span>
+            <span class="demo-label flex justify-between"><span>{{ f.label }}</span><span class="tabular-nums">{{ timing[f.key] }}{{ f.unit }}</span></span>
             <input v-model.number="timing[f.key]" type="range" :min="f.min" :max="f.max" :step="f.step"
               class="w-full accent-current" @change="choreo.replayAnimation()">
           </label>
           <label class="block">
-            <span class="field-label">Easing</span>
-            <select v-model="timing.easing" class="field" @change="choreo.replayAnimation()">
+            <span class="demo-label">Easing</span>
+            <select v-model="timing.easing" class="demo-field" @change="choreo.replayAnimation()">
               <option v-for="e in EASINGS" :key="e.value" :value="e.value">{{ e.label }}</option>
             </select>
           </label>
         </div>
 
-        <div class="card flex flex-col">
-          <h3 class="card-title">Code</h3>
-          <pre class="code-block flex-1">{{ snippet }}</pre>
+        <div class="demo-card flex flex-col">
+          <h3 class="demo-card-title">Code</h3>
+          <pre class="demo-code-block flex-1">{{ snippet }}</pre>
           <div class="mt-3 flex flex-wrap gap-2">
-            <button type="button" class="btn" @click="choreo.prev()">← Prev</button>
-            <button type="button" class="btn" @click="choreo.next()">Next →</button>
-            <button type="button" class="btn btn--accent" @click="choreo.replayAnimation()">Replay</button>
+            <button type="button" class="demo-btn" @click="choreo.prev()">← Prev</button>
+            <button type="button" class="demo-btn" @click="choreo.next()">Next →</button>
+            <button type="button" class="demo-btn demo-btn--accent" @click="choreo.replayAnimation()">Replay</button>
           </div>
         </div>
       </div>
@@ -258,7 +252,7 @@ const animateCss = useHeroSlider(animateCssRef, animateCssSlides, { swiperOption
           <h2 class="section-title">Presets</h2>
           <p class="section-hint">Hover to replay · click to use it for the title above.</p>
         </div>
-        <button type="button" class="btn" @click="galleryRun++">Replay all</button>
+        <button type="button" class="demo-btn" @click="galleryRun++">Replay all</button>
       </div>
       <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
         <button v-for="p in PRESETS" :key="p.value" type="button"
@@ -280,14 +274,14 @@ const animateCss = useHeroSlider(animateCssRef, animateCssSlides, { swiperOption
       <div>
         <h2 class="section-title">Direction-aware</h2>
         <p class="section-hint mb-4">
-          <code class="code">slide</code> enters from the side you travel toward and leaves the other way —
+          <code class="demo-code">slide</code> enters from the side you travel toward and leaves the other way —
           vertical sliders and RTL included. The intro waits until the slider is on screen
-          (<code class="code">initial: 'visible'</code>).
+          (<code class="demo-code">initial: 'visible'</code>).
         </p>
         <div class="flex items-center gap-2">
-          <button type="button" class="btn" @click="direction.prev()">← Prev</button>
-          <button type="button" class="btn" @click="direction.next()">Next →</button>
-          <span class="chip">direction: {{ direction.direction.value }}</span>
+          <button type="button" class="demo-btn" @click="direction.prev()">← Prev</button>
+          <button type="button" class="demo-btn" @click="direction.next()">Next →</button>
+          <span class="demo-chip">direction: {{ direction.direction.value }}</span>
         </div>
       </div>
       <HeroSlider ref="directionRef" :slider="direction" :slides="directionSlides" :overlay-patterns="[]"
@@ -330,11 +324,11 @@ const animateCss = useHeroSlider(animateCssRef, animateCssSlides, { swiperOption
       <div>
         <h2 class="section-title">JS hooks</h2>
         <p class="section-hint mb-3">
-          <code class="code">onEnter</code> / <code class="code">onLeave</code> get the slide's content element. Return a
-          Web Animations <code class="code">Animation</code>, a GSAP timeline, or a cleanup function — it's stopped
+          <code class="demo-code">onEnter</code> / <code class="demo-code">onLeave</code> get the slide's content element. Return a
+          Web Animations <code class="demo-code">Animation</code>, a GSAP timeline, or a cleanup function — it's stopped
           automatically when the slide changes again.
         </p>
-        <pre class="code-block">{{ `{ animation: {
+        <pre class="demo-code-block">{{ `{ animation: {
     onEnter: (el, { direction }) =>
       gsap.timeline().from(
         el.querySelectorAll('.line'),
@@ -350,7 +344,7 @@ const animateCss = useHeroSlider(animateCssRef, animateCssSlides, { swiperOption
         <h2 class="section-title">Class-based</h2>
         <p class="section-hint">
           The classic API animates the whole content block with one class: the built-in
-          <code class="code">hero-*</code> keyframes or any animate.css class.
+          <code class="demo-code">hero-*</code> keyframes or any animate.css class.
         </p>
       </div>
       <!-- min-w-0: a Swiper inside a grid item with `min-width: auto` grows without bound. -->
@@ -379,33 +373,16 @@ const animateCss = useHeroSlider(animateCssRef, animateCssSlides, { swiperOption
         </div>
       </div>
     </section>
-  </div>
+  </DemoPage>
 </template>
 
 <style scoped>
 @reference "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Page-specific bits only — controls use the shared demo-* kit (main.css). */
 .section-title { @apply text-xl font-semibold tracking-tight; }
 .section-hint { @apply mt-1 text-sm text-black/60 dark:text-white/60; }
-.card { @apply rounded-xl p-4 ring-1 bg-black/[0.02] ring-black/5 dark:bg-white/5 dark:ring-white/10; }
-.card-title { @apply mb-3 text-xs font-semibold uppercase tracking-wider text-black/70 dark:text-white/70; }
-.field-label { @apply mb-1 block text-[11px] font-medium text-black/60 dark:text-white/50; }
-.field {
-  @apply w-full rounded-lg px-2.5 py-1.5 text-xs ring-1;
-  @apply bg-white ring-black/10 dark:bg-neutral-900 dark:ring-white/15;
-}
-.btn {
-  @apply inline-flex cursor-pointer items-center rounded-lg px-3 py-1.5 text-xs font-medium transition-colors;
-  @apply bg-black/5 text-black hover:bg-black/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/20;
-}
-.btn--accent { @apply bg-black text-white hover:bg-black/80 dark:bg-white dark:text-black dark:hover:bg-white/85; }
-.chip { @apply rounded-full px-2.5 py-1 font-mono text-[11px] bg-black/5 dark:bg-white/10; }
-.code { @apply rounded px-1 py-0.5 font-mono text-[0.85em] bg-black/5 dark:bg-white/10; }
-.code-block {
-  @apply overflow-x-auto rounded-lg p-3 font-mono text-[11px] leading-relaxed;
-  @apply bg-black/[0.04] text-black/80 dark:bg-black/40 dark:text-white/80;
-}
 .tile {
   @apply cursor-pointer rounded-xl p-3 text-center ring-1 transition-colors;
   @apply bg-black/[0.02] ring-black/5 hover:ring-black/20 dark:bg-white/5 dark:ring-white/10 dark:hover:ring-white/30;

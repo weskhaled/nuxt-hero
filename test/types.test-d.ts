@@ -61,12 +61,14 @@ export const _nextCheck: NextIsFn = true
 export const _overlayType: OverlayPatternType = 'lines'
 export const _overlay: OverlayPattern = { type: 'dots', opacity: 0.2 }
 export const _parallax: ParallaxConfig = { bg: true, speed: 0.125 }
-export const _ui: HeroSliderUI = { root: 'relative', swiper: 'h-full' }
+export const _ui: HeroSliderUI = { root: 'relative', swiper: 'h-full', pagination: 'gap-2', playButton: 'size-16' }
 export const _resolved: ResolvedSlideConfig = {
   showPagination: true,
   showNavigation: true,
   showProgress: true,
   showVideoControls: true,
+  showAutoplayToggle: false,
+  videoControls: { settings: { rates: [1, 1.5] }, fullscreen: false },
   videoLoop: false,
   pauseUntilVideoEnds: false,
   watchMode: false,

@@ -38,6 +38,23 @@ Add the CSS of any Swiper effect/module you use (mirrors Swiper's own docs):
 import 'swiper/css/effect-fade'
 ```
 
+### Cascade layers (optional)
+
+To make your own classes always win over Swiper's CSS and `hero.css` (the
+equivalent of the Nuxt module's `cssLayer: true`), import them into layers from
+a CSS file instead:
+
+```css
+/* main.css — first, so the order statement comes before other CSS */
+@layer theme, base, hero-vendor, hero, components, utilities;
+@import 'swiper/css' layer(hero-vendor);
+@import 'swiper/css/effect-fade' layer(hero-vendor);
+@import 'nuxt-hero/hero.css' layer(hero);
+```
+
+Unlayered app CSS (resets included) then also beats the slider's styles. See
+[Theming → Cascade layers](/theming#cascade-layers).
+
 ## Option A — app plugin
 
 Registers global components (`<HeroSlider>` etc.) and provides app-wide config:
@@ -58,9 +75,10 @@ createApp(App)
     swiperModules: [A11y, Keyboard, EffectFade],
     defaultVolume: 0,
     darkMode: 'class', // or 'media' for prefers-color-scheme
-    // features default to everything-on except `hls`; flags only gate which
-    // chrome renders (navigation / pagination / video / parallax / a11y)
-    // features: { navigation: true, pagination: true },
+    // features default to navigation, pagination, video, a11y and parallax on
+    // (hls off). Here they only gate what renders; Swiper modules come from
+    // `swiperModules` above.
+    // features: { navigation: false },
     // prefix: 'Hero',            // <HeroSlider> — change for <MySlider>
     // registerComponents: false, // provide config only, import components yourself
     // imageComponent: MyImage,   // custom image component for slide backgrounds
@@ -90,6 +108,24 @@ app.use(HeroPlugin, {
 Both stay lazy: the parallax chunk (and gsap) downloads only when a parallax
 slider actually renders; hls.js only when an `.m3u8` source plays.
 
+### Feature flags in Vue
+
+The plugin's `features` default to `navigation`, `pagination`, `video`, `a11y`
+and `parallax` on, with `hls` off. They are the same defaults as the Nuxt
+module. Outside Nuxt the flags only decide what renders:
+
+| Flag | Effect in Vue |
+|------|---------------|
+| `navigation` / `pagination` | Render the arrows / the pagination pill |
+| `video` | Render video backgrounds and controls (when off, video URLs are rendered as images) |
+| `hls` | Play `.m3u8` sources, through `hlsLoader` or natively where supported (Safari). When off, they don't play |
+| `parallax` | Render the parallax layer. It also needs `parallaxComponent` |
+
+Swiper modules (`A11y`, `Keyboard`, `Mousewheel`, effects, …) are **not** driven
+by flags here. Pass them in `swiperModules` or per instance in
+`swiperOptions.modules`. For example, `swiperOptions.mousewheel` does nothing
+(and logs a dev warning) until `Mousewheel` is registered.
+
 ```vue
 <template>
   <HeroSlider :slides="slides" style="height: 100vh">
@@ -102,8 +138,10 @@ slider actually renders; hls.js only when an `.m3u8` source plays.
 
 ## Option B — à la carte (tree-shaken)
 
-No plugin needed — import components/composables directly, VueUse-style.
-Defaults apply (all features on except `hls`); pass Swiper modules per instance:
+No plugin needed: import components and composables directly, VueUse-style.
+The default flags apply (`navigation`, `pagination`, `video`, `a11y`,
+`parallax`), but with no `parallaxComponent` there's no parallax. Pass Swiper
+modules per instance:
 
 ```vue
 <script setup>
@@ -155,7 +193,7 @@ const slider = useHeroSlider(containerRef, slides, { swiperOptions: { autoplay: 
 | `useHeroSlider`, `useHeroEnvironment`, `useHeroDark` | composables | same API as the Nuxt auto-imports |
 | `createHeroConfig`, `HERO_CONFIG_KEY`, `HERO_CONFIG_DEFAULTS`, `resolveFeatures` | config | advanced: provide your own config scope |
 | `isVideoUrl`, `isHlsUrl`, `formatTime`, `resolveParallaxConfig` | utils | |
-| all public types | types | `HeroSlideData` is the slide **type** (`HeroSlide` names the component here) |
+| public types | types | `HeroSlideData` is the slide **type** (`HeroSlide` names the component here). See [Types](/types) |
 
 The parallax layer is a **separate entry** — `nuxt-hero/vue/parallax` exports
 `HeroParallax` (and is the only entry that references gsap).
@@ -164,9 +202,11 @@ The parallax layer is a **separate entry** — `nuxt-hero/vue/parallax` exports
 
 | | Nuxt module | Vue plugin |
 |---|---|---|
+| Feature defaults | `navigation`, `pagination`, `video`, `a11y` on; `parallax` when `gsap` is installed | `navigation`, `pagination`, `video`, `a11y`, `parallax` on (parallax needs `parallaxComponent`) |
 | Swiper modules | auto-imported from `features` flags | you pass `swiperModules` (or per-instance `swiperOptions.modules`) |
 | Swiper/effect CSS | injected automatically | you import (`swiper/css`, `swiper/css/effect-*`) |
 | `hero.css` | injected automatically | you import `nuxt-hero/hero.css` |
+| Cascade layers | `cssLayer: true` | `@import … layer(hero)` (see [above](#cascade-layers-optional)) |
 | Slide images | `<NuxtImg>` when `@nuxt/image` is installed | native `<img>` (or pass `imageComponent`) |
 | Scroll parallax | auto-wired when `features.parallax` | `parallaxComponent: () => import('nuxt-hero/vue/parallax')` |
 | HLS (`.m3u8`) | auto-wired when `features.hls` | `hlsLoader: () => import('hls.js')` (Safari plays natively without it) |

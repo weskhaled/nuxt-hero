@@ -165,8 +165,12 @@ const slider = useHeroSlider(containerRef, slides, {
 </template>
 ```
 
+`mousewheel` needs Swiper's Mousewheel module: `features: { mousewheel: true }`
+in `nuxt.config.ts`, or `Mousewheel` in `swiperModules` in plain Vue. Without it
+the option does nothing, and a dev warning says so.
+
 ::: tip
-Vertical direction auto-adapts the UI: pagination moves to the side, navigation arrows go top/bottom, and the progress bar renders vertically.
+Vertical direction adapts the UI: pagination moves to the side, navigation arrows go top/bottom, and the progress bar renders vertically.
 :::
 
 ## Video Background with Watch Mode
@@ -229,7 +233,7 @@ const slider = useHeroSlider(containerRef, slides, {
   <div>
     <HeroSlider ref="containerRef" :slider="slider" :slides="slides" class="h-screen" />
 
-    <!-- External autoplay controls -->
+    <!-- External autoplay controls (or use the built-in `showAutoplayToggle: true`) -->
     <div class="fixed bottom-4 right-4 flex gap-2">
       <button @click="slider.autoplayPause()">Pause</button>
       <button @click="slider.autoplayResume()">Resume</button>
@@ -245,21 +249,47 @@ const slider = useHeroSlider(containerRef, slides, {
 <HeroSlider ref="containerRef" :slider="slider" :slides="slides">
   <template #navigation="{ prev, next, vertical }">
     <div :class="vertical ? 'flex-col' : 'flex-row'" class="absolute inset-0 flex justify-between items-center p-4">
-      <button @click="prev" class="btn">Prev</button>
-      <button @click="next" class="btn">Next</button>
+      <button type="button" class="btn pointer-events-auto" @click="prev()">Prev</button>
+      <button type="button" class="btn pointer-events-auto" @click="next()">Next</button>
     </div>
   </template>
 
-  <template #pagination="{ activeIndex, total, goTo }">
-    <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-3">
+  <template #pagination="{ snapIndex, totalSnaps, goToSnap }">
+    <div class="pointer-events-auto absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-3">
       <button
-        v-for="i in total"
+        v-for="i in totalSnaps"
         :key="i"
-        :class="activeIndex === i - 1 ? 'bg-white' : 'bg-white/40'"
+        type="button"
+        :aria-label="`Go to slide ${i}`"
+        :class="snapIndex === i - 1 ? 'bg-white' : 'bg-white/40'"
         class="size-3 rounded-full transition"
-        @click="goTo(i - 1)"
+        @click="goToSnap(i - 1)"
       />
     </div>
   </template>
 </HeroSlider>
+```
+
+The controls layer has `pointer-events: none` (so it never blocks swiping).
+Custom controls need `pointer-events: auto`. Dots map to snap points, so use
+`goToSnap`, which is correct with `slidesPerGroup > 1`.
+
+## Synced State (`v-model`)
+
+```vue
+<script setup>
+const active = ref(0)
+</script>
+
+<template>
+  <HeroSlider v-model:active-index="active" :slides="slides" class="h-screen" />
+
+  <ol class="flex gap-2">
+    <li v-for="(slide, i) in slides" :key="i">
+      <button type="button" :aria-current="active === i ? 'true' : undefined" @click="active = i">
+        {{ slide.title }}
+      </button>
+    </li>
+  </ol>
+</template>
 ```

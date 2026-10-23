@@ -1,9 +1,13 @@
 import type { SwiperEffect } from './types'
 
-/** Maps boolean feature flags to their Swiper module import name */
+/**
+ * Maps boolean feature flags to their Swiper module import name. The hero's
+ * own `navigation` / `pagination` flags are NOT here — the slider renders its
+ * own controls; Swiper's modules (and CSS) ship only when asked for.
+ */
 export const SWIPER_MODULE_MAP: Record<string, { module: string; css?: string }> = {
-  navigation: { module: 'Navigation', css: 'swiper/css/navigation' },
-  pagination: { module: 'Pagination', css: 'swiper/css/pagination' },
+  swiperNavigation: { module: 'Navigation', css: 'swiper/css/navigation' },
+  swiperPagination: { module: 'Pagination', css: 'swiper/css/pagination' },
   mousewheel: { module: 'Mousewheel' },
   keyboard: { module: 'Keyboard' },
   a11y: { module: 'A11y' },

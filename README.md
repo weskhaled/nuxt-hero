@@ -10,10 +10,11 @@ A full-featured hero slider for **Nuxt** and **plain Vue 3** — parallax, video
 - GSAP-powered parallax (background + content) — **lazy-loaded**, only when `parallax` is enabled
 - Video backgrounds (MP4, WebM, HLS via hls.js) — **lazy-loaded**, only on video slides
 - Touch-friendly chrome: bigger targets on coarse pointers, tap-to-play stays visible, safe-area aware in fullscreen
-- Keyboard accessible: visible `:focus-visible` rings, ARIA menu for playback speed, WAI-ARIA APG carousel pattern, localizable labels
+- Accessible: WAI-ARIA APG carousel pattern, visible `:focus-visible` rings, autoplay that pauses on hover / keyboard focus / reduced motion plus an optional pause toggle (WCAG 2.2.2), localizable labels
 - Overlay patterns (lines, dots, gradient, custom)
 - Dark mode via the `.dark` class (Tailwind / Nuxt UI compatible) or `prefers-color-scheme`
-- Themeable chrome via `--hero-*` CSS variables (accent adopts your `--ui-primary`)
+- Themeable chrome via `--hero-*` CSS variables (accent adopts your `--ui-primary`), `ui` class overrides, optional cascade layers
+- `v-model:active-index`, `change` / `videoEnded` events, and slots for every part (background, pagination, navigation, progress, video controls, play button)
 - Full RTL support (slide direction syncs at init + on runtime locale switch)
 - Mobile / PWA "lite mode": no video autoplay/preload + no parallax on Save-Data / slow connections
 - Element-by-element content choreography (`data-hero-animate`: 14 CSS presets, auto-stagger, direction-aware, zero deps) + JS hooks for GSAP / Web Animations; animate.css classes still work
@@ -36,7 +37,11 @@ export default defineNuxtConfig({
 })
 ```
 
-That's it — styles are injected automatically. No Tailwind, color-mode or icon setup needed.
+That's it. Styles are injected automatically, and no Tailwind, color-mode or
+icon setup is needed. Navigation arrows, pagination, video backgrounds and
+Swiper's A11y module are on by default. Scroll parallax is on too when `gsap` is
+installed. Turn any of them off with
+[`features`](docs/configuration.md#feature-flags).
 
 ### Optional peers (only if you use the matching feature)
 
@@ -45,7 +50,7 @@ pnpm add @nuxt/image gsap hls.js animate.css
 ```
 
 - `@nuxt/image` — optimized backgrounds (auto-detected; `imagePreset` / `imageSizes` activate)
-- `gsap` — only for scroll `parallax` (`features.parallax: true`)
+- `gsap` — scroll parallax (the `parallax` feature turns on once it's installed)
 - `hls.js` — `.m3u8` video on non-Safari browsers (`features.hls: true`)
 - `animate.css` — extra animation classes for `enterAnimation` / `leaveAnimation`
 
@@ -74,8 +79,9 @@ createApp(App)
   .use(HeroPlugin, {
     // Swiper modules every slider gets (pass what you use)
     swiperModules: [A11y, EffectFade],
-    // features default to everything-on except `hls`
-    // features: { navigation: true, pagination: true, video: true, parallax: true },
+    // features default to navigation, pagination, video, a11y, parallax on (hls off);
+    // in Vue they only gate rendering, and parallax also needs `parallaxComponent`
+    // features: { navigation: false },
   })
   .mount('#app')
 ```
@@ -143,13 +149,25 @@ const slides = [
     :overlay-patterns="[{ type: 'lines', opacity: 0.1 }]"
     class="h-screen"
   >
-    <template #slide="{ slide, isVideo, videoPlaying, videoToggle }">
+    <template #slide="{ slide }">
       <div class="flex size-full items-center justify-center">
-        <h1 class="text-5xl font-bold text-white">{{ slide.title }}</h1>
+        <h1 data-hero-animate="fade-up" class="text-5xl font-bold text-white">{{ slide.title }}</h1>
       </div>
     </template>
   </HeroSlider>
 </template>
+```
+
+The slider fills its parent (`height: 100%`), so give it a height. Tailwind's
+`h-screen` is used here, but `style="height: 100svh"` or any class of your own
+works just as well.
+
+Read and drive the active slide with `v-model:active-index`, and react to changes
+with `@change`:
+
+```vue
+<!-- onChange receives { index, previousIndex, direction, slide } -->
+<HeroSlider v-model:active-index="active" :slides="slides" @change="onChange" />
 ```
 
 Need external controls? Put a `ref` on `<HeroSlider>` — the internally-created
@@ -195,8 +213,9 @@ const slider = useHeroSlider(containerRef, slides, {
 </template>
 ```
 
-> When `:slider` is passed, the `options` prop is ignored — configure the
-> controlled instance through `useHeroSlider()` instead.
+> When `:slider` is passed, the `options`, `enter-animation` and
+> `leave-animation` props are ignored. Configure the controlled instance through
+> `useHeroSlider()` instead.
 
 ## Props
 
@@ -205,18 +224,19 @@ const slider = useHeroSlider(containerRef, slides, {
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `slides` | `HeroSlide[]` | required | Array of slide objects |
-| `slider` | `UseHeroSliderReturn` | — | Optional. Pass a `useHeroSlider()` return value for *controlled* mode. Omit for the drop-in mode (the component creates its own). |
-| `options` | `UseHeroSliderOptions` | `{}` | Composable config for the *uncontrolled* mode. Ignored when `slider` is passed. |
-| `enterAnimation` | `string` | `''` | Default enter animation class |
-| `leaveAnimation` | `string` | `''` | Default leave animation class |
+| `activeIndex` | `number` | — | Active slide, for `v-model:active-index` (also sets the starting slide) |
+| `slider` | `UseHeroSliderReturn` | — | A `useHeroSlider()` return value for *controlled* mode. Omit it for drop-in mode |
+| `options` | `UseHeroSliderOptions` | — | Composable options for drop-in mode (reactive). Ignored with `slider` |
+| `enterAnimation` / `leaveAnimation` | `string` | `''` | Default content animation classes (drop-in mode) |
 | `overlayPatterns` | `OverlayPattern[]` | `[{ type: 'lines', opacity: 0.1 }]` | Stacked overlay patterns |
-| `parallax` | `boolean \| ParallaxConfig` | `true` | Parallax configuration |
-| `imagePreset` | `string` | `''` | `@nuxt/image` preset name |
-| `imageSizes` | `string` | `''` | `@nuxt/image` `sizes` DSL → responsive `srcset` so small screens fetch a smaller image. Off by default; set `'100vw'` for a full-bleed hero **with a transform-capable provider**. Use the key:value DSL (`'100vw'`, `'xs:100vw md:50vw'`), **not** CSS `sizes` syntax. |
-| `as` | `string` | `'div'` | Wrapper element tag |
+| `parallax` | `boolean \| ParallaxConfig` | `true` | Scroll parallax configuration |
+| `imagePreset` / `imageSizes` | `string` | `''` | `@nuxt/image` preset / `sizes` DSL for backgrounds |
+| `as` | `string` | `'div'` | Root element tag |
 | `ui` | `HeroSliderUI` | `{}` | Class overrides for internal elements |
-| `dataSaver` | `'auto' \| boolean` | `'auto'` | Lite mode for constrained clients. `'auto'` follows the environment (Save-Data / `prefers-reduced-data` / slow connection); `true`/`false` force it. Suppresses video autoplay + preload and skips parallax. |
-| `labels` | `HeroLabels` | `{}` | Localizable `aria-label`s for nav / video controls / carousel region |
+| `labels` | `HeroLabels` | — | Localizable accessible labels |
+| `dataSaver` | `'auto' \| boolean` | `'auto'` | Lite mode for constrained clients (no video autoplay/preload, no parallax) |
+
+Details: [docs/components.md](docs/components.md).
 
 ### `HeroSlide` object
 
@@ -224,64 +244,42 @@ const slider = useHeroSlider(containerRef, slides, {
 |-------|------|----------|-------------|
 | `bgSrc` | `string` | yes | Background image or video URL |
 | `bgDarkSrc` | `string` | no | Dark mode background URL |
-| `thumbSrc` | `string` | no | Thumbnail for navigation preview |
+| `bgType` | `'image' \| 'video' \| 'hls'` | no | Media type for URLs without a telling extension |
+| `bgAlt` | `string` | no | Alt text for an informative image (default: decorative `''`) |
+| `thumbSrc` | `string` | no | Thumbnail for navigation / pagination previews |
 | `title` | `string` | no | Slide title |
 | `poster` | `string` | no | Poster frame for video backgrounds |
 | `animation` | `SlideAnimation` | no | Per-slide classes (`enter` / `leave`), choreography timing and `onEnter` / `onLeave` hooks |
-| `config` | `SlideConfig` | no | Per-slide display & media config |
+| `config` | `SlideConfig` | no | Per-slide display and media config (`showProgress`, `videoLoop`, `pauseUntilVideoEnds`, `videoControls`, `watchMode`, …) |
 
-### `SlideConfig`
+`SlideConfig`, `ParallaxConfig`, `OverlayPattern`, `HeroSliderUI` and the other
+types are in [docs/types.md](docs/types.md).
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `showPagination` | `boolean` | inherited | Show pagination when this slide is active |
-| `showNavigation` | `boolean` | inherited | Show navigation when this slide is active |
-| `showProgress` | `boolean` | inherited | Show progress bar when this slide is active |
-| `showVideoControls` | `boolean` | inherited | Show video controls (video slides only) |
-| `videoLoop` | `boolean` | `false` | Loop video playback |
-| `mediaControlsOptions` | `MediaControlsOptions` | — | VueUse useMediaControls options |
+## Events
 
-### `ParallaxConfig`
-
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `bg` | `boolean` | `true` | Enable background parallax |
-| `content` | `boolean` | `true` | Enable content parallax |
-| `speed` | `number` | `0.125` | Parallax speed multiplier |
-| `minOpacity` | `number` | `0.7` | Minimum content opacity on scroll |
-
-### `OverlayPattern`
-
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `type` | `'lines' \| 'dots' \| 'gradient' \| 'custom'` | required | Pattern type |
-| `opacity` | `number` | `0.15` | Pattern opacity |
-| `color` | `string` | `'black'` | Pattern color |
-| `css` | `string` | — | Custom CSS `background-image` (for `type: 'custom'`) |
-
-### `HeroSliderUI`
-
-Class overrides for internal elements (Nuxt UI-style):
-
-| Field | Description |
-|-------|-------------|
-| `root` | Root wrapper element |
-| `swiper` | Swiper container |
-| `slide` | Each SwiperSlide |
-| `container` | Slide inner container (`.hero-slide`) |
-| `bg` | Slide background layer (`.hero-slide-bg`) |
-| `controls` | UI controls overlay (pagination, navigation, progress) |
-| `progress` | Autoplay progress bar track |
+| Event | Payload | When |
+|-------|---------|------|
+| `change` | `{ index, previousIndex, direction, slide }` | After every slide change |
+| `update:activeIndex` | `number` | After every slide change (`v-model:active-index`) |
+| `swiper` | Swiper instance | Once Swiper is created |
+| `videoEnded` | `number` (slide index) | The active slide's video reached its end |
 
 ## Slots
 
 | Slot | Props | Description |
 |------|-------|-------------|
-| `slide` | `{ slide, index, isActive, animationClass, isVideo, videoPlaying, videoDuration, videoCurrentTime, videoWaiting, videoEnded, videoMuted, videoVolume, videoToggle, videoSeek, videoSetVolume, videoToggleMute }` | Slide content |
-| `pagination` | `{ activeIndex, snapIndex, totalSnaps, total, progress, goTo, vertical, autoplayEnabled }` | Custom pagination |
+| `slide` | `{ slide, index, isActive, animationClass, isVideo, videoPlaying, videoDuration, videoCurrentTime, videoWaiting, videoEnded, videoMuted, videoVolume, videoToggle, videoSeek, videoSetVolume, videoToggleMute, next, prev, goTo }` | Slide content |
+| `background` | `{ src, isVideo, isActive, poster, eager, slide, index }` | Replace the background media |
+| `overlay` | `{ patterns, slide, index, isActive, patternCSS, patternSize }` | Custom overlay rendering |
+| `pagination` | `{ activeIndex, snapIndex, totalSnaps, total, progress, goTo, goToSnap, vertical, autoplayEnabled }` | Custom pagination (dots should call `goToSnap`) |
 | `navigation` | `{ prev, next, activeIndex, slides, vertical }` | Custom navigation |
-| `overlay` | `{ patterns, index, isActive, patternCSS, patternSize }` | Custom overlay rendering |
-| `video-controls` | `{ playing, currentTime, duration, buffered, volume, muted, waiting, hls }` | Custom video controls |
+| `progress` | `{ progress, vertical, paused, running, pause, resume }` | Custom autoplay progress |
+| `video-controls` | `{ playing, togglePlay, currentTime, duration, buffered, volume, muted, waiting, rate, seek, hls, index, slide, toggleFullscreen }` | Custom video controls (media state props are refs: use `.value`) |
+| `play-button` | `{ playing, waiting, progress, toggle, index, slide }` | Custom centered play button |
+
+Custom `pagination` / `navigation` / `progress` content sits in a
+`pointer-events: none` layer. Give interactive elements `pointer-events: auto`.
+Full reference and examples: [docs/components.md](docs/components.md#slots).
 
 ## Animations
 
@@ -320,88 +318,61 @@ export default defineNuxtConfig({
     prefix: 'Hero',       // Component name prefix
     defaultVolume: 0,     // Default volume for video backgrounds (0-1)
     darkMode: 'class',    // 'class' (.dark on <html>) | 'media' (prefers-color-scheme)
-    features: {           // Opt-in Swiper modules / capabilities (a11y is on by default)
-      navigation: true,
-      pagination: true,
-      parallax: true,
+    cssLayer: false,      // true: Swiper CSS + hero.css in cascade layers, so your classes win
+    features: {           // Defaults: navigation, pagination, video, a11y on; parallax when gsap is installed
+      keyboard: true,     // Swiper modules are opt-in…
+      effects: ['fade'],
     },
   },
 })
 ```
 
-> The old `tailwind` option is deprecated and ignored — hero styles ship as
+> The old `tailwind` option is deprecated and ignored. Hero styles ship as
 > plain CSS, so no Tailwind pipeline (and no `@nuxtjs/color-mode`) is required.
 
-See the [configuration docs](./docs/configuration.md) for all options, feature
-flags, dark mode, RTL, theming (`--hero-*` variables), and accessibility.
+See the [configuration docs](docs/configuration.md) for all options and feature
+flags, including `swiperNavigation` / `swiperPagination` for Swiper's native
+controls. Coming from 0.7? Read [docs/upgrading.md](docs/upgrading.md).
+
+## Theming & Accessibility
+
+- [docs/theming.md](docs/theming.md): every `--hero-*` token, the `ui` keys,
+  styling hooks (`data-*` attributes), dark mode and cascade layers.
+- [docs/accessibility.md](docs/accessibility.md): carousel ARIA, keyboard,
+  autoplay pausing and `showAutoplayToggle`, labels, reduced motion and touch
+  sizes.
 
 ## Composables
 
 ### `useHeroSlider(containerRef, slides, options?)`
 
-Core slider composable — creates and manages all slider state. Must be called in `<script setup>` and its return value passed to `<HeroSlider>` via the `slider` prop.
+The core slider composable, which creates and manages all slider state. Call it
+yourself for *controlled* mode and pass the result to `<HeroSlider :slider>`. In
+drop-in mode `<HeroSlider>` calls it for you and exposes the result as
+`.slider` on a template ref.
 
-**Parameters:**
-- `containerRef` — Template ref for the root slider element (used for hover detection and GSAP scoping)
-- `slides` — Reactive array of `HeroSlide` objects
-- `options` — `UseHeroSliderOptions`:
+- `containerRef`: template ref for the rendered root (hover, focus and
+  visibility detection, parallax scoping)
+- `slides`: array, ref or getter of `HeroSlide` objects
+- `options`: `UseHeroSliderOptions`, or a ref / getter of it to change options
+  later. It includes `swiperOptions` (`autoplay.delay`, `pauseOnMouseEnter`,
+  `disableOnInteraction`, `stopOnLastSlide`, effects…), `enterAnimation` /
+  `leaveAnimation`, `animate`, `showPagination`, `showNavigation`,
+  `showProgress` (autoplay bar), `showVideoControls`, `showAutoplayToggle`,
+  `videoControls`, `watchMode` and `watchIdleMs`
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `swiperOptions` | `SwiperOptions` | `{}` | Swiper configuration (autoplay.delay, speed, effect, direction, etc.) |
-| `enterAnimation` | `string` | `''` | Default enter animation class |
-| `leaveAnimation` | `string` | `''` | Default leave animation class |
-| `animate` | `HeroAnimateOptions` | `{}` | `data-hero-animate` timing (`duration`, `stagger`, `delay`, `easing`, `distance`, `leaveDuration`), `initial`, and `onEnter` / `onLeave` hooks |
-| `showPagination` | `boolean` | `true` | Show pagination dots |
-| `showNavigation` | `boolean` | `true` | Show navigation arrows |
-| `showProgress` | `boolean` | `true` | Show progress bar |
-| `showVideoControls` | `boolean` | `true` | Show video controls overlay |
-
-**Returns:** `UseHeroSliderReturn` with navigation, slide state, autoplay, video controls, and hover state.
+It returns navigation (`next`, `prev`, `goTo`, `goToSnap`, `swiper`), slide state,
+autoplay state and controls (`autoplayRunning`, `autoplayPause`, …), video state
+and controls. Full reference: [docs/composable.md](docs/composable.md).
 
 ### `useHeroEnvironment()`
 
-Reactive, **SSR-safe** client-environment signals for mobile / PWA adaptiveness.
-`<HeroSlider :data-saver="'auto'">` uses these to decide its lite mode, but you
-can read them directly to adapt your own slot content (e.g. swap a heavy widget
-for a static one on cellular). Every flag is `false`/empty on the server and the
-first client render, then settles after mount — safe to drive rendering with.
-
-```vue
-<script setup>
-const { prefersDataSaver, saveData, slowConnection, reducedMotion, coarsePointer } = useHeroEnvironment()
-</script>
-```
-
-| Flag | Type | Description |
-|------|------|-------------|
-| `prefersDataSaver` | `ComputedRef<boolean>` | Data-/battery-constrained client (Save-Data, `prefers-reduced-data`, or 2g/slow-2g). Drives lite mode. |
-| `saveData` | `ComputedRef<boolean>` | `navigator.connection.saveData` |
-| `slowConnection` | `ComputedRef<boolean>` | Effective connection is `2g` / `slow-2g` |
-| `effectiveType` | `ComputedRef<string>` | Raw `navigator.connection.effectiveType` (or `''`) |
-| `reducedMotion` | `ComputedRef<boolean>` | `prefers-reduced-motion: reduce` |
-| `reducedData` | `ComputedRef<boolean>` | `prefers-reduced-data: reduce` |
-| `coarsePointer` | `ComputedRef<boolean>` | `pointer: coarse` (touch-primary device) |
-| `mounted` | `Ref<boolean>` | True once mounted on the client |
-
-> **Mobile / PWA lite mode.** With `:data-saver="'auto'"` (the default) the
-> slider automatically goes light on constrained clients: video backgrounds
-> don't autoplay or preload (poster shown, tap to play — saving cellular data)
-> and scroll parallax is skipped (saving CPU/battery). Video elements also ship
-> `preload="metadata"`, `playsinline`/`webkit-playsinline`,
-> `disablepictureinpicture`, `disableremoteplayback` and a forced `muted`
-> property for reliable inline autoplay on iOS. Force the mode with
-> `:data-saver="true | false"`. For smaller image downloads on small screens,
-> pair it with `:image-sizes="'100vw'"` (responsive `srcset`) when your
-> `@nuxt/image` provider can transform widths.
-
-### `useGSAP(callback?, options?)`
-
-Vue composable wrapping `gsap.context()` for safe, scoped GSAP animations with automatic cleanup.
-
-### `useHls(videoEl, src, options?)`
-
-HLS video playback composable — dynamically loads hls.js, with Safari native fallback.
+Reactive, **SSR-safe** client-environment signals (`prefersDataSaver`,
+`saveData`, `slowConnection`, `reducedMotion`, `coarsePointer`, …) for mobile and
+PWA adaptiveness. `<HeroSlider :data-saver="'auto'">` (the default) uses them for
+its lite mode: video backgrounds don't autoplay or preload, and scroll parallax
+is skipped on constrained clients. See
+[docs/composable.md](docs/composable.md#useheroenvironment).
 
 ## Project Structure
 

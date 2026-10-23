@@ -2,6 +2,7 @@
 import { reactive, ref, computed, watch } from 'vue'
 import type { KeyboardOptions, MousewheelOptions } from 'swiper/types'
 import type { HeroSlide, SwiperEffect } from '#hero/types'
+import { formatTime } from '#hero/utils'
 
 const containerRef = useTemplateRef<HTMLElement>('containerRef')
 
@@ -140,11 +141,6 @@ const activeCfg = computed(() => slides[slider.activeIndex.value]?.config ?? {})
 // `videoBuffered` already returns the end-of-last-range number.
 const bufferedEnd = computed(() => slider.videoBuffered.value)
 
-function fmt(s: number): string {
-  const m = Math.floor(s / 60)
-  const sec = Math.floor(s % 60)
-  return `${m}:${sec.toString().padStart(2, '0')}`
-}
 
 const EFFECTS: Array<{ value: SwiperEffect | 'slide', label: string, hint?: string }> = [
   { value: 'slide', label: 'Slide' },
@@ -338,7 +334,7 @@ function patchActiveConfig(patch: Record<string, unknown>) {
             <div class="flex items-center justify-between">
               <span class="sb-label">Timeline</span>
               <span class="text-xs tabular-nums opacity-70">
-                {{ fmt(slider.videoCurrentTime.value) }} / {{ fmt(slider.videoDuration.value) }}
+                {{ formatTime(slider.videoCurrentTime.value) }} / {{ formatTime(slider.videoDuration.value) }}
               </span>
             </div>
             <div class="py-2 dark:text-white text-black">
@@ -394,10 +390,6 @@ function patchActiveConfig(patch: Record<string, unknown>) {
             <label class="sb-check">
               <input v-model="swiperOptions.grabCursor" type="checkbox" />
               <Icon name="lucide:hand" class="size-3.5" /> Grab cursor
-            </label>
-            <label class="sb-check">
-              <input v-model="swiperOptions.centeredSlides" type="checkbox" />
-              <Icon name="lucide:align-center" class="size-3.5" /> Centered
             </label>
             <label class="sb-check">
               <input v-model="swiperOptions.loop" type="checkbox"

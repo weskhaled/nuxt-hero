@@ -3,14 +3,16 @@ import { computed, defineAsyncComponent, defineComponent, shallowRef, useTemplat
 
 import { Swiper, SwiperSlide } from 'swiper/vue'
 import { useMounted, useMutationObserver } from '@vueuse/core'
-import type { HeroSliderProps } from '../../types'
+import type { Swiper as SwiperInstance } from 'swiper'
+import type { HeroSlideChange, HeroSliderProps } from '../../types'
 import { useHeroConfig } from '../../config'
-import { animateVars, isVideoUrl, patternCSS, patternSize } from '../../utils'
+import { animateVars, isVideoSlide, patternCSS, patternSize } from '../../utils'
 import { useWatchMode } from '../../composables/_watchMode'
 import { useHeroSlider } from '../../composables/useHeroSlider'
 import { useHeroEnvironment } from '../../composables/_environment'
 import { setupMousewheelGestureLock } from '../../composables/_mousewheelLock'
 import HeroSlide from './HeroSlide.vue'
+import HeroIcon from '../HeroIcon.vue'
 
 // Pagination + navigation are lazy-imported (local bindings) rather than resolved
 // by global name — a slider with one feature off would otherwise log "Failed to
@@ -29,7 +31,19 @@ const props = withDefaults(defineProps<HeroSliderProps>(), {
   as: 'div',
   ui: () => ({}),
   dataSaver: 'auto',
+  activeIndex: undefined,
 })
+
+const emit = defineEmits<{
+  /** After every slide change */
+  'change': [change: HeroSlideChange]
+  /** `v-model:active-index` */
+  'update:activeIndex': [index: number]
+  /** The Swiper instance, once created — escape hatch for its full API */
+  'swiper': [swiper: SwiperInstance]
+  /** The active slide's video played to its end */
+  'videoEnded': [index: number]
+}>()
 
 const heroConfig = useHeroConfig()
 const features = heroConfig.features ?? {}
@@ -61,11 +75,18 @@ const containerRef = useTemplateRef<HTMLElement>('containerRef')
 // is exposed (see defineExpose) so a template ref can still drive it.
 // `useHeroSlider` registers no lifecycle hooks, so calling it inside this setup
 // is safe; the controlled/uncontrolled choice is fixed for the component's life.
-if (import.meta.env?.DEV && props.slider && props.options) {
+if (import.meta.env?.DEV && props.slider && (props.options || props.enterAnimation || props.leaveAnimation)) {
   // eslint-disable-next-line no-console
-  console.warn('[nuxt-hero] <HeroSlider> received both `slider` and `options`; `options` is ignored in controlled mode (configure via useHeroSlider() instead).')
+  console.warn('[nuxt-hero] <HeroSlider> received `slider` together with `options` / `enterAnimation` / `leaveAnimation`; those are ignored in controlled mode (configure via useHeroSlider() instead).')
 }
-const slider = props.slider ?? useHeroSlider(containerRef, () => props.slides, props.options ?? {})
+// The `enterAnimation` / `leaveAnimation` props are shorthands for the same
+// options; an explicit `options` value wins. A getter, so changing `:options`
+// later takes effect.
+const slider = props.slider ?? useHeroSlider(containerRef, () => props.slides, () => ({
+  enterAnimation: props.enterAnimation || undefined,
+  leaveAnimation: props.leaveAnimation || undefined,
+  ...props.options,
+}))
 
 const {
   activeIndex,
@@ -74,6 +95,7 @@ const {
   next,
   prev,
   goTo,
+  goToSnap,
   onSwiper,
   onSlideChange,
   animationClass,
@@ -82,6 +104,10 @@ const {
   activeSlideConfig,
   autoplayEnabled,
   autoplayProgress,
+  autoplayPaused,
+  autoplayPause,
+  autoplayResume,
+  autoplayRunning,
   videoPlaying,
   videoCurrentTime,
   videoDuration,
@@ -103,6 +129,7 @@ const {
   animateOptions,
   animationReplaying,
   isVisible,
+  getSlideConfig,
 } = slider
 
 // Expose the resolved slider so an uncontrolled consumer can still reach the
@@ -118,6 +145,15 @@ const swiperModules = computed(() => {
   const fromOptions = (mergedSwiperOptions.value.modules ?? []) as unknown[]
   return [...new Set([...fromConfig, ...fromOptions])]
 })
+
+// `mousewheel` only works when Swiper's Mousewheel module is registered
+// (Nuxt: `features.mousewheel`; Vue: pass the module) — otherwise it's
+// silently ignored. Module functions keep their names in dev builds.
+if (import.meta.env?.DEV && mergedSwiperOptions.value.mousewheel
+  && !swiperModules.value.some(m => (m as { name?: string })?.name === 'Mousewheel')) {
+  // eslint-disable-next-line no-console
+  console.warn('[nuxt-hero] `swiperOptions.mousewheel` is set but the Mousewheel module isn\'t registered — enable `features.mousewheel` (Nuxt) or add `Mousewheel` to `swiperModules` (Vue).')
+}
 
 // ─── Idle coordination (watch mode + fullscreen) ───
 const { idle, isWatchIdle, isFullscreenIdle } = useWatchMode(
@@ -145,7 +181,30 @@ function handleSwiper(s: any) {
   onSwiper(s)
   syncDirection()
   setupMousewheelGestureLock(s)
+  // `v-model:active-index` also picks the starting slide.
+  if (props.activeIndex != null && props.activeIndex !== s.activeIndex) s.slideTo(props.activeIndex, 0)
+  emit('swiper', s)
 }
+
+// ─── Events + v-model ───
+watch(activeIndex, (index) => {
+  emit('update:activeIndex', index)
+  emit('change', { index, previousIndex: previousIndex.value, direction: direction.value, slide: props.slides[index]! })
+})
+watch(() => props.activeIndex, (index) => {
+  if (index != null && index !== activeIndex.value) goTo(index)
+})
+watch(videoEnded, (ended) => {
+  if (ended) emit('videoEnded', activeIndex.value)
+})
+
+// Our autoplay isn't Swiper's, so its A11y module leaves the slide region
+// `aria-live="polite"` and every automatic change would be announced. Mute it
+// while the timer runs (APG carousel pattern). Only touched when A11y set it.
+watch([autoplayRunning, swiperRef], ([running, s]) => {
+  const wrapper = (s as { wrapperEl?: HTMLElement } | null)?.wrapperEl
+  if (wrapper?.hasAttribute('aria-live')) wrapper.setAttribute('aria-live', running ? 'off' : 'polite')
+})
 
 // Mousewheel one-slide-per-gesture lock lives in composables/_mousewheelLock
 // (extracted so it's unit-testable — it has regressed twice).
@@ -207,9 +266,14 @@ function isSlideInert(index: number): boolean {
 
 /** Check if a slide at the given index has a video background */
 function isVideo(index: number): boolean {
-  const slide = props.slides[index]
-  if (!slide) return false
-  return isVideoUrl(slide.bgSrc) || (!!slide.bgDarkSrc && isVideoUrl(slide.bgDarkSrc))
+  return isVideoSlide(props.slides[index])
+}
+
+// For a custom `#video-controls`: fullscreen the slider (not just the video),
+// like the default controls do.
+function toggleFullscreen() {
+  if (document.fullscreenElement) document.exitFullscreen()
+  else containerRef.value?.requestFullscreen?.()
 }
 
 // ─── Render isolation for high-frequency state ───
@@ -274,15 +338,16 @@ const shouldShowAutoplayProgress = computed(() =>
 <template>
   <component :is="as" ref="containerRef" class="hero-slider"
     :class="[ui.root, { 'hero-watch-idle': isWatchIdle, 'hero-fs-idle': isFullscreenIdle }]"
-    :role="isCarousel ? 'region' : undefined" :aria-roledescription="isCarousel ? 'carousel' : undefined"
+    :role="isCarousel ? 'region' : undefined" :aria-roledescription="isCarousel ? (labels?.carouselRole ?? 'carousel') : undefined"
     :aria-label="isCarousel ? carouselLabel : undefined"
     :data-idle="idle" :data-watch-mode="activeSlideConfig.watchMode" :data-video-active="isActiveSlideVideo"
     :data-multi-slide="isMultiSlide || undefined" :data-direction="direction" :style="animRootStyle">
     <Swiper v-bind="mergedSwiperOptions" :parallax="true" :modules="swiperModules" class="hero-swiper"
       :class="ui.swiper" @swiper="handleSwiper" @slide-change="onSlideChange">
       <SwiperSlide v-for="(slide, index) in slides" :key="index" class="hero-swiper-slide" :class="ui.slide"
-        :aria-roledescription="isCarousel ? 'slide' : undefined" :inert="isSlideInert(index) || undefined">
-        <HeroSlide :bg-src="slide.bgSrc" :bg-dark-src="slide.bgDarkSrc" :poster="slide.poster"
+        :aria-roledescription="isCarousel ? (labels?.slideRole ?? 'slide') : undefined" :inert="isSlideInert(index) || undefined">
+        <HeroSlide :bg-src="slide.bgSrc" :bg-dark-src="slide.bgDarkSrc" :bg-type="slide.bgType"
+          :bg-alt="slide.bgAlt" :poster="slide.poster"
           :image-preset="imagePreset" :image-sizes="imageSizes" :eager="index === 0"
           :is-active="index === activeIndex || isMultiSlide"
           :animation-class="animationClass(index)" :anim-state="slideAnimState(index)"
@@ -291,10 +356,12 @@ const shouldShowAutoplayProgress = computed(() =>
           :on-leave="slide.animation?.onLeave ?? animateOptions.onLeave"
           :slide-index="index" :on-video-ready="registerSlideVideo"
           :on-video-removed="unregisterSlideVideo" :media-controls-options="slide.config?.mediaControlsOptions"
-          :show-video-controls="(index === activeIndex || isMultiSlide) ? (slide.config?.showVideoControls ?? activeSlideConfig.showVideoControls) : false"
+          :show-video-controls="(index === activeIndex || isMultiSlide) && getSlideConfig(index).showVideoControls"
+          :video-controls="getSlideConfig(index).videoControls"
           :video-loop="slide.config?.videoLoop ?? false" :auto-play="!isMultiSlide" :data-saver="liteMode"
-          :container-class="ui.container"
-          :bg-class="ui.bg" :get-container-el="() => containerRef" :labels="labels"
+          :container-class="ui.container" :bg-class="ui.bg" :content-class="ui.content" :scrim-class="ui.scrim"
+          :video-controls-class="ui.videoControls" :play-button-class="ui.playButton"
+          :get-container-el="() => containerRef" :labels="labels"
           :on-seek="videoSeek" :on-scrub-start="videoScrubStart" :on-scrub-end="videoScrubEnd">
           <slot name="slide" v-bind="{
             slide, index,
@@ -305,13 +372,20 @@ const shouldShowAutoplayProgress = computed(() =>
             videoMuted,
             videoVolume,
             videoToggle, videoSeek, videoSetVolume, videoToggleMute,
+            next, prev, goTo,
           }" />
+          <template v-if="$slots.background" #background="background">
+            <slot name="background" v-bind="{ ...background, slide, index }" />
+          </template>
           <template #video-controls="videoProps">
-            <slot name="video-controls" v-bind="videoProps" />
+            <slot name="video-controls" v-bind="{ ...videoProps, index, slide, toggleFullscreen }" />
+          </template>
+          <template v-if="$slots['play-button']" #play-button="button">
+            <slot name="play-button" v-bind="{ ...button, index, slide }" />
           </template>
           <template #overlay>
             <slot name="overlay"
-              v-bind="{ patterns: overlayPatterns, index, isActive: index === activeIndex, patternCSS, patternSize }">
+              v-bind="{ patterns: overlayPatterns, slide, index, isActive: index === activeIndex, patternCSS, patternSize }">
               <!-- Default overlay rendering -->
               <div v-for="(pattern, i) in overlayPatterns" :key="i" class="hero-overlay-pattern"
                 :style="{
@@ -335,24 +409,36 @@ const shouldShowAutoplayProgress = computed(() =>
     <div class="hero-controls" :class="ui.controls">
       <AutoplayProgressScope v-slot="{ progress }">
         <slot v-if="shouldShowPagination" name="pagination"
-          v-bind="{ activeIndex, snapIndex, totalSnaps, total: slides.length, progress, goTo, vertical: isVertical, autoplayEnabled }">
-          <HeroPagination :slides="slides" :active-index="activeIndex" :snap-index="snapIndex" :total-snaps="totalSnaps"
+          v-bind="{ activeIndex, snapIndex, totalSnaps, total: slides.length, progress, goTo, goToSnap, vertical: isVertical, autoplayEnabled }">
+          <HeroPagination :class="ui.pagination" :slides="slides" :active-index="activeIndex" :snap-index="snapIndex" :total-snaps="totalSnaps"
             :progress="autoplayEnabled ? progress : 1" :vertical="isVertical"
-            :label="labels?.pagination" :go-to-label="labels?.goToSlide" @slide-to="goTo" />
+            :label="labels?.pagination" :go-to-label="labels?.goToSlide" :progress-label="labels?.autoplayProgress"
+            :slides-per-group="Number(mergedSwiperOptions.slidesPerGroup) || 1" @slide-to="goToSnap" />
         </slot>
 
         <!-- Autoplay progress bar: horizontal edge-to-edge at the bottom, vertical
              on the side. The fill scales via a CSS custom property + transform —
-             compositor-only updates, no per-frame layout. -->
-        <div v-if="shouldShowAutoplayProgress" class="hero-autoplay-progress"
-          :class="[isVertical ? 'hero-autoplay-progress--vertical' : 'hero-autoplay-progress--horizontal', ui.progress]">
-          <div class="hero-autoplay-progress-fill" :style="{ '--hero-autoplay-progress': progress }" />
-        </div>
+             compositor-only updates, no per-frame layout. `#progress` replaces it. -->
+        <slot v-if="shouldShowAutoplayProgress" name="progress"
+          v-bind="{ progress, vertical: isVertical, paused: autoplayPaused, running: autoplayRunning, pause: autoplayPause, resume: autoplayResume }">
+          <div class="hero-autoplay-progress"
+            :class="[isVertical ? 'hero-autoplay-progress--vertical' : 'hero-autoplay-progress--horizontal', ui.progress]">
+            <div class="hero-autoplay-progress-fill" :class="ui.progressFill" :style="{ '--hero-autoplay-progress': progress }" />
+          </div>
+        </slot>
       </AutoplayProgressScope>
+
+      <!-- Autoplay pause/play (opt-in: `showAutoplayToggle`). -->
+      <button v-if="autoplayEnabled && activeSlideConfig.showAutoplayToggle" type="button"
+        class="hero-ctrl-btn hero-ctrl-btn--filled hero-autoplay-toggle" :class="ui.autoplayToggle"
+        :aria-label="autoplayPaused ? (labels?.playAutoplay ?? 'Play autoplay') : (labels?.pauseAutoplay ?? 'Pause autoplay')"
+        @click="autoplayPaused ? autoplayResume() : autoplayPause()">
+        <HeroIcon :name="autoplayPaused ? 'play' : 'pause'" />
+      </button>
 
       <slot v-if="shouldShowNavigation" name="navigation"
         v-bind="{ prev, next, activeIndex, slides, vertical: isVertical }">
-        <HeroNavigation :slides="slides" :active-index="activeIndex" :vertical="isVertical"
+        <HeroNavigation :class="ui.navigation" :slides="slides" :active-index="activeIndex" :vertical="isVertical"
           :prev-label="labels?.prev" :next-label="labels?.next" @prev="prev" @next="next" />
       </slot>
     </div>

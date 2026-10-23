@@ -16,21 +16,39 @@ interface PaginationProps {
   vertical?: boolean
   /** Accessible label for the pagination nav (localizable) */
   label?: string
-  /** Accessible label template for each dot — `{n}` is the 1-based slide number */
+  /**
+   * Accessible label template for each dot — `{n}` is the 1-based dot number,
+   * `{total}` the dot count, `{title}` the slide's title (if any)
+   */
   goToLabel?: string
+  /** Accessible name of the active dot's autoplay progress ring */
+  progressLabel?: string
+  /** Slides per snap (Swiper `slidesPerGroup`) — maps a dot to its first slide */
+  slidesPerGroup?: number
 }
 
 const props = withDefaults(defineProps<PaginationProps>(), {
   vertical: false,
   label: 'Slide pagination',
   goToLabel: 'Go to slide {n}',
+  progressLabel: 'Autoplay progress',
+  slidesPerGroup: 1,
 })
-const emit = defineEmits<{ slideTo: [index: number] }>()
+/** Emits the snap index (dot) — use the slider's `goToSnap` to navigate */
+const emit = defineEmits<{ slideTo: [snap: number] }>()
 
 const rootEl = useTemplateRef<HTMLElement>('rootEl')
 
+/** First slide of a dot's snap group */
+function slideAt(n: number): HeroSlide | undefined {
+  return props.slides[(n - 1) * props.slidesPerGroup]
+}
+
 function dotLabel(n: number): string {
-  return props.goToLabel.replace('{n}', String(n))
+  return props.goToLabel
+    .replace('{n}', String(n))
+    .replace('{total}', String(props.totalSnaps))
+    .replace('{title}', slideAt(n)?.title ?? '')
 }
 
 // Scroll mode is OPT-IN per state: overflow is only enabled (`.is-scrollable`)
@@ -89,7 +107,7 @@ watch(() => props.snapIndex, async (i) => {
     Horizontal (default): centered at bottom. Vertical: on the side —
     ltr:right, rtl:left — centered vertically. Styling in assets/hero.css.
   -->
-  <nav ref="rootEl" role="navigation" :aria-label="label" class="hero-pagination swiper-pagination"
+  <nav ref="rootEl" role="navigation" :aria-label="label" class="hero-pagination"
     :class="[vertical ? 'hero-pagination--vertical' : 'hero-pagination--horizontal', { 'is-scrollable': isScrollable }]">
     <button v-for="i in totalSnaps" :key="i - 1" type="button" class="hero-page-btn"
       :class="{ active: snapIndex === i - 1 }" :aria-label="dotLabel(i)"
@@ -97,23 +115,25 @@ watch(() => props.snapIndex, async (i) => {
       <!-- Inactive dot -->
       <span v-if="snapIndex !== i - 1" class="hero-dot" />
 
-      <!-- Active: progress ring over a faint full track -->
+      <!-- Active: progress ring over a faint full track. (Spans throughout:
+           a <button> may only contain phrasing content.) Ring size comes from
+           the `.hero-page-btn .hero-radial-progress` rule in hero.css. -->
       <template v-else>
-        <div class="hero-radial-progress"
-          :style="{ '--hero-progress-value': Math.round(progress * 100), '--hero-progress-size': '0.75rem', '--hero-progress-thickness': '0.15rem' }"
-          role="progressbar" :aria-valuenow="Math.round(progress * 100)" aria-valuemin="0" aria-valuemax="100" />
-        <div class="hero-radial-progress hero-radial-progress--track" aria-hidden="true"
-          :style="{ '--hero-progress-value': 100, '--hero-progress-size': '0.75rem', '--hero-progress-thickness': '0.15rem' }" />
+        <span class="hero-radial-progress" :style="{ '--hero-progress-value': Math.round(progress * 100) }"
+          role="progressbar" :aria-label="progressLabel" :aria-valuenow="Math.round(progress * 100)"
+          aria-valuemin="0" aria-valuemax="100" />
+        <span class="hero-radial-progress hero-radial-progress--track" aria-hidden="true"
+          :style="{ '--hero-progress-value': 100 }" />
       </template>
 
-      <!-- Thumbnail tooltip on hover (show first slide of the snap group) -->
-      <div v-if="slides[i - 1]?.thumbSrc" class="tooltip-content">
-        <div class="tooltip-text">
-          <div class="tooltip-inner">
-            <img :src="slides[i - 1]?.thumbSrc" :alt="slides[i - 1]?.title ?? dotLabel(i)" loading="lazy" />
-          </div>
-        </div>
-      </div>
+      <!-- Thumbnail tooltip on hover (first slide of the snap group) -->
+      <span v-if="slideAt(i)?.thumbSrc" class="tooltip-content">
+        <span class="tooltip-text">
+          <span class="tooltip-inner">
+            <img :src="slideAt(i)?.thumbSrc" :alt="slideAt(i)?.title ?? dotLabel(i)" loading="lazy" />
+          </span>
+        </span>
+      </span>
     </button>
   </nav>
 </template>

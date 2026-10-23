@@ -95,3 +95,26 @@ describe('createSlideState', () => {
     expect(animationClass(2)).toBe('')
   })
 })
+
+describe('createSlideState — getSlideConfig', () => {
+  it('resolves any slide: its own config over the slider defaults', () => {
+    const slides: HeroSlide[] = [
+      { bgSrc: '/a.mp4', config: { videoControls: { settings: false }, showAutoplayToggle: true } },
+      { bgSrc: '/b.jpg' },
+    ]
+    const state = createSlideState(slides, ref(0), ref(-1), { videoControls: { fullscreen: false }, showAutoplayToggle: false })
+    expect(state.getSlideConfig(0).videoControls).toEqual({ fullscreen: false, settings: false })
+    expect(state.getSlideConfig(0).showAutoplayToggle).toBe(true)
+    expect(state.getSlideConfig(1).videoControls).toEqual({ fullscreen: false })
+    expect(state.getSlideConfig(1).showAutoplayToggle).toBe(false)
+  })
+
+  it('follows reactive defaults', () => {
+    const defaults = ref({ showPagination: true })
+    const state = createSlideState(makeSlides(), ref(0), ref(-1), defaults)
+    expect(state.activeSlideConfig.value.showPagination).toBe(true)
+    defaults.value = { showPagination: false }
+    expect(state.activeSlideConfig.value.showPagination).toBe(false)
+  })
+})
+

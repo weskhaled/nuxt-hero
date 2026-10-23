@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, useTemplateRef, watch } from 'vue'
 import { useMounted } from '@vueuse/core'
-import type { HeroAnimationHandle, HeroAnimationHook, HeroLabels, HeroSlideDirection, MediaControlsOptions, VideoMediaControls } from '../../types'
+import type { HeroAnimationHandle, HeroAnimationHook, HeroLabels, HeroSlideDirection, HeroVideoControlsConfig, MediaControlsOptions, VideoMediaControls } from '../../types'
 import { useHeroConfig } from '../../config'
 import { useHeroDark } from '../../composables/_dark'
 import { isVideoUrl, stopAnimationHandle } from '../../utils'
@@ -20,6 +20,10 @@ const HeroVideoControls = defineAsyncComponent(() => import('../video/HeroVideoC
 export interface SlideProps {
   bgSrc: string
   bgDarkSrc?: string
+  /** Explicit media type for URLs without a telling extension */
+  bgType?: 'image' | 'video' | 'hls'
+  /** Alt text for an informative background image (default: decorative '') */
+  bgAlt?: string
   poster?: string
   imagePreset?: string
   /** @nuxt/image `sizes` DSL for responsive srcset (e.g. '100vw'). Empty disables. */
@@ -47,6 +51,16 @@ export interface SlideProps {
   dataSaver?: boolean
   containerClass?: string
   bgClass?: string
+  /** Class for the content layer (.hero-slide-content) */
+  contentClass?: string
+  /** Class for the inset scrim (.hero-slide-scrim) */
+  scrimClass?: string
+  /** Which parts of the default video controls render */
+  videoControls?: HeroVideoControlsConfig
+  /** Class for the video controls bar */
+  videoControlsClass?: string
+  /** Class for the centered video play button */
+  playButtonClass?: string
   getContainerEl?: () => HTMLElement | null
   onSeek?: (time: number) => void
   onScrubStart?: () => void
@@ -76,6 +90,13 @@ const props = withDefaults(defineProps<SlideProps>(), {
   dataSaver: false,
   containerClass: '',
   bgClass: '',
+  bgType: undefined,
+  bgAlt: '',
+  contentClass: '',
+  scrimClass: '',
+  videoControls: undefined,
+  videoControlsClass: '',
+  playButtonClass: '',
   onSeek: undefined,
   onScrubStart: undefined,
   onScrubEnd: undefined,
@@ -94,7 +115,9 @@ const activeBgSrc = computed(() =>
   isMounted.value && isDark.value && props.bgDarkSrc ? props.bgDarkSrc : props.bgSrc,
 )
 
-const isBgVideo = computed(() => videoEnabled && isVideoUrl(activeBgSrc.value))
+const isBgVideo = computed(() =>
+  videoEnabled && (props.bgType ? props.bgType !== 'image' : isVideoUrl(activeBgSrc.value)),
+)
 
 // Image rendering: the configured component (NuxtImg in Nuxt with @nuxt/image;
 // anything the consumer provides in plain Vue) or a native <img>. Preset/sizes
@@ -189,26 +212,30 @@ const hlsSlotData = computed(() => {
   <div class="hero-slide" :class="containerClass">
     <!-- Background layer (parallax targets .hero-slide-bg) -->
     <div class="hero-slide-bg" :class="bgClass">
-      <!-- Video background (lazy loaded) -->
-      <HeroSlideVideo v-if="isBgVideo" ref="videoComponentRef" :src="activeBgSrc" :poster="poster" :is-active="isActive"
-        :slide-index="slideIndex" :on-video-ready="onVideoReady" :on-video-removed="onVideoRemoved"
-        :media-controls-options="mediaControlsOptions" :video-loop="videoLoop" :auto-play="autoPlay"
-        :data-saver="dataSaver" />
-      <!-- Image background. The first slide is the LCP candidate: load it eagerly
-           with high fetch priority so the largest paint isn't queued behind lazy assets. -->
-      <component :is="imageComponent ?? 'img'" v-else :src="activeBgSrc" v-bind="imageExtraProps"
-        :loading="eager ? 'eager' : 'lazy'" :fetchpriority="eager ? 'high' : 'auto'" alt=""
-        class="hero-slide-img" />
+      <!-- `#background` replaces the media (e.g. <picture>, a canvas, Lottie);
+           parallax still drives this wrapper. -->
+      <slot name="background" v-bind="{ src: activeBgSrc, isVideo: isBgVideo, isActive, poster, eager }">
+        <!-- Video background (lazy loaded) -->
+        <HeroSlideVideo v-if="isBgVideo" ref="videoComponentRef" :src="activeBgSrc" :hls="bgType === 'hls'"
+          :poster="poster" :is-active="isActive" :slide-index="slideIndex" :on-video-ready="onVideoReady"
+          :on-video-removed="onVideoRemoved" :media-controls-options="mediaControlsOptions" :video-loop="videoLoop"
+          :auto-play="autoPlay" :data-saver="dataSaver" />
+        <!-- Image background. The first slide is the LCP candidate: load it eagerly
+             with high fetch priority so the largest paint isn't queued behind lazy assets. -->
+        <component :is="imageComponent ?? 'img'" v-else :src="activeBgSrc" v-bind="imageExtraProps"
+          :loading="eager ? 'eager' : 'lazy'" :fetchpriority="eager ? 'high' : 'auto'" :alt="bgAlt"
+          class="hero-slide-img" />
+      </slot>
     </div>
 
     <!-- Inset scrim overlay (disable via `--hero-scrim: none`) -->
-    <span class="hero-slide-scrim" />
+    <span class="hero-slide-scrim" :class="scrimClass" />
 
     <!-- Overlay patterns (delegated from parent via slot) -->
     <slot name="overlay" />
 
     <!-- Content container (parallax targets .hero-slide-content) -->
-    <div class="hero-slide-content">
+    <div class="hero-slide-content" :class="contentClass">
       <!-- `.self`: `data-hero-animate` children fire bubbling animationend
            events — only the block's own (class-based) animation may hide it. -->
       <div ref="contentInnerEl" v-show="contentVisible" :class="contentAnimClass" class="hero-slide-content-inner"
@@ -217,8 +244,10 @@ const hlsSlotData = computed(() => {
       </div>
     </div>
 
-    <!-- Video controls: rendered outside bg/content layers so parallax doesn't affect them -->
-    <template v-if="shouldShowVideoControls">
+    <!-- Video controls: outside the bg/content layers so parallax doesn't move
+         them, in their own layer above the content (click-through except for
+         the controls themselves — custom ones need `pointer-events: auto`). -->
+    <div v-if="shouldShowVideoControls" class="hero-slide-controls">
       <slot name="video-controls" v-bind="{
         playing: videoComponentRef!.mediaControls.playing,
         togglePlay: () => { videoComponentRef!.mediaControls.playing.value = !videoComponentRef!.mediaControls.playing.value },
@@ -229,6 +258,7 @@ const hlsSlotData = computed(() => {
         muted: videoComponentRef!.mediaControls.muted,
         waiting: videoComponentRef!.mediaControls.waiting,
         rate: videoComponentRef!.mediaControls.rate,
+        seek: (time: number) => onSeek?.(time),
         hls: hlsSlotData,
       }">
         <HeroVideoControls :labels="labels" :playing="videoComponentRef!.mediaControls.playing"
@@ -237,8 +267,13 @@ const hlsSlotData = computed(() => {
           :duration="videoComponentRef!.mediaControls.duration" :buffered="videoComponentRef!.mediaControls.buffered"
           :volume="videoComponentRef!.mediaControls.volume" :muted="videoComponentRef!.mediaControls.muted"
           :rate="videoComponentRef!.mediaControls.rate" :get-container-el="getContainerEl" :on-seek="onSeek"
-          :on-scrub-start="onScrubStart" :on-scrub-end="onScrubEnd" />
+          :on-scrub-start="onScrubStart" :on-scrub-end="onScrubEnd" :parts="videoControls"
+          :bar-class="videoControlsClass" :play-button-class="playButtonClass">
+          <template v-if="$slots['play-button']" #play-button="button">
+            <slot name="play-button" v-bind="button" />
+          </template>
+        </HeroVideoControls>
       </slot>
-    </template>
+    </div>
   </div>
 </template>

@@ -2,14 +2,18 @@
 const colorMode = useColorMode()
 
 const links = [
-  { to: '/', label: 'Basic' },
+  { to: '/', label: 'Playground' },
   { to: '/simple', label: 'Drop-in' },
-  { to: '/parallax', label: 'Parallax' },
   { to: '/custom-animations', label: 'Animations' },
-  { to: '/freemode', label: 'FreeMode' },
-  { to: '/effect-fade', label: 'Fade' },
-  { to: '/effect-cube', label: 'Cube' },
-  { to: '/effect-cards', label: 'Cards' },
+  { to: '/effects', label: 'Effects' },
+  { to: '/multi-slide', label: 'Multi-slide' },
+  { to: '/parallax', label: 'Parallax' },
+  { to: '/video', label: 'Video' },
+  { to: '/slots', label: 'Slots' },
+  { to: '/theming', label: 'Theming' },
+  { to: '/vertical', label: 'Vertical' },
+  { to: '/i18n', label: 'RTL & i18n' },
+  { to: '/lite-mode', label: 'Lite mode' },
 ]
 
 const isDark = computed(() => colorMode.value === 'dark')

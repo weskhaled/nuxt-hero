@@ -1,6 +1,6 @@
 import type { MaybeRefOrGetter } from 'vue'
 import { computed, readonly, ref, toValue } from 'vue'
-import { useElementHover, useElementVisibility } from '@vueuse/core'
+import { useElementHover, useElementVisibility, useEventListener } from '@vueuse/core'
 import type { HeroSlide, UseHeroSliderOptions, UseHeroSliderReturn } from '../types'
 import { createSwiperState } from './_swiper'
 import { createSlideState } from './_slides'
@@ -27,7 +27,9 @@ function resolveElement(source: MaybeRefOrGetter<any>): HTMLElement | null {
  *
  * @param containerRef - Root DOM element ref (or component instance ref) for hover detection and GSAP scoping
  * @param slides - Reactive array of slide definitions
- * @param options - Swiper config, animation classes, and display defaults
+ * @param options - Swiper config, animation classes, and display defaults — a
+ *   plain object, or a ref / getter to change them later (autoplay on/off is
+ *   fixed at creation; use autoplayPause/autoplayResume)
  * @returns Flat object with all slider state and controls
  *
  * @example
@@ -45,24 +47,15 @@ function resolveElement(source: MaybeRefOrGetter<any>): HTMLElement | null {
 export function useHeroSlider(
   containerRef: MaybeRefOrGetter<HTMLElement | null>,
   slides: MaybeRefOrGetter<HeroSlide[]>,
-  options: UseHeroSliderOptions = {},
+  options: MaybeRefOrGetter<UseHeroSliderOptions> = {},
 ): UseHeroSliderReturn {
-  const {
-    swiperOptions = {},
-    enterAnimation = '',
-    leaveAnimation = '',
-    showPagination,
-    showNavigation,
-    showProgress,
-    showVideoControls,
-    watchMode,
-    watchIdleMs,
-  } = options
+  // Options may be reactive — read through this getter, never destructure once.
+  const opts = () => toValue(options) ?? {}
 
   // Merge user Swiper options with sensible defaults.
   // Native autoplay is always disabled — the composable manages its own timer.
   const mergedSwiperOptions = computed(() => {
-    const { __autoplay, ...userOpts } = swiperOptions as Record<string, unknown>
+    const { __autoplay, ...userOpts } = (opts().swiperOptions ?? {}) as Record<string, unknown>
     const merged = {
       slidesPerView: 1,
       spaceBetween: 0,
@@ -104,7 +97,7 @@ export function useHeroSlider(
 
   // Dev-time sanity checks on common Swiper misconfigurations.
   // Suppressed in production — Nuxt sets import.meta.env?.DEV during SSR/dev.
-  if (import.meta.env?.DEV && swiperOptions.effect === 'cube') {
+  if (import.meta.env?.DEV && opts().swiperOptions?.effect === 'cube') {
     const count = toValue(slides).length
     if (count !== 4) {
       // eslint-disable-next-line no-console
@@ -122,10 +115,10 @@ export function useHeroSlider(
     slides,
     swiper.activeIndex,
     swiper.previousIndex,
-    { showPagination, showNavigation, showProgress, showVideoControls, watchMode, watchIdleMs },
+    opts,
     videoEnabled,
-    enterAnimation,
-    leaveAnimation,
+    () => opts().enterAnimation ?? '',
+    () => opts().leaveAnimation ?? '',
   )
 
   // Resolve DOM element from ref — handles component instances (ref on <HeroSlider>)
@@ -150,20 +143,49 @@ export function useHeroSlider(
   //
   // This is the single source of truth for video-driven advancement: the
   // autoplay timer alone decides when to call advanceSlide.
+  // A looping video never ends, so `pauseUntilVideoEnds` would hold the timer
+  // forever — it's documented as having no effect with `videoLoop`.
   const shouldPauseForVideo = computed(() =>
     slideState.isActiveSlideVideo.value
     && slideState.activeSlideConfig.value.pauseUntilVideoEnds
+    && !slideState.activeSlideConfig.value.videoLoop
     && !video.videoEnded.value
     && (video.videoPlaying.value || video.videoWaiting.value),
   )
+
+  // Keyboard focus inside the slider pauses autoplay (WCAG 2.2.2). Only
+  // `:focus-visible` focus — a mouse click on an arrow mustn't freeze it.
+  const isKeyboardFocused = ref(false)
+  useEventListener(resolvedContainer, 'focusin', (e: FocusEvent) => {
+    isKeyboardFocused.value = (e.target as Element | null)?.matches?.(':focus-visible') ?? false
+  })
+  useEventListener(resolvedContainer, 'focusout', (e: FocusEvent) => {
+    if (!resolvedContainer.value?.contains(e.relatedTarget as Node | null)) isKeyboardFocused.value = false
+  })
 
   const autoplay = createAutoplayState(
     swiper.advanceSlide,
     shouldPauseForVideo,
     isHovered,
-    options,
+    opts,
     isVisible,
+    { isKeyboardFocused, isAtEnd: () => swiper.snapIndex.value + 1 >= swiper.totalSnaps.value },
   )
+
+  // User-driven navigation counts as interaction (`autoplay.disableOnInteraction`);
+  // autoplay's own advances go through `swiper.advanceSlide` directly.
+  function interacted<A extends unknown[]>(fn: (...args: A) => void) {
+    return (...args: A) => {
+      autoplay.onUserInteraction()
+      fn(...args)
+    }
+  }
+  function onSwiper(instance: Parameters<typeof swiper.onSwiper>[0]) {
+    swiper.onSwiper(instance)
+    // Drags, the Keyboard module and the Mousewheel module ('scroll').
+    for (const event of ['sliderFirstMove', 'keyPress', 'scroll'] as const)
+      instance.on?.(event, autoplay.onUserInteraction)
+  }
 
   // Autoplay progress always reflects the autoplay timer.
   // Video-duration progress is surfaced separately via videoCurrentTime/videoDuration
@@ -187,9 +209,11 @@ export function useHeroSlider(
 
   return {
     // Navigation
-    next: swiper.next,
-    prev: swiper.prev,
-    goTo: swiper.goTo,
+    next: interacted(swiper.next),
+    prev: interacted(swiper.prev),
+    goTo: interacted(swiper.goTo),
+    goToSnap: interacted(swiper.goToSnap),
+    swiper: swiper.swiperInstance,
 
     // Slide state
     activeIndex: swiper.activeIndex,
@@ -202,10 +226,11 @@ export function useHeroSlider(
     animationClass: (index: number) => isMultiSlide.value ? '' : slideState.animationClass(index),
     previousIndex: readonly(swiper.previousIndex),
     direction: readonly(swiper.direction),
-    animateOptions: computed(() => toValue(options.animate) ?? {}),
+    animateOptions: computed(() => toValue(opts().animate) ?? {}),
     replayAnimation,
     animationReplaying: readonly(animationReplaying),
     isVisible: readonly(isVisible),
+    getSlideConfig: slideState.getSlideConfig,
 
     // Autoplay
     autoplayEnabled: autoplay.autoplayEnabled,
@@ -217,6 +242,7 @@ export function useHeroSlider(
     autoplayResume: autoplay.autoplayResume,
     autoplayReset: autoplay.autoplayReset,
     autoplaySetDelay: autoplay.autoplaySetDelay,
+    autoplayRunning: autoplay.autoplayRunning,
 
     // Video
     videoPlaying: video.videoPlaying,
@@ -244,7 +270,7 @@ export function useHeroSlider(
     containerEl: resolvedContainer,
 
     // Internal bindings
-    onSwiper: swiper.onSwiper,
+    onSwiper,
     onSlideChange,
     registerSlideVideo: video.registerSlideVideo,
     unregisterSlideVideo: video.unregisterSlideVideo,

@@ -22,6 +22,7 @@ export default defineConfig({
           { text: 'Installation & Setup', link: '/getting-started' },
           { text: 'Configuration', link: '/configuration' },
           { text: 'Plain Vue (no Nuxt)', link: '/vue' },
+          { text: 'Upgrading', link: '/upgrading' },
         ],
       },
       {
@@ -37,6 +38,8 @@ export default defineConfig({
         items: [
           { text: 'Animations', link: '/animations' },
           { text: 'Video Backgrounds', link: '/video' },
+          { text: 'Theming', link: '/theming' },
+          { text: 'Accessibility', link: '/accessibility' },
         ],
       },
       {

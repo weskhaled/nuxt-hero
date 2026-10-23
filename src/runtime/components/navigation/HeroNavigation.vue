@@ -38,7 +38,9 @@ const nextSlide = computed(() => {
     direction & RTL via semantic classes + logical `inset-inline-*` +
     `[dir=rtl]` overrides). `.has-preview` toggles the "slide the arrow fully
     out" hover when a thumb exists. Horizontal: prev=inline-start,
-    next=inline-end. Vertical: prev=top, next=bottom.
+    next=inline-end. Vertical: prev=top, next=bottom. Spans only inside the
+    buttons (phrasing content); the aria-label names them, so the preview is
+    decorative (`alt=""`).
   -->
   <nav class="hero-nav nav-slit" :class="{ 'nav-slit--vertical': vertical }">
     <!-- Prev -->
@@ -47,10 +49,10 @@ const nextSlide = computed(() => {
       <span class="nav-slit-arrow">
         <HeroIcon :name="vertical ? 'chevron-up' : 'chevron-left'" />
       </span>
-      <div v-if="prevSlide?.thumbSrc" class="nav-slit-preview">
-        <h3 v-if="prevSlide?.title" class="nav-slit-preview-title">{{ prevSlide.title }}</h3>
-        <img :src="prevSlide.thumbSrc" :alt="prevSlide?.title ?? ''" loading="lazy" />
-      </div>
+      <span v-if="prevSlide?.thumbSrc" class="nav-slit-preview">
+        <span v-if="prevSlide?.title" class="nav-slit-preview-title">{{ prevSlide.title }}</span>
+        <img :src="prevSlide.thumbSrc" alt="" loading="lazy" />
+      </span>
     </button>
 
     <!-- Next -->
@@ -59,10 +61,10 @@ const nextSlide = computed(() => {
       <span class="nav-slit-arrow">
         <HeroIcon :name="vertical ? 'chevron-down' : 'chevron-right'" />
       </span>
-      <div v-if="nextSlide?.thumbSrc" class="nav-slit-preview">
-        <h3 v-if="nextSlide?.title" class="nav-slit-preview-title">{{ nextSlide.title }}</h3>
-        <img :src="nextSlide.thumbSrc" :alt="nextSlide?.title ?? ''" loading="lazy" />
-      </div>
+      <span v-if="nextSlide?.thumbSrc" class="nav-slit-preview">
+        <span v-if="nextSlide?.title" class="nav-slit-preview-title">{{ nextSlide.title }}</span>
+        <img :src="nextSlide.thumbSrc" alt="" loading="lazy" />
+      </span>
     </button>
   </nav>
 </template>

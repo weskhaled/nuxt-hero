@@ -1,6 +1,7 @@
 import type { ComputedRef, Ref } from 'vue'
-import { computed, ref } from 'vue'
-import { useEventListener, useIdle } from '@vueuse/core'
+import { computed, effectScope, ref, watch } from 'vue'
+import type { EffectScope } from 'vue'
+import { tryOnScopeDispose, useEventListener, useIdle } from '@vueuse/core'
 import type { ResolvedSlideConfig } from '../types'
 
 /**
@@ -12,18 +13,26 @@ import type { ResolvedSlideConfig } from '../types'
  *   `watchIdleMs`.
  * - `isFullscreenIdle` — hide cursor when idle while any element is fullscreen.
  *
- * `useIdle`'s timeout is captured at init (it doesn't accept a ref), so the
- * value used is the active slide's `watchIdleMs` at mount time. Per-slide
- * overrides apply to *gating* (watchMode flag), not the timeout itself.
+ * `useIdle` takes its timeout once (no ref), so it's recreated in its own
+ * effect scope whenever the active slide's `watchIdleMs` changes — per-slide
+ * overrides apply to the timeout as well as the watchMode gate.
  */
 export function useWatchMode(
   activeSlideConfig: ComputedRef<ResolvedSlideConfig>,
   isActiveSlideVideo: ComputedRef<boolean>,
   videoPlaying: ComputedRef<boolean>,
 ) {
-  const { idle } = useIdle(activeSlideConfig.value.watchIdleMs, {
-    events: ['mousemove', 'mousedown', 'keydown', 'touchstart'],
-  })
+  const idle = ref(false)
+  let idleScope: EffectScope | undefined
+  watch(() => activeSlideConfig.value.watchIdleMs, (ms) => {
+    idleScope?.stop()
+    idleScope = effectScope()
+    idleScope.run(() => {
+      const tracker = useIdle(ms, { events: ['mousemove', 'mousedown', 'keydown', 'touchstart'] })
+      watch(tracker.idle, (v) => { idle.value = v }, { immediate: true })
+    })
+  }, { immediate: true })
+  tryOnScopeDispose(() => idleScope?.stop())
 
   const isWatchIdle = computed(() =>
     activeSlideConfig.value.watchMode

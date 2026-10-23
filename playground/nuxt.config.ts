@@ -14,13 +14,16 @@ export default defineNuxtConfig({
     disableTransition: true,
   },
   hero: {
+    // Swiper + hero CSS in cascade layers, so page classes (e.g. `ui.slide`
+    // widths on the Effects page) beat Swiper's defaults. See docs/theming.
+    cssLayer: true,
     features: {
       navigation: true,
       pagination: true,
       mousewheel: true,
       keyboard: true,
       freeMode: true,
-      effects: ['creative', 'fade', 'cube', 'cards'],
+      effects: ['creative', 'fade', 'cube', 'cards', 'coverflow', 'flip'],
       parallax: true,
       swiperParallax: true,
       video: true,

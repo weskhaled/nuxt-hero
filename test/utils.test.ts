@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { DEFAULT_PARALLAX, animateVars, formatTime, isHlsUrl, isVideoUrl, patternCSS, patternSize, resolveParallaxConfig, stopAnimationHandle } from '../src/runtime/utils'
+import { DEFAULT_PARALLAX, animateVars, formatTime, isHlsUrl, isVideoSlide, isVideoUrl, patternCSS, patternSize, resolveParallaxConfig, stopAnimationHandle } from '../src/runtime/utils'
 
 describe('isVideoUrl', () => {
   it('detects mp4 URLs', () => {
@@ -48,6 +48,13 @@ describe('patternCSS', () => {
   it('uses provided color', () => {
     const result = patternCSS({ type: 'lines', color: 'red' })
     expect(result).toContain('red')
+  })
+})
+
+describe('patternCSS — gradient color', () => {
+  it('keeps the default glow without a color and tints with one', () => {
+    expect(patternCSS({ type: 'gradient' })).toContain('#00aaff')
+    expect(patternCSS({ type: 'gradient', color: 'rgb(0 0 0)' })).toBe('radial-gradient(circle at 55% 60%, transparent, rgb(0 0 0))')
   })
 })
 
@@ -160,6 +167,20 @@ describe('stopAnimationHandle', () => {
 
   it('ignores hooks that returned nothing', () => {
     expect(() => stopAnimationHandle(undefined)).not.toThrow()
+  })
+})
+
+describe('isVideoSlide', () => {
+  it('detects video from either source extension', () => {
+    expect(isVideoSlide({ bgSrc: '/a.jpg' })).toBe(false)
+    expect(isVideoSlide({ bgSrc: '/a.mp4' })).toBe(true)
+    expect(isVideoSlide({ bgSrc: '/a.jpg', bgDarkSrc: '/a-dark.m3u8' })).toBe(true)
+  })
+
+  it('lets an explicit bgType win over the extension', () => {
+    expect(isVideoSlide({ bgSrc: 'https://cdn.example.com/asset/123', bgType: 'video' })).toBe(true)
+    expect(isVideoSlide({ bgSrc: 'https://cdn.example.com/stream', bgType: 'hls' })).toBe(true)
+    expect(isVideoSlide({ bgSrc: '/poster.mp4', bgType: 'image' })).toBe(false)
   })
 })
 

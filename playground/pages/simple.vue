@@ -1,74 +1,78 @@
 <script setup lang="ts">
-import type { HeroSlide, UseHeroSliderOptions } from '#hero/types'
+import type { HeroSlide } from '#hero/types'
 
 // ─── Drop-in / uncontrolled usage ───
-// No `useHeroSlider()`, no `containerRef` — just `:slides` + `:options`.
-// <HeroSlider> creates and owns the composable internally.
+// No `useHeroSlider()`, no container ref — just `:slides` (+ optional
+// `:options`). <HeroSlider> creates and owns the composable internally.
 const slides: HeroSlide[] = [
-  {
-    bgSrc: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1920&q=80',
-    title: 'Drop-in Simple',
-    animation: {
-      enter: 'animate__animated animate__fadeIn',
-      leave: 'animate__animated animate__fadeOut',
-    },
-  },
-  {
-    bgSrc: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1920&q=80',
-    title: 'No Composable',
-    animation: {
-      enter: 'animate__animated animate__fadeInDown',
-      leave: 'animate__animated animate__fadeOutUp',
-    },
-  },
-  {
-    bgSrc: 'https://images.unsplash.com/photo-1494500764479-0c8f2919a3d8?w=1920&q=80',
-    title: 'Just Slides + Options',
-    animation: {
-      enter: 'animate__animated animate__fadeInUp',
-      leave: 'animate__animated animate__fadeOutDown',
-    },
-  },
+  { bgSrc: IMAGES.landscape, thumbSrc: thumb(IMAGES.landscape), title: 'Drop-in', description: 'One component, no composable, no config.' },
+  { bgSrc: IMAGES.waterfall, thumbSrc: thumb(IMAGES.waterfall), title: 'Sensible defaults', description: 'Arrows, dots, autoplay and video work out of the box.' },
+  { bgSrc: IMAGES.earth, thumbSrc: thumb(IMAGES.earth), title: 'Grows with you', description: 'Add options, slots or the composable only when you need them.' },
 ]
 
-const options: UseHeroSliderOptions = {
-  swiperOptions: { effect: 'fade', speed: 800, autoplay: { delay: 5000 } },
-}
+// Driving the internally-created slider from outside: a template ref…
+const heroRef = useTemplateRef<{ slider: { prev: () => void, next: () => void } }>('heroRef')
+// …or v-model on the active index.
+const active = ref(0)
 
-// Optional: reach the internally-created slider for external controls.
-// `<HeroSlider>` exposes it via defineExpose, so a plain template ref works —
-// you still don't have to call useHeroSlider() yourself.
-const heroRef = useTemplateRef<{ slider: import('#hero/types').UseHeroSliderReturn }>('heroRef')
+const minimalCode = `<script setup>
+const slides = [
+  { bgSrc: '/hero-1.jpg', title: 'Welcome' },
+  { bgSrc: '/hero-2.mp4', title: 'Video works too' },
+]
+</${'script'}>
+
+<template>
+  <!-- the slider fills its box — give it a height -->
+  <HeroSlider :slides="slides" style="height: 100vh">
+    <template #slide="{ slide }">
+      <h1 data-hero-animate="fade-up">{{ slide.title }}</h1>
+    </template>
+  </HeroSlider>
+</template>`
+
+const controlCode = `<!-- a template ref reaches the internal slider -->
+<HeroSlider ref="hero" :slides="slides" />
+<button @click="hero.slider.next()">Next</button>
+
+<!-- or bind the active index -->
+<HeroSlider v-model:active-index="active" :slides="slides" />
+<button v-for="(s, i) in slides" @click="active = i">{{ s.title }}</button>`
 </script>
 
 <template>
-  <div>
-    <div class="h-14" />
-    <HeroSlider ref="heroRef" :slides="slides" :options="options"
-      :parallax="{ bg: true, content: true, speed: 0.5, minOpacity: 0 }"
-      :overlay-patterns="[{ type: 'gradient', opacity: 0.15 }]" class="h-[calc(100vh-3.5rem)]">
-      <template #slide="{ slide }">
-        <div class="flex size-full items-center justify-center px-14">
-          <div class="text-center text-white">
-            <h1 class="text-4xl sm:text-6xl font-bold drop-shadow-lg">{{ slide.title }}</h1>
-            <p class="mt-4 text-lg opacity-80">No <code>useHeroSlider()</code> — just props</p>
+  <DemoPage title="Drop-in"
+    description="The shortest path: one <HeroSlider> with your slides. Navigation, pagination, autoplay and video are on by default — no composable and no module config needed."
+    :features="[':slides', ':options', 'ref → slider', 'v-model:active-index']">
+    <template #hero>
+      <HeroSlider ref="heroRef" v-model:active-index="active" :slides="slides"
+        :options="{ swiperOptions: { effect: 'fade', speed: 900 } }"
+        :overlay-patterns="[{ type: 'gradient', opacity: 0.15 }]" class="h-[calc(100svh-3.5rem)] min-h-[480px]">
+        <template #slide="{ slide }">
+          <div class="flex size-full items-center justify-center px-14 text-center text-white">
+            <div>
+              <h2 data-hero-animate="clip-up" class="text-4xl font-bold drop-shadow-lg sm:text-6xl">{{ slide.title }}</h2>
+              <p data-hero-animate="fade-up" class="mt-4 text-lg text-white/85 drop-shadow">{{ slide.description }}</p>
+            </div>
           </div>
-        </div>
-      </template>
-    </HeroSlider>
+        </template>
+      </HeroSlider>
+    </template>
 
-    <!-- External controls driving the *internally-created* slider via the ref -->
-    <div class="mx-auto flex max-w-md items-center justify-center gap-3 py-8">
-      <button class="rounded-lg px-4 py-2 text-sm font-medium transition-colors dark:bg-white/10 dark:hover:bg-white/20 bg-black/5 hover:bg-black/10"
-        @click="heroRef?.slider.prev()">
-        Prev
-      </button>
-      <button class="rounded-lg px-4 py-2 text-sm font-medium transition-colors dark:bg-white/10 dark:hover:bg-white/20 bg-black/5 hover:bg-black/10"
-        @click="heroRef?.slider.next()">
-        Next
-      </button>
-    </div>
+    <DemoSection title="Minimal setup" hint="Everything above is this — plus a fade effect." :code="minimalCode" />
 
-    <div class="h-120 flex items-center justify-center text-black/30 dark:text-white/30">scroll area</div>
-  </div>
+    <DemoSection title="Driving it from outside"
+      hint="Both controls below drive the slider above: the buttons through its template ref, the chips through v-model:active-index."
+      :code="controlCode">
+      <div class="demo-card flex flex-wrap items-center gap-2">
+        <button type="button" class="demo-btn" @click="heroRef?.slider.prev()">← Prev</button>
+        <button type="button" class="demo-btn" @click="heroRef?.slider.next()">Next →</button>
+        <span class="mx-2 h-5 w-px bg-black/10 dark:bg-white/15" aria-hidden="true" />
+        <button v-for="(s, i) in slides" :key="i" type="button" class="demo-btn" :aria-pressed="active === i"
+          @click="active = i">
+          {{ s.title }}
+        </button>
+      </div>
+    </DemoSection>
+  </DemoPage>
 </template>

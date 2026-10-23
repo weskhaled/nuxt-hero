@@ -1,6 +1,7 @@
 import type { SwiperOptions } from 'swiper/types'
+import type { Swiper as SwiperInstance } from 'swiper'
 import type { useMediaControls } from '@vueuse/core'
-import type { ComputedRef, MaybeRefOrGetter, Ref } from 'vue'
+import type { ComputedRef, MaybeRefOrGetter, Ref, ShallowRef } from 'vue'
 
 type UseMediaControlsOptions = NonNullable<Parameters<typeof useMediaControls>[1]>
 /**
@@ -16,8 +17,14 @@ export interface MediaControlsOptions extends UseMediaControlsOptions {}
 export type SwiperEffect = 'fade' | 'cube' | 'coverflow' | 'creative' | 'cards' | 'flip'
 
 export interface HeroFeatures {
+  /** The hero's navigation arrows (`<HeroNavigation>`) */
   navigation?: boolean
+  /** The hero's pagination pill (`<HeroPagination>`) */
   pagination?: boolean
+  /** Swiper's own Navigation module + CSS — only for native `swiperOptions.navigation` */
+  swiperNavigation?: boolean
+  /** Swiper's own Pagination module + CSS — only for native `swiperOptions.pagination` */
+  swiperPagination?: boolean
   mousewheel?: boolean
   keyboard?: boolean
   a11y?: boolean
@@ -51,6 +58,10 @@ export interface HeroFeatures {
 export interface HeroLabels {
   /** Accessible name for the carousel region (aria-label). Default: 'Carousel' */
   carousel?: string
+  /** Role description of the carousel region (aria-roledescription). Default: 'carousel' */
+  carouselRole?: string
+  /** Role description of each slide (aria-roledescription). Default: 'slide' */
+  slideRole?: string
   /** Previous-slide navigation button */
   prev?: string
   /** Next-slide navigation button */
@@ -73,12 +84,23 @@ export interface HeroLabels {
   speedNormal?: string
   /** Pagination nav landmark. Default: 'Slide pagination' */
   pagination?: string
-  /** Per-dot label — `{n}` is replaced with the 1-based slide number. Default: 'Go to slide {n}' */
+  /**
+   * Per-dot label — `{n}` is the 1-based dot number, `{total}` the dot count,
+   * `{title}` the slide's title. Default: 'Go to slide {n}'
+   */
   goToSlide?: string
+  /** Active dot's autoplay progress ring. Default: 'Autoplay progress' */
+  autoplayProgress?: string
+  /** Pause-autoplay toggle (`showAutoplayToggle`). Default: 'Pause autoplay' */
+  pauseAutoplay?: string
+  /** Resume-autoplay toggle (`showAutoplayToggle`). Default: 'Play autoplay' */
+  playAutoplay?: string
   /** Enter-fullscreen button (video) */
   fullscreenEnter?: string
   /** Exit-fullscreen button (video) */
   fullscreenExit?: string
+  /** Center play button's progress ring (video). Default: 'Video progress' */
+  videoProgress?: string
 }
 
 // ─── Animation ───
@@ -96,6 +118,16 @@ export type HeroAnimatePreset =
 
 /** Navigation direction of the latest slide change. */
 export type HeroSlideDirection = 'next' | 'prev'
+
+/** Payload of `<HeroSlider @change>` */
+export interface HeroSlideChange {
+  /** The slide now active */
+  index: number
+  /** The slide that was active */
+  previousIndex: number
+  direction: HeroSlideDirection
+  slide: HeroSlide
+}
 
 /**
  * Timing for `data-hero-animate` elements. Every value maps to a CSS custom
@@ -170,17 +202,21 @@ export interface SlideConfig {
   showPagination?: boolean
   /** Show navigation arrows when this slide is active. Default: inherited from HeroSliderProps */
   showNavigation?: boolean
-  /** Show progress bar / video scrubber when this slide is active. Default: inherited from HeroSliderProps */
+  /** Show the autoplay progress bar when this slide is active. Default: inherited from the slider */
   showProgress?: boolean
-  /** Show video controls when this slide is active (video slides only). Default: inherited from HeroSliderProps */
+  /** Show video controls when this slide is active (video slides only). Default: inherited from the slider */
   showVideoControls?: boolean
-  /** Loop video playback. When false, auto-advances to next slide on video end. Default: false */
+  /** Show the autoplay pause/play toggle when this slide is active. Default: inherited from the slider */
+  showAutoplayToggle?: boolean
+  /** Which parts of the default video controls render. Default: inherited from the slider's `videoControls` */
+  videoControls?: HeroVideoControlsConfig
+  /** Loop video playback. Default: false */
   videoLoop?: boolean
   /**
-   * Pause the autoplay timer while a video background plays, and advance only
-   * when the video ends. When false (default), autoplay timer keeps ticking
-   * during video playback — the next slide is decided by the timer, not the video.
-   * Has no effect if `videoLoop: true`. Default: false
+   * Hold the autoplay timer while the video plays; once it ends the timer
+   * resumes (the slide still gets its delay before advancing). When false,
+   * the timer keeps ticking during playback. No effect with `videoLoop: true`
+   * (a looping video never ends). Default: false
    */
   pauseUntilVideoEnds?: boolean
   /** VueUse useMediaControls options passed through to the video element. @see https://vueuse.org/core/useMediaControls/ */
@@ -196,12 +232,30 @@ export interface SlideConfig {
   watchIdleMs?: number
 }
 
+/** Parts of the default video controls — each defaults to `true` */
+export interface HeroVideoControlsConfig {
+  /** Centered play/pause button with its progress ring */
+  playButton?: boolean
+  /** Seek scrubber */
+  scrubber?: boolean
+  /** Mute toggle + volume slider */
+  volume?: boolean
+  /** Current time / duration label */
+  time?: boolean
+  /** Playback-speed menu; `{ rates }` sets the offered speeds (default 0.5–2×) */
+  settings?: boolean | { rates: number[] }
+  /** Fullscreen button (shown when the browser allows it) */
+  fullscreen?: boolean
+}
+
 /** Resolved slide config with boolean defaults applied */
 export interface ResolvedSlideConfig {
   showPagination: boolean
   showNavigation: boolean
   showProgress: boolean
   showVideoControls: boolean
+  showAutoplayToggle: boolean
+  videoControls: HeroVideoControlsConfig
   videoLoop: boolean
   pauseUntilVideoEnds: boolean
   mediaControlsOptions?: MediaControlsOptions
@@ -212,10 +266,17 @@ export interface ResolvedSlideConfig {
 // ─── Slide ───
 
 export interface HeroSlide {
-  /** Background image or video URL (auto-detected from extension) */
+  /** Background image or video URL (type detected from the extension — see `bgType`) */
   bgSrc: string
   /** Dark-mode alternative (falls back to bgSrc) */
   bgDarkSrc?: string
+  /**
+   * Background media type, for URLs whose extension doesn't tell (CDN / signed
+   * URLs). Default: detected — .mp4/.webm/.mov/.ogg = video, .m3u8 = hls, else image
+   */
+  bgType?: 'image' | 'video' | 'hls'
+  /** Alt text for an informative background image. Default: '' (decorative) */
+  bgAlt?: string
   /** Thumbnail for pagination tooltip / navigation preview */
   thumbSrc?: string
   /** Slide title (used in nav-slit preview) */
@@ -275,6 +336,22 @@ export interface HeroSliderUI {
   controls?: string
   /** Autoplay progress bar track */
   progress?: string
+  /** Autoplay progress bar fill */
+  progressFill?: string
+  /** Slide content layer (.hero-slide-content) */
+  content?: string
+  /** Inset scrim over the background (.hero-slide-scrim) */
+  scrim?: string
+  /** Pagination pill (.hero-pagination) */
+  pagination?: string
+  /** Navigation arrows wrapper (.hero-nav) */
+  navigation?: string
+  /** Video controls bar (.hero-media-controls) */
+  videoControls?: string
+  /** Centered video play button (.hero-play-center-btn) */
+  playButton?: string
+  /** Autoplay pause/play toggle (`showAutoplayToggle`) */
+  autoplayToggle?: string
 }
 
 // ─── Environment (mobile / PWA adaptiveness) ───
@@ -312,6 +389,11 @@ export interface HeroSliderProps {
   /** Array of slides */
   slides: HeroSlide[]
   /**
+   * Active slide index — bind with `v-model:active-index` to read and drive
+   * the slider from the parent (also sets the starting slide).
+   */
+  activeIndex?: number
+  /**
    * Composable return value — makes `<HeroSlider>` a *controlled* component.
    *
    * **Optional.** Omit it for the drop-in / *uncontrolled* mode: the component
@@ -340,16 +422,17 @@ export interface HeroSliderProps {
   /**
    * `@nuxt/image` `sizes` for slide backgrounds — drives a responsive `srcset`
    * so small screens download a smaller image (a mobile/PWA win). **Off by
-   * default** (`''`): a single preset-width `src` is emitted, unchanged. Set
-   * `'100vw'` for a full-bleed hero **when your `@nuxt/image` provider can
-   * transform widths** (e.g. ipx, Cloudinary, a Supabase-render provider) —
-   * otherwise the provider returns the same URL per width and the srcset is
-   * degenerate (harmless but pointless).
+   * default** (`''`): a single preset-width `src` is emitted, unchanged. For a
+   * full-bleed hero use `'sm:100vw md:100vw lg:100vw xl:100vw 2xl:100vw'`
+   * **when your `@nuxt/image` provider can transform widths** (e.g. ipx with the
+   * host in `image.domains`, Cloudinary, a Supabase-render provider) — otherwise
+   * the provider returns the same URL per width and the srcset is degenerate.
    *
-   * ⚠️ This is `@nuxt/image`'s key:value DSL, **not** CSS `sizes` syntax. Use
-   * `'100vw'` or breakpoint keys like `'xs:100vw md:100vw lg:100vw'`. Passing CSS
-   * media-query syntax (`'(min-width: 1024px) 1024px, 100vw'`) mis-parses and
-   * collapses the rendered width to ~1px.
+   * ⚠️ This is `@nuxt/image`'s key:value DSL, **not** CSS `sizes` syntax, and it
+   * needs breakpoint keys: with @nuxt/image 2 a bare `'100vw'` renders a
+   * `1w, 2w` srcset. Keys are your `image.screens` (default sm, md, lg, xl, 2xl —
+   * there is no `xs` unless you add it). CSS media-query syntax
+   * (`'(min-width: 1024px) 1024px, 100vw'`) mis-parses to ~1px.
    */
   imageSizes?: string
   /** Wrapper element tag. Default: 'div' */
@@ -383,7 +466,9 @@ export interface UseHeroSliderOptions {
    * the composable manages slide advancement and progress tracking internally.
    *
    * **Mousewheel:** Set `mousewheel: true` (or an options object) and the
-   * Mousewheel Swiper module is auto-registered — no manual import needed.
+   * Mousewheel Swiper module must be registered — `features.mousewheel` in
+   * Nuxt, or the `Mousewheel` module in `swiperModules` in plain Vue (a dev
+   * warning fires when it's missing).
    *
    * **Vertical direction:** Set `direction: 'vertical'` and the UI adapts:
    * - Pagination moves to the side (right in LTR, left in RTL)
@@ -403,10 +488,17 @@ export interface UseHeroSliderOptions {
   showPagination?: boolean
   /** Show navigation arrows. Default: true. Can be overridden per-slide via slide.config */
   showNavigation?: boolean
-  /** Show progress bar / video scrubber. Default: true. Can be overridden per-slide via slide.config */
+  /** Show the autoplay progress bar. Default: true. Can be overridden per-slide via slide.config */
   showProgress?: boolean
   /** Show video controls overlay. Default: true. Can be overridden per-slide via slide.config */
   showVideoControls?: boolean
+  /**
+   * Show a pause/play toggle for autoplay (WCAG 2.2.2 — moving content needs a
+   * pause control). Default: false. Can be overridden per-slide via slide.config
+   */
+  showAutoplayToggle?: boolean
+  /** Which parts of the default video controls render. Can be overridden per-slide via slide.config */
+  videoControls?: HeroVideoControlsConfig
   /** Watch mode default. Default: false. Can be overridden per-slide via slide.config */
   watchMode?: boolean
   /** Watch idle timeout (ms) default. Default: 10000. Can be overridden per-slide via slide.config */
@@ -420,6 +512,10 @@ export interface UseHeroSliderReturn {
   next: () => void
   prev: () => void
   goTo: (index: number) => void
+  /** Go to a snap point (pagination dot) — accounts for `slidesPerGroup` */
+  goToSnap: (snap: number) => void
+  /** The Swiper instance (undefined until Swiper initializes) — escape hatch for its full API */
+  swiper: ShallowRef<SwiperInstance | undefined>
 
   // ─── Slide State ───
   activeIndex: Ref<number>
@@ -443,6 +539,8 @@ export interface UseHeroSliderReturn {
   animationReplaying: Readonly<Ref<boolean>>
   /** Whether the slider is within the viewport */
   isVisible: Readonly<Ref<boolean>>
+  /** Resolved config of any slide (per-slide `config` over the slider defaults) */
+  getSlideConfig: (index: number) => ResolvedSlideConfig
 
   // ─── Autoplay ───
   autoplayEnabled: boolean
@@ -454,6 +552,8 @@ export interface UseHeroSliderReturn {
   autoplayResume: () => void
   autoplayReset: () => void
   autoplaySetDelay: (ms: number) => void
+  /** Whether the timer is ticking right now (not paused by API, hover, focus, video, visibility, …) */
+  autoplayRunning: ComputedRef<boolean>
 
   // ─── Video ───
   videoPlaying: ComputedRef<boolean>

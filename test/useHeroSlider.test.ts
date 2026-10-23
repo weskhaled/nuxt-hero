@@ -5,6 +5,7 @@ vi.mock('@vueuse/core', () => {
   return {
     useElementHover: () => ref(false),
     useElementVisibility: () => ref(true),
+    useEventListener: () => () => {},
     useRafFn: (_cb: () => void, _opts?: { immediate?: boolean }) => ({
       pause: () => {},
       resume: () => {},
@@ -190,5 +191,17 @@ describe('useHeroSlider (new flat API)', () => {
     expect(mock.slideNext).toHaveBeenCalled()
     slider.goTo(2)
     expect(mock.slideTo).toHaveBeenCalledWith(2)
+  })
+})
+
+describe('useHeroSlider — reactive options', () => {
+  it('follows option changes passed as a ref', () => {
+    const options = ref({ swiperOptions: { slidesPerView: 1 }, showPagination: true })
+    const slider = useHeroSlider(ref(null), [{ bgSrc: 'https://example.com/a.jpg' }], options)
+    expect(slider.isMultiSlide.value).toBe(false)
+    expect(slider.activeSlideConfig.value.showPagination).toBe(true)
+    options.value = { swiperOptions: { slidesPerView: 3 }, showPagination: false }
+    expect(slider.isMultiSlide.value).toBe(true)
+    expect(slider.activeSlideConfig.value.showPagination).toBe(false)
   })
 })

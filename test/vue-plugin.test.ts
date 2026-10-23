@@ -163,6 +163,28 @@ describe('SSR content choreography', () => {
   })
 })
 
+describe('SSR slots and labels', () => {
+  it('renders #background and #progress slots and translated role descriptions', async () => {
+    const slides = [
+      { bgSrc: 'https://example.com/a.jpg', title: 'Alpha' },
+      { bgSrc: 'https://example.com/b.jpg', title: 'Beta' },
+    ]
+    const app = createSSRApp({
+      render: () => h(HeroSlider, { slides, labels: { carouselRole: 'carrousel', slideRole: 'diapositive' } }, {
+        background: ({ src, index }: { src: string, index: number }) => h('picture', { 'class': 'custom-bg', 'data-i': index }, src),
+        progress: ({ progress }: { progress: number }) => h('div', { class: 'custom-progress' }, String(progress)),
+      }),
+    })
+    app.use(HeroPlugin)
+    const html = await renderToString(app)
+    expect(html.match(/class="custom-bg"/g)).toHaveLength(2)
+    expect(html).toContain('custom-progress')
+    expect(html).not.toContain('hero-autoplay-progress-fill')
+    expect(html).toContain('aria-roledescription="carrousel"')
+    expect(html).toContain('aria-roledescription="diapositive"')
+  })
+})
+
 describe('useHeroConfig', () => {
   it('falls back to defaults without a provider', () => {
     const cfg = mountWith(() => useHeroConfig()) as HeroRuntimeConfig

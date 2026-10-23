@@ -1,58 +1,71 @@
 <script setup lang="ts">
-const containerRef = useTemplateRef<HTMLElement>('containerRef')
+import type { HeroSlide, ParallaxConfig } from '#hero/types'
 
-const slides = [
-  {
-    bgSrc: 'https://upload.wikimedia.org/wikipedia/commons/f/f1/Sintel_movie_4K.webm',
-    bgDarkSrc: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
-    title: 'HLS Video',
-    animation: { enter: 'hero-animated hero-fadeIn', leave: 'animate__animated animate__fadeOut', },
-  },
-  {
-    bgSrc: 'https://www.videobacks.net/static/preview/stock-video-free-road-stock-footage--hd-royalty-free-archive-100661.mp4',
-    bgDarkSrc: 'https://www.videobacks.net/static/preview/stock-video-free-vfx-stock-video-footage--backgrounds-stock-footage-no-copyright-royalty-free-archive-hd-100658.mp4',
-    title: 'Parallax Demo',
-    animation: { enter: 'hero-animated hero-fadeIn', leave: 'animate__animated animate__fadeOut', },
-  },
-  {
-    bgSrc: 'https://images.unsplash.com/photo-1485673634125-0f3ae8fd3209?w=1920&q=80',
-    bgDarkSrc: 'https://images.unsplash.com/photo-1490114538077-0a7f8cb49891?w=1920&q=80',
-    title: 'Scroll Down',
-    animation: { enter: 'hero-animated hero-slideInUp', leave: 'animate__animated animate__fadeOut', },
-    config: { showPagination: true },
-  },
+const slides: HeroSlide[] = [
+  { bgSrc: IMAGES.mountains, title: 'Scroll the page', description: 'The background drifts and the content fades as the hero leaves the viewport.' },
+  { bgSrc: VIDEOS.glass.src, poster: VIDEOS.glass.poster, title: 'Video too', description: 'Video backgrounds take part in the scroll parallax like images.', config: { videoLoop: true, showVideoControls: false } },
+  { bgSrc: IMAGES.valley, title: 'Swipe the slides', description: 'Title and text move at different speeds during the transition.' },
 ]
 
-const swiperOptions = {
-  autoplay: { delay: 6000 },
-  speed: 800,
-  swiperParallax: true
-}
+// Scroll parallax (GSAP ScrollTrigger) — the `parallax` prop is reactive.
+const parallax = reactive<Required<ParallaxConfig>>({ bg: true, content: true, speed: 0.5, minOpacity: 0.15 })
 
-const slider = useHeroSlider(containerRef, slides, {
-  swiperOptions,
-  showPagination: false,
-})
+const scrollCode = computed(() => `<HeroSlider
+  :slides="slides"
+  :parallax="${JSON.stringify(parallax).replaceAll('"', '').replaceAll(',', ', ').replaceAll(':', ': ')}"
+/>
+
+// nuxt.config.ts — needs the optional gsap peer (pnpm add gsap);
+// on by default when gsap is installed
+hero: { features: { parallax: true } }`)
+
+const swiperCode = `<!-- Swiper's transition parallax: offsets while a slide moves -->
+<h1 data-swiper-parallax="-300">{{ slide.title }}</h1>
+<p data-swiper-parallax="-150">{{ slide.description }}</p>
+
+// nuxt.config.ts
+hero: { features: { swiperParallax: true } }`
 </script>
 
 <template>
-  <div>
-    <div class="h-[calc(100vh-4rem)] flex items-center justify-center">
-      <HeroSlider ref="containerRef" :slider="slider" :slides="slides"
-        :parallax="{ bg: true, content: true, speed: 0.55, minOpacity: 0.15 }"
-        :overlay-patterns="[{ type: 'gradient', opacity: 0.15 }]">
+  <DemoPage title="Parallax"
+    description="Two independent kinds of parallax. Scroll parallax (GSAP ScrollTrigger) drifts the background and fades the content as the page scrolls; Swiper's transition parallax offsets content elements while a slide moves. Both are skipped for reduced motion and in lite mode."
+    :features="[':parallax', 'features.parallax', 'features.swiperParallax', 'data-swiper-parallax']">
+    <template #hero>
+      <HeroSlider :slides="slides" :parallax="parallax" :overlay-patterns="[{ type: 'gradient', opacity: 0.2 }]"
+        :options="{ swiperOptions: { speed: 900, autoplay: { delay: 6000 } } }"
+        class="h-[calc(100svh-3.5rem)] min-h-[480px]">
         <template #slide="{ slide }">
-          <div class="flex flex-col size-full items-center justify-center px-14 text-center">
-            <h1 data-swiper-parallax="-300" class="text-4xl sm:text-5xl font-bold text-white drop-shadow-lg">{{ slide.title }}</h1>
-            <p data-swiper-parallax="300" class="text-xl font-light text-white drop-shadow-lg">
-              This is a simple parallax effect example.
-            </p>
+          <div class="flex size-full flex-col items-center justify-center px-14 text-center text-white">
+            <h2 data-swiper-parallax="-300" class="text-4xl font-bold drop-shadow-lg sm:text-6xl">{{ slide.title }}</h2>
+            <p data-swiper-parallax="-150" class="mt-4 max-w-xl text-white/85 drop-shadow sm:text-lg">{{ slide.description }}</p>
           </div>
         </template>
       </HeroSlider>
-    </div>
-    <div class="flex min-h-screen items-center justify-center bg-white p-12">
-      <p class="text-2xl text-gray-800">Scroll back up to see the parallax effect.</p>
-    </div>
-  </div>
+    </template>
+
+    <DemoSection title="Scroll parallax"
+      hint="Tune it, then scroll back up past the hero. The prop is reactive — no remount needed."
+      :code="scrollCode">
+      <div class="demo-card grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <label class="demo-check"><input v-model="parallax.bg" type="checkbox"> Background drift (<code class="demo-code">bg</code>)</label>
+        <label class="demo-check"><input v-model="parallax.content" type="checkbox"> Content fade (<code class="demo-code">content</code>)</label>
+        <label class="block">
+          <span class="demo-label flex justify-between"><span>Speed</span><span class="tabular-nums">{{ parallax.speed }}</span></span>
+          <input v-model.number="parallax.speed" type="range" min="0.1" max="1" step="0.05" class="w-full">
+        </label>
+        <label class="block">
+          <span class="demo-label flex justify-between"><span>Min opacity</span><span class="tabular-nums">{{ parallax.minOpacity }}</span></span>
+          <input v-model.number="parallax.minOpacity" type="range" min="0" max="1" step="0.05" class="w-full">
+        </label>
+      </div>
+    </DemoSection>
+
+    <DemoSection title="Transition parallax"
+      hint="Swiper's own parallax module: elements marked with data-swiper-parallax shift by their offset while the slide moves — swipe the hero to see the title lead the text. Don't combine it with data-hero-animate on the same element (wrap one in the other)."
+      :code="swiperCode" />
+
+    <!-- Room to scroll the hero out of view. -->
+    <div class="h-[60vh]" aria-hidden="true" />
+  </DemoPage>
 </template>

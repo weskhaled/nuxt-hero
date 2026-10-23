@@ -91,3 +91,32 @@ describe('createAutoplayState', () => {
     expect(autoplayProgress.value).toBe(0)
   })
 })
+
+describe('createAutoplayState — Swiper autoplay options', () => {
+  it('pauses on hover by default; pauseOnMouseEnter: false keeps it running', () => {
+    const hovered = ref(true)
+    const byDefault = createAutoplayState(vi.fn(), computed(() => false), hovered, {})
+    expect(byDefault.autoplayRunning.value).toBe(false)
+    const optedOut = createAutoplayState(vi.fn(), computed(() => false), hovered,
+      { swiperOptions: { autoplay: { pauseOnMouseEnter: false } } })
+    expect(optedOut.autoplayRunning.value).toBe(true)
+  })
+
+  it('pauses while keyboard focus is inside the slider', () => {
+    const focused = ref(false)
+    const state = createAutoplayState(vi.fn(), computed(() => false), ref(false), {}, undefined, { isKeyboardFocused: focused })
+    expect(state.autoplayRunning.value).toBe(true)
+    focused.value = true
+    expect(state.autoplayRunning.value).toBe(false)
+  })
+
+  it('keeps running after user interaction unless disableOnInteraction is set', () => {
+    const keepGoing = createAutoplayState(vi.fn(), computed(() => false), ref(false), {})
+    keepGoing.onUserInteraction()
+    expect(keepGoing.autoplayPaused.value).toBe(false)
+    const stops = createAutoplayState(vi.fn(), computed(() => false), ref(false),
+      { swiperOptions: { autoplay: { disableOnInteraction: true } } })
+    stops.onUserInteraction()
+    expect(stops.autoplayPaused.value).toBe(true)
+  })
+})

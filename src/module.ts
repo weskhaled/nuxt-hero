@@ -1,3 +1,5 @@
+import { createRequire } from 'node:module'
+import { join } from 'pathe'
 import { createResolver, defineNuxtModule } from '@nuxt/kit'
 import type { HeroModuleOptions } from './module/types'
 import { resolveFeatures } from './module/features'
@@ -7,10 +9,23 @@ import { setupVite } from './module/vite'
 import { registerComponents, registerComposables } from './module/components'
 
 export type { HeroModuleOptions } from './module/types'
+
+/** Whether a package resolves from the app (e.g. an optional peer is installed). */
+function canResolve(id: string, rootDir: string): boolean {
+  try {
+    createRequire(join(rootDir, 'package.json')).resolve(id)
+    return true
+  }
+  catch {
+    return false
+  }
+}
 export type {
   HeroFeatures,
   SwiperEffect,
   HeroSlide,
+  /** Same type as `HeroSlide` — the name the `nuxt-hero/vue` entry uses (its `HeroSlide` is the component) */
+  HeroSlide as HeroSlideData,
   SlideConfig,
   ResolvedSlideConfig,
   SlideAnimation,
@@ -21,6 +36,8 @@ export type {
   HeroAnimationContext,
   HeroAnimationHandle,
   HeroSlideDirection,
+  HeroSlideChange,
+  HeroVideoControlsConfig,
   HeroSliderProps,
   HeroSliderUI,
   HeroLabels,
@@ -65,15 +82,24 @@ export default defineNuxtModule<HeroModuleOptions>({
     const runtimeDir = resolve('./runtime')
     const prefix = options.prefix ?? 'Hero'
 
-    // Resolve & validate features
-    const features = resolveFeatures(options.features ?? {})
+    // Same defaults as the Vue plugin, under anything the user sets: the hero
+    // chrome renders out of the box. Parallax needs the optional `gsap` peer —
+    // on by default only when it resolves, and switched off (with a warning)
+    // when requested without it, so HeroParallax's import never breaks a build.
+    const hasGsap = canResolve('gsap', nuxt.options.rootDir)
+    const requested = { navigation: true, pagination: true, video: true, parallax: hasGsap, ...options.features }
+    if (requested.parallax && !hasGsap) {
+      console.warn('[nuxt-hero] `features.parallax` needs the `gsap` package — install it (`pnpm add gsap`). Parallax is disabled.')
+      requested.parallax = false
+    }
+    const features = resolveFeatures(requested)
 
     if (options.tailwind !== undefined) {
       console.warn('[nuxt-hero] The `tailwind` option is deprecated and ignored — hero styles now ship as plain CSS (no Tailwind pipeline required). Remove it from `hero` config.')
     }
 
     // CSS: swiper core + our compiled-in plain CSS, per-feature Swiper CSS
-    setupCss(nuxt, runtimeDir, features)
+    setupCss(nuxt, runtimeDir, features, options.cssLayer ?? false)
 
     // App plugin providing the runtime config (features, Swiper modules,
     // NuxtImg when available) via Vue provide/inject — the single Nuxt bridge.

@@ -7,7 +7,7 @@ Configure the module in your `nuxt.config.ts` under the `hero` key:
 ```ts
 export default defineNuxtConfig({
   hero: {
-    // Component name prefix (e.g., <HeroSlider>, <HeroPagination>)
+    // Component name prefix (<HeroSlider>, <HeroPagination>, …)
     prefix: 'Hero',
 
     // Default volume for video backgrounds (0 = muted, 1 = full)
@@ -16,68 +16,95 @@ export default defineNuxtConfig({
     // Dark detection for bgDarkSrc: 'class' (.dark on <html>) | 'media'
     darkMode: 'class',
 
-    // Feature flags — opt-in to Swiper modules and capabilities
+    // Put Swiper's CSS + hero.css in cascade layers so your classes win
+    cssLayer: false,
+
+    // Feature flags (see below). Anything you set wins over the defaults.
     features: {
-      // Swiper modules
-      navigation: true,     // Navigation arrows
-      pagination: true,     // Pagination dots
-      mousewheel: false,    // Mousewheel control
-      keyboard: false,      // Keyboard navigation
-      a11y: true,           // Accessibility module (ON by default)
-      freeMode: false,      // Free-scroll mode
-      thumbs: false,        // Thumbnails
-      grid: false,          // Grid layout
-      zoom: false,          // Pinch-to-zoom
-      scrollbar: false,     // Scrollbar
-      controller: false,    // Multi-slider sync
-      virtual: false,       // Virtual slides
-      hashNavigation: false,// Hash-based slide linking
-      history: false,       // Browser history integration
-      swiperParallax: false,// Swiper's built-in parallax
-
-      // Slide effects (array — include only what you use)
-      effects: ['fade', 'cube', 'coverflow', 'creative', 'cards', 'flip'],
-
-      // Media features
-      parallax: true,       // GSAP ScrollTrigger parallax (lazy-loaded)
-      video: true,          // Video backgrounds + controls (lazy-loaded)
-      hls: false,           // HLS streaming (requires video: true)
+      effects: ['fade'],
     },
   },
 })
 ```
 
-Only `a11y` is enabled by default; every other feature is opt-in (an empty
-`features: {}` registers just the core slider + the accessibility module).
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `prefix` | `string` | `'Hero'` | Component name prefix |
+| `defaultVolume` | `number` | `0` | Initial volume of video backgrounds (0–1) |
+| `darkMode` | `'class' \| 'media'` | `'class'` | How dark mode is detected for `bgDarkSrc` (see below) |
+| `cssLayer` | `boolean` | `false` | Load Swiper's CSS and `hero.css` into cascade layers (`hero-vendor`, `hero`) so your classes win over them (see [Theming → Cascade layers](/theming#cascade-layers)) |
+| `features` | `HeroFeatures` | see below | Which parts and Swiper modules are built in |
+| `tailwind` | — | — | **Deprecated**, ignored with a warning. Remove it |
 
 ### `darkMode`
 
 How dark mode is detected for the per-slide `bgDarkSrc` image/video swap:
 
-- **`'class'`** (default) — reactively tracks a `dark` class on `<html>` (the
+- **`'class'`** (default): tracks a `dark` class on `<html>`. This is the
   convention shared by Tailwind's class strategy, Nuxt UI, and
-  `@nuxtjs/color-mode` with `classSuffix: ''`). Works with any color-mode
-  implementation that toggles that class — none is required.
-- **`'media'`** — the OS-level `prefers-color-scheme: dark` media query, for
+  `@nuxtjs/color-mode` with `classSuffix: ''`. Any color-mode implementation that
+  toggles that class works, and none is required.
+- **`'media'`**: the OS-level `prefers-color-scheme: dark` media query, for
   apps with no class-based dark mode.
+
+This option only affects the background swap. The chrome's CSS dark styles always
+key off `.dark` (see [Theming → Dark mode](/theming#dark-mode)).
+
+### `cssLayer`
+
+With `cssLayer: true`, Swiper's CSS and `hero.css` load into cascade layers that
+are declared before your app's CSS. Any class you write then wins over them. One
+example is `ui.slide: 'w-80'` with `slidesPerView: 'auto'`, which Swiper's
+`.swiper-slide { width: 100% }` would otherwise override. The trade-off:
+unlayered app CSS, including resets, also beats the slider's styles. Details
+and the plain-Vue equivalent are in [Theming](/theming#cascade-layers).
 
 ### `tailwind` (deprecated)
 
 No longer used. Hero styles ship as **plain CSS** (injected by the module), so
 no Tailwind pipeline is involved. Setting the option logs a warning and does
-nothing — remove it from your config.
+nothing, so remove it from your config.
 
-### Feature Flags
+## Feature Flags
 
-Feature flags control which Swiper modules and CSS are bundled. Only enabled features are included in your production bundle — keeping it lean.
+Feature flags decide which parts of the slider render and which Swiper modules
+and CSS are bundled. Swiper modules and CSS behind a disabled flag are never
+imported. The slider's own parts (navigation, pagination, video) are lazy
+chunks that load only when they render.
+
+**Defaults** (the same as the [Vue plugin](/vue)):
+
+| Flag | Default |
+|------|---------|
+| `navigation`, `pagination`, `video`, `a11y` | `true` |
+| `parallax` | `true` when the `gsap` package resolves from your app, otherwise `false` |
+| everything else | `false` |
+
+The flags you set are merged over these defaults. Setting `parallax: true`
+without `gsap` installed logs a warning and keeps parallax off.
+
+### Slider features
+
+| Flag | What it enables |
+|------|-----------------|
+| `navigation` | The slider's arrows (`<HeroNavigation>`) |
+| `pagination` | The slider's pagination pill (`<HeroPagination>`) |
+| `video` | Video backgrounds, controls and scrubber (lazy-loaded per video slide) |
+| `hls` | `.m3u8` playback through `hls.js` (lazy-loaded). Turns on `video` |
+| `parallax` | GSAP scroll parallax (`<HeroSlider :parallax>`), lazy-loaded. Needs `gsap` |
+
+### Swiper modules
+
+Each flag registers a Swiper module on every slider, plus its CSS where it has
+one:
 
 | Flag | Swiper Module | CSS Loaded | Notes |
 |------|--------------|------------|-------|
-| `navigation` | `Navigation` | `swiper/css/navigation` | Prev/next arrows |
-| `pagination` | `Pagination` | `swiper/css/pagination` | Dot indicators |
-| `mousewheel` | `Mousewheel` | — | Scroll to change slides (one slide per gesture) |
-| `keyboard` | `Keyboard` | — | Arrow key navigation |
 | `a11y` | `A11y` | — | Screen-reader support (**on by default**) |
+| `keyboard` | `Keyboard` | — | Arrow-key navigation; enable with `swiperOptions.keyboard` |
+| `mousewheel` | `Mousewheel` | — | Wheel/trackpad navigation, one slide per gesture; enable with `swiperOptions.mousewheel` |
+| `swiperNavigation` | `Navigation` | `swiper/css/navigation` | Only for Swiper's **native** `swiperOptions.navigation` |
+| `swiperPagination` | `Pagination` | `swiper/css/pagination` | Only for Swiper's **native** `swiperOptions.pagination` |
 | `freeMode` | `FreeMode` | `swiper/css/free-mode` | Free-scroll without snapping |
 | `thumbs` | `Thumbs` | `swiper/css/thumbs` | Thumbnail gallery |
 | `grid` | `Grid` | `swiper/css/grid` | Multi-row grid layout |
@@ -88,6 +115,12 @@ Feature flags control which Swiper modules and CSS are bundled. Only enabled fea
 | `hashNavigation` | `HashNavigation` | — | URL hash linking |
 | `history` | `History` | — | Browser history |
 | `swiperParallax` | `Parallax` | — | Swiper's transition parallax |
+
+::: tip Mousewheel and keyboard need both
+The flag registers the module, and the Swiper option turns it on. Setting
+`swiperOptions.mousewheel` without the module does nothing, and the slider logs a
+dev warning. The module isn't registered automatically.
+:::
 
 ### Slide Effects
 
@@ -111,38 +144,41 @@ hero: {
 }
 ```
 
+Unknown effect names are dropped with a warning.
+
+### Components
+
+`<HeroSlider>` and `<HeroSlide>` are always registered. `<HeroPagination>` and
+`<HeroNavigation>` are registered when their flag is on. `<HeroVideoControls>`,
+`<HeroVideoScrubber>` and `<HeroSlideVideo>` are registered when `video` is on.
+`<HeroIcon>` is not auto-registered in Nuxt.
+
 ### Auto-Enabled Dependencies
 
 - Setting `hls: true` automatically enables `video: true`.
-- If your app happens to use `@nuxtjs/color-mode`, the module nudges its
-  `classSuffix` to `''` so the toggled class is `.dark` — but color-mode is
-  **not required** (dark detection watches the `.dark` class directly).
+- If your app happens to use `@nuxtjs/color-mode`, the module sets its
+  `classSuffix` to `''` so the toggled class is `.dark`. Color-mode is
+  **not required**: dark detection watches the `.dark` class directly.
+
+## Types
+
+`HeroModuleOptions`, `HeroFeatures` and every public type are exported from
+`nuxt-hero`. See [Types](/types).
 
 ## Dark mode
 
 The chrome is dark-mode aware via the **`.dark` class** convention (`:where(.dark)`
-ancestor selectors in the shipped CSS) — the same strategy Tailwind, Nuxt UI, and
-a `color-mode` `classSuffix: ''` setup use. Dropped into such an app the hero
-shares the existing `.dark` toggle with no extra wiring; apps without a class
-toggle can set `darkMode: 'media'` to follow `prefers-color-scheme` instead.
+ancestor selectors in the shipped CSS). Tailwind, Nuxt UI and a `color-mode`
+`classSuffix: ''` setup use the same strategy. In such an app the hero shares
+the existing `.dark` toggle with no extra wiring. Apps without a class toggle can
+set `darkMode: 'media'` for the background swap. For the chrome, see
+[Theming → Dark mode](/theming#dark-mode).
 
-## Theming (colors)
+## Theming
 
-Slide chrome reads CSS custom properties, so active states can adopt your app's
-brand and adapt to light/dark automatically. Defaults are media-safe (white over
-imagery); override any of them on `.hero-slider` (or `:root`):
-
-| Variable | Default | Used by |
-|----------|---------|---------|
-| `--hero-primary` | `var(--ui-primary, #fff)` | Active pagination ring, autoplay progress, video scrubber fill |
-| `--hero-on-media` | `#fff` | Inactive dots, icons, time labels |
-| `--hero-surface` | `rgb(0 0 0 / 0.35)` | Pagination bar background |
-| `--hero-progress-bg` | `rgb(0 0 0 / 0.2)` | Progress / scrubber / volume tracks |
-
-`--hero-primary` defaults to Nuxt UI's `--ui-primary`, which already shifts shade
-per color-scheme — so in a Nuxt UI app the accents match your primary **and**
-adapt to light/dark for free. Standalone (no `--ui-primary`) it falls back to
-white.
+Colors and sizes are `--hero-*` CSS custom properties. Internal elements accept
+extra classes through the `ui` prop. The full token list, `ui` keys and styling
+hooks are on the [Theming](/theming) page.
 
 ```css
 /* e.g. pin the accent to a specific primary shade */
@@ -151,16 +187,14 @@ white.
 
 ## RTL
 
-Set `dir="rtl"` on an ancestor (e.g. `<html dir="rtl">`, as a bilingual app does
-per locale) and the slider follows automatically — Swiper's slide direction
-syncs at init **and** on runtime locale switches, and the navigation, pagination,
-progress bar, and hover thumbnails all flip. No per-instance configuration.
+Set `dir="rtl"` on an ancestor, for example `<html dir="rtl">` as a bilingual app
+does per locale. The slider then follows automatically. Swiper's slide direction
+syncs at init **and** on runtime locale switches. The navigation, pagination,
+progress bar and hover thumbnails all flip. No per-instance configuration is
+needed.
 
 ## Accessibility
 
-With `a11y` on (default), Swiper announces slide changes via an `aria-live`
-region and labels each slide. On top of that the slider applies the WAI-ARIA APG
-carousel pattern (`role="region"` + `aria-roledescription="carousel"` on the
-root, `aria-roledescription="slide"` per slide, and `inert` on inactive slides).
-All control labels are localizable via the `<HeroSlider :labels>` prop, and
-autoplay + parallax respect `prefers-reduced-motion`.
+The slider follows the WAI-ARIA APG carousel pattern. Its labels can be
+localized, and autoplay pauses on hover, keyboard focus and reduced motion. See
+[Accessibility](/accessibility).
