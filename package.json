@@ -1,6 +1,6 @@
 {
   "name": "nuxt-hero",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "A full-featured hero slider for Nuxt AND plain Vue 3 — parallax, video backgrounds, overlay patterns, customizable animations. Zero-Tailwind plain-CSS styling, touch-friendly, RTL + a11y ready.",
   "license": "MIT",
   "author": "weskhaled",
